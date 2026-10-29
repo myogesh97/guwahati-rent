@@ -7,7 +7,9 @@ export function shortRupees(n: number): string {
   if (n >= 100000) return `₹${(n / 100000).toFixed(n % 100000 === 0 ? 0 : 1)}L`;
   if (n >= 1000) {
     const k = n / 1000;
-    return `₹${k >= 10 ? Math.round(k) : k.toFixed(k % 1 === 0 ? 0 : 1)}k`;
+    // One decimal so ₹10,500 reads ₹10.5k, not ₹11k; whole thousands stay short (₹14k).
+    const r = Math.round(k * 10) / 10;
+    return `₹${r % 1 === 0 ? r.toFixed(0) : r.toFixed(1)}k`;
   }
   return `₹${n}`;
 }
@@ -74,3 +76,83 @@ export function escapeHtml(s: string): string {
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
   );
 }
+
+// ---------- living conditions (migration 0003) ----------
+type Req<K extends keyof PublicPin> = NonNullable<PublicPin[K]>;
+type Elem<T> = T extends readonly (infer E)[] ? E : never;
+
+export const WATER_AVAILABILITY_LABEL: Record<Req<'water_availability'>, string> = {
+  '24h': '24 hours',
+  daily_fixed: 'Daily, fixed hours',
+  daily_limited: 'Daily, but limited',
+  alternate_day: 'Every other day',
+  irregular: 'Irregular',
+  unknown: 'Not sure',
+};
+
+export const WATER_SOURCE_LABEL: Record<Elem<Req<'water_sources'>>, string> = {
+  piped: 'Piped supply',
+  borewell: 'Borewell',
+  well: 'Well',
+  tanker: 'Tanker',
+  shared_tank: 'Shared building tank',
+  other: 'Other',
+};
+
+export const WATER_EXTRA_LABEL: Record<Req<'water_extra_cost'>, string> = {
+  none: 'No extra cost',
+  tanker: 'Buys tanker water',
+  charge: 'Pays a monthly water charge',
+  both: 'Buys tanker water and pays a water charge',
+};
+
+export const DRINKING_LABEL: Record<Req<'drinking_water'>, string> = {
+  supplied: 'Comes with the supply',
+  purifier: 'Purifier at home',
+  buy_cans: 'Buys water cans',
+  boil_filter: 'Boils or filters',
+  other: 'Other',
+};
+
+export const WATERLOG_PLACE_LABEL: Record<Elem<Req<'waterlog_where'>>, string> = {
+  access_road: 'road to the home',
+  neighbourhood: 'wider area nearby',
+  entrance: 'gate or entrance',
+  parking: 'parking',
+  ground_floor: 'ground-floor rooms',
+  inside_home: 'inside the home',
+};
+
+export const SEVERITY_LABEL: Record<Req<'waterlog_severity'>, string> = {
+  minor: 'ankle-deep or less',
+  moderate: 'up to the knee',
+  severe: 'above the knee',
+};
+
+export const DURATION_LABEL: Record<Req<'waterlog_duration'>, string> = {
+  under_3h: 'clears in under 3 hours',
+  '3_to_12h': 'stays 3 to 12 hours',
+  '12_to_48h': 'stays 12 to 48 hours',
+  over_48h: 'stays more than 2 days',
+};
+
+export const ROAD_LABEL: Record<Req<'road_in_rain'>, string> = {
+  usable: 'Road stays usable',
+  difficult: 'Getting in and out is difficult',
+  cut_off: 'Cut off for a while',
+};
+
+export const FLOOR_LABEL: Record<Req<'floor_level'>, string> = {
+  ground: 'Ground floor',
+  upper: 'Upper floor',
+  whole_house: 'Whole house',
+};
+
+export const POWER_CUTS_LABEL: Record<Req<'power_cuts'>, string> = {
+  rare: 'Rare',
+  weekly: 'About once a week',
+  daily: 'Daily',
+  several_daily: 'Several times a day',
+};
+
+export const litres = (n: number): string => `${n.toLocaleString('en-IN')} L`;

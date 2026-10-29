@@ -9,7 +9,9 @@ export function json(req: Request, status: number, body: Record<string, unknown>
 }
 
 export const ok = (req: Request, data: Record<string, unknown> = {}) => json(req, 200, { ok: true, ...data });
-export const fail = (req: Request, status: number, error: string) => json(req, status, { ok: false, error });
+/** `extra` may carry non-sensitive hints such as `fields` (input names to highlight). Never values. */
+export const fail = (req: Request, status: number, error: string, extra: Record<string, unknown> = {}) =>
+  json(req, status, { ok: false, error, ...extra });
 
 /** Handles CORS preflight and rejects anything that is not a POST. Returns null when the request may proceed. */
 export function preflight(req: Request): Response | null {

@@ -1,4 +1,18 @@
-import type { PropertyType } from '../supabase/functions/_shared/rules';
+import type {
+  DRINKING_WATER,
+  FLOOR_LEVEL,
+  POWER_CUTS,
+  PropertyType,
+  ROAD_IN_RAIN,
+  WATER_AVAILABILITY,
+  WATER_EXTRA_COST,
+  WATER_SOURCES,
+  WATERLOG_DURATION,
+  WATERLOG_PLACES,
+  WATERLOG_SEVERITY,
+} from '../supabase/functions/_shared/rules';
+
+type Of<T extends readonly string[]> = T[number];
 
 /** Mirrors the public_pins view (SPEC §6.1). Never contains contacts or edit hashes. */
 export interface PublicPin {
@@ -27,6 +41,24 @@ export interface PublicPin {
   created_at: string;
   lat: number;
   lng: number;
+  // Living conditions (migration 0003). Optional: absent on old rows / before the migration.
+  water_sources?: Of<typeof WATER_SOURCES>[] | null;
+  water_availability?: Of<typeof WATER_AVAILABILITY> | null;
+  water_litres?: number | null;
+  water_hours?: string | null;
+  water_extra_cost?: Of<typeof WATER_EXTRA_COST> | null;
+  water_shared?: boolean | null;
+  drinking_water?: Of<typeof DRINKING_WATER> | null;
+  water_note?: string | null;
+  waterlog_where?: Of<typeof WATERLOG_PLACES>[] | null;
+  waterlog_severity?: Of<typeof WATERLOG_SEVERITY> | null;
+  waterlog_duration?: Of<typeof WATERLOG_DURATION> | null;
+  road_in_rain?: Of<typeof ROAD_IN_RAIN> | null;
+  floor_level?: Of<typeof FLOOR_LEVEL> | null;
+  waterlog_note?: string | null;
+  power_cuts?: Of<typeof POWER_CUTS> | null;
+  maintenance_amount?: number | null;
+  conditions_as_of?: string | null;
 }
 
 export interface Locality {

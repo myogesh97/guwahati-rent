@@ -144,7 +144,9 @@
         <div class="dlg-body">
           <p class="hint" id="rent-locality">Your rent stays anonymous.</p>
 
-          <div id="rent-error" class="form-error" role="alert" hidden></div>
+          <div id="rent-error" class="form-error" role="alert" tabindex="-1" hidden></div>
+
+          <h3 class="sec-first">The home</h3>
 
           <fieldset class="field">
             <legend>Type of home <span class="req">required</span></legend>
@@ -184,10 +186,11 @@
                 step="1"
                 required
                 placeholder="e.g. 12000"
-                aria-describedby="rent-amount-help"
+                aria-describedby="rent-amount-help err-rent"
               />
             </div>
             <p class="help" id="rent-amount-help">What you pay each month, without electricity.</p>
+            <p class="field-error" id="err-rent" hidden></p>
           </div>
 
           <fieldset class="field">
@@ -210,73 +213,303 @@
             </div>
           </fieldset>
 
-          <div class="field-row">
-            <div class="field">
-              <label for="parking">Car parking spots</label>
-              <input
-                id="parking"
-                name="parking_cars"
-                type="number"
-                inputmode="numeric"
-                min="0"
-                max="5"
-                value="0"
-              />
-            </div>
-            <div class="field">
-              <label for="society">Building or society name</label>
-              <input
-                id="society"
-                name="society_name"
-                type="text"
-                maxlength="120"
-                autocomplete="off"
-              />
-            </div>
-          </div>
+          <!-- Water ------------------------------------------------------------>
+          <section class="form-section" aria-labelledby="sec-water">
+            <h3 id="sec-water">Water</h3>
+            <p class="help section-help">
+              Only what you know. Skip anything you're not sure about.
+            </p>
 
-          <fieldset class="field">
-            <legend>Does it waterlog in the monsoon?</legend>
-            <div class="seg seg-wrap" role="radiogroup">
-              <label><input type="radio" name="waterlogging" value="none" /> No</label>
-              <label><input type="radio" name="waterlogging" value="road_only" /> Road only</label>
-              <label
-                ><input type="radio" name="waterlogging" value="enters_premises" /> Water comes
-                in</label
-              >
-              <label
-                ><input type="radio" name="waterlogging" value="unknown" checked /> Not sure</label
-              >
+            <fieldset class="field">
+              <legend>How often does water come?</legend>
+              <div class="seg" role="radiogroup">
+                <label><input type="radio" name="water_availability" value="24h" /> 24 hours</label>
+                <label
+                  ><input type="radio" name="water_availability" value="daily_fixed" /> Daily, fixed
+                  hours</label
+                >
+                <label
+                  ><input type="radio" name="water_availability" value="daily_limited" /> Daily, but
+                  limited</label
+                >
+                <label
+                  ><input type="radio" name="water_availability" value="alternate_day" /> Every
+                  other day</label
+                >
+                <label
+                  ><input type="radio" name="water_availability" value="irregular" />
+                  Irregular</label
+                >
+                <label
+                  ><input type="radio" name="water_availability" value="unknown" /> Not sure</label
+                >
+              </div>
+            </fieldset>
+
+            <fieldset class="cond" id="water-schedule" hidden disabled>
+              <legend class="sr-only">Supply details</legend>
+              <div class="field-row">
+                <div class="field">
+                  <label for="water-litres" id="water-litres-label">Litres per supply day</label>
+                  <div class="unit">
+                    <input
+                      id="water-litres"
+                      name="water_litres"
+                      type="number"
+                      inputmode="numeric"
+                      min="20"
+                      max="20000"
+                      step="1"
+                      placeholder="e.g. 500"
+                      aria-describedby="water-litres-help err-water_litres"
+                    />
+                    <span aria-hidden="true">litres</span>
+                  </div>
+                  <p class="help" id="water-litres-help">Leave blank if you don't know.</p>
+                  <p class="field-error" id="err-water_litres" hidden></p>
+                </div>
+                <div class="field">
+                  <label for="water-hours">Supply hours</label>
+                  <input
+                    id="water-hours"
+                    name="water_hours"
+                    type="text"
+                    maxlength="60"
+                    placeholder="e.g. 6–8 am"
+                    autocomplete="off"
+                  />
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="field">
+              <legend>Where does the water come from?</legend>
+              <p class="help seg-help">Pick all that apply.</p>
+              <div class="seg">
+                <label
+                  ><input type="checkbox" name="water_sources" value="piped" /> Piped supply</label
+                >
+                <label
+                  ><input type="checkbox" name="water_sources" value="borewell" /> Borewell</label
+                >
+                <label><input type="checkbox" name="water_sources" value="well" /> Well</label>
+                <label><input type="checkbox" name="water_sources" value="tanker" /> Tanker</label>
+                <label
+                  ><input type="checkbox" name="water_sources" value="shared_tank" /> Shared
+                  building tank</label
+                >
+                <label><input type="checkbox" name="water_sources" value="other" /> Other</label>
+              </div>
+            </fieldset>
+
+            <fieldset class="field">
+              <legend>Do you pay extra for water?</legend>
+              <div class="seg" role="radiogroup">
+                <label><input type="radio" name="water_extra_cost" value="none" /> No</label>
+                <label
+                  ><input type="radio" name="water_extra_cost" value="tanker" /> Buy tanker
+                  water</label
+                >
+                <label
+                  ><input type="radio" name="water_extra_cost" value="charge" /> Monthly water
+                  charge</label
+                >
+                <label><input type="radio" name="water_extra_cost" value="both" /> Both</label>
+              </div>
+            </fieldset>
+
+            <div class="field-row">
+              <div class="field">
+                <label for="water-shared">Supply shared with other homes?</label>
+                <select id="water-shared" name="water_shared">
+                  <option value="">—</option>
+                  <option value="true">Yes, shared</option>
+                  <option value="false">No, own supply</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="drinking">Drinking water</label>
+                <select id="drinking" name="drinking_water">
+                  <option value="">—</option>
+                  <option value="supplied">Comes with the supply</option>
+                  <option value="purifier">Purifier at home</option>
+                  <option value="buy_cans">Buy water cans</option>
+                  <option value="boil_filter">Boil or filter</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
             </div>
-          </fieldset>
+
+            <div class="field">
+              <label for="water-note">Anything else about water?</label>
+              <input
+                id="water-note"
+                name="water_note"
+                type="text"
+                maxlength="150"
+                placeholder="e.g. Pressure is low on the top floor"
+              />
+            </div>
+          </section>
+
+          <!-- Monsoon ---------------------------------------------------------->
+          <section class="form-section" aria-labelledby="sec-monsoon">
+            <h3 id="sec-monsoon">Monsoon</h3>
+
+            <fieldset class="field">
+              <legend>Does water collect here after heavy rain?</legend>
+              <div class="seg" role="radiogroup">
+                <label><input type="radio" name="waterlog_answer" value="no" /> No</label>
+                <label><input type="radio" name="waterlog_answer" value="yes" /> Yes</label>
+                <label
+                  ><input type="radio" name="waterlog_answer" value="unknown" checked /> Not
+                  sure</label
+                >
+              </div>
+              <p class="help">About this home and its road only, not the whole area.</p>
+            </fieldset>
+
+            <fieldset class="cond" id="waterlog-detail" hidden disabled>
+              <legend class="sr-only">Waterlogging details</legend>
+              <fieldset class="field" aria-describedby="err-waterlog_where">
+                <legend>Where does water collect? <span class="req">required</span></legend>
+                <div class="seg">
+                  <label
+                    ><input type="checkbox" name="waterlog_where" value="access_road" /> Road to the
+                    home</label
+                  >
+                  <label
+                    ><input type="checkbox" name="waterlog_where" value="entrance" /> Gate or
+                    entrance</label
+                  >
+                  <label
+                    ><input type="checkbox" name="waterlog_where" value="parking" /> Parking</label
+                  >
+                  <label
+                    ><input type="checkbox" name="waterlog_where" value="ground_floor" />
+                    Ground-floor rooms</label
+                  >
+                  <label
+                    ><input type="checkbox" name="waterlog_where" value="inside_home" /> Inside this
+                    home</label
+                  >
+                  <label
+                    ><input type="checkbox" name="waterlog_where" value="neighbourhood" /> Wider
+                    area nearby</label
+                  >
+                </div>
+                <p class="field-error" id="err-waterlog_where" hidden></p>
+              </fieldset>
+
+              <fieldset class="field">
+                <legend>How bad is it usually?</legend>
+                <div class="seg" role="radiogroup">
+                  <label
+                    ><input type="radio" name="waterlog_severity" value="minor" /> Ankle-deep or
+                    less</label
+                  >
+                  <label
+                    ><input type="radio" name="waterlog_severity" value="moderate" /> Up to the
+                    knee</label
+                  >
+                  <label
+                    ><input type="radio" name="waterlog_severity" value="severe" /> Above the
+                    knee</label
+                  >
+                </div>
+              </fieldset>
+
+              <div class="field-row">
+                <div class="field">
+                  <label for="waterlog-duration">How long does it stay?</label>
+                  <select id="waterlog-duration" name="waterlog_duration">
+                    <option value="">Not sure</option>
+                    <option value="under_3h">Under 3 hours</option>
+                    <option value="3_to_12h">3 to 12 hours</option>
+                    <option value="12_to_48h">12 to 48 hours</option>
+                    <option value="over_48h">More than 2 days</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="road-rain">Can you get in and out?</label>
+                  <select id="road-rain" name="road_in_rain">
+                    <option value="">Not sure</option>
+                    <option value="usable">Yes, road stays usable</option>
+                    <option value="difficult">With difficulty</option>
+                    <option value="cut_off">No, cut off for a while</option>
+                  </select>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="field">
+              <legend>Which floor is the home on?</legend>
+              <div class="seg" role="radiogroup">
+                <label><input type="radio" name="floor_level" value="ground" /> Ground floor</label>
+                <label><input type="radio" name="floor_level" value="upper" /> Upper floor</label>
+                <label
+                  ><input type="radio" name="floor_level" value="whole_house" /> Whole house</label
+                >
+              </div>
+            </fieldset>
+
+            <div class="field">
+              <label for="waterlog-note">Anything else about the monsoon?</label>
+              <input
+                id="waterlog-note"
+                name="waterlog_note"
+                type="text"
+                maxlength="150"
+                placeholder="e.g. Clears within an hour once the drain is cleaned"
+              />
+            </div>
+
+            <div class="field">
+              <label for="as-of">When did you last see these water and monsoon conditions?</label>
+              <input
+                id="as-of"
+                name="conditions_as_of"
+                type="date"
+                min="2000-01-01"
+                aria-describedby="as-of-help err-conditions_as_of"
+              />
+              <p class="help" id="as-of-help">Optional. Leave blank if it's how things are now.</p>
+              <p class="field-error" id="err-conditions_as_of" hidden></p>
+            </div>
+          </section>
 
           <details class="more">
             <summary>More details (optional)</summary>
             <div class="field-row">
               <div class="field">
-                <label for="water">Water supply</label>
-                <select id="water" name="water_supply">
-                  <option value="">—</option>
-                  <option value="24x7">24×7</option>
-                  <option value="timed">Fixed hours</option>
-                  <option value="tanker">Tanker</option>
-                  <option value="unknown">Not sure</option>
-                </select>
+                <label for="parking">Car parking spots</label>
+                <input
+                  id="parking"
+                  name="parking_cars"
+                  type="number"
+                  inputmode="numeric"
+                  min="0"
+                  max="5"
+                  step="1"
+                  value="0"
+                  aria-describedby="err-parking_cars"
+                />
+                <p class="field-error" id="err-parking_cars" hidden></p>
               </div>
               <div class="field">
-                <label for="power">Power backup</label>
-                <select id="power" name="power_backup">
-                  <option value="">—</option>
-                  <option value="full">Full</option>
-                  <option value="partial">Partial</option>
-                  <option value="none">None</option>
-                  <option value="unknown">Not sure</option>
-                </select>
+                <label for="society">Building or society name</label>
+                <input
+                  id="society"
+                  name="society_name"
+                  type="text"
+                  maxlength="120"
+                  autocomplete="off"
+                />
               </div>
             </div>
             <div class="field-row">
               <div class="field">
-                <label for="deposit">Deposit (months)</label>
+                <label for="deposit">Deposit (in months of rent)</label>
                 <input
                   id="deposit"
                   name="deposit_months"
@@ -284,7 +517,12 @@
                   inputmode="numeric"
                   min="0"
                   max="12"
+                  step="1"
+                  placeholder="e.g. 2"
+                  aria-describedby="deposit-help err-deposit_months"
                 />
+                <p class="help" id="deposit-help">Number of months, not the amount in ₹.</p>
+                <p class="field-error" id="err-deposit_months" hidden></p>
               </div>
               <div class="field">
                 <label for="sqft">Size (sq ft)</label>
@@ -295,7 +533,10 @@
                   inputmode="numeric"
                   min="80"
                   max="10000"
+                  step="1"
+                  aria-describedby="err-sqft"
                 />
+                <p class="field-error" id="err-sqft" hidden></p>
               </div>
             </div>
             <div class="field-row">
@@ -313,6 +554,45 @@
                   <option value="">—</option>
                   <option value="true">Included in rent</option>
                   <option value="false">Paid separately</option>
+                </select>
+              </div>
+            </div>
+            <fieldset class="cond" id="maint-amount-row" hidden disabled>
+              <legend class="sr-only">Maintenance amount</legend>
+              <div class="field">
+                <label for="maint-amount">Maintenance per month (₹)</label>
+                <input
+                  id="maint-amount"
+                  name="maintenance_amount"
+                  type="number"
+                  inputmode="numeric"
+                  min="0"
+                  max="50000"
+                  step="1"
+                  aria-describedby="err-maintenance_amount"
+                />
+                <p class="field-error" id="err-maintenance_amount" hidden></p>
+              </div>
+            </fieldset>
+            <div class="field-row">
+              <div class="field">
+                <label for="power">Power backup</label>
+                <select id="power" name="power_backup">
+                  <option value="">—</option>
+                  <option value="full">Full</option>
+                  <option value="partial">Partial</option>
+                  <option value="none">None</option>
+                  <option value="unknown">Not sure</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="power-cuts">Power cuts</label>
+                <select id="power-cuts" name="power_cuts">
+                  <option value="">—</option>
+                  <option value="rare">Rare</option>
+                  <option value="weekly">About once a week</option>
+                  <option value="daily">Daily</option>
+                  <option value="several_daily">Several times a day</option>
                 </select>
               </div>
             </div>

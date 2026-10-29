@@ -4,34 +4,6 @@
 import { BACKEND_READY, SUPABASE_ANON_KEY, SUPABASE_URL } from './config';
 import type { PublicPin } from './types';
 
-const PIN_COLUMNS = [
-  'id',
-  'kind',
-  'property_type',
-  'bhk',
-  'rent',
-  'furnishing',
-  'gated',
-  'maintenance_incl',
-  'deposit_months',
-  'sqft',
-  'parking_cars',
-  'society_name',
-  'occupants',
-  'pets_allowed',
-  'waterlogging',
-  'water_supply',
-  'power_backup',
-  'pg_meals',
-  'pg_gender',
-  'one_liner',
-  'locality_slug',
-  'is_outlier',
-  'created_at',
-  'lat',
-  'lng',
-].join(',');
-
 /**
  * Only the `apikey` header: it works with both legacy anon JWTs and new `sb_publishable_` keys.
  * A publishable key must not be sent as a Bearer token.
@@ -44,19 +16,20 @@ export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    /** Form field names the server flagged (never their values). */
+    readonly fields: string[] = [],
   ) {
     super(message);
   }
 }
 
+// `select=*` on purpose: public_pins (SPEC §6.1) already limits what anon can see, and a fixed
+// column list would make every pin fail to load if the site is deployed before a migration.
 export async function fetchPins(): Promise<PublicPin[]> {
   if (!BACKEND_READY) return [];
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/public_pins?select=${PIN_COLUMNS}&order=created_at.desc`,
-    {
-      headers: headers(),
-    },
-  );
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/public_pins?select=*&order=created_at.desc`, {
+    headers: headers(),
+  });
   if (!res.ok) throw new ApiError('Could not load pins.', res.status);
   return res.json();
 }
@@ -71,11 +44,24 @@ async function callFunction<T>(name: string, body: unknown): Promise<T> {
       body: JSON.stringify(body),
     });
   } catch {
-    throw new ApiError('You seem to be offline. Check your connection and try again.', 0);
+    if (navigator.onLine) {
+      // Usually CORS: this site's origin is missing from the function's ALLOWED_ORIGINS secret.
+      console.warn(`Could not reach ${name}. If you run this site, check ALLOWED_ORIGINS.`);
+    }
+    throw new ApiError(
+      navigator.onLine
+        ? 'Could not reach the server. Please try again in a minute.'
+        : 'You seem to be offline. Check your connection and try again.',
+      0,
+    );
   }
   const data = await res.json().catch(() => null);
   if (!res.ok || !data?.ok) {
-    throw new ApiError(data?.error ?? 'Something went wrong. Please try again.', res.status);
+    throw new ApiError(
+      data?.error ?? 'Something went wrong. Please try again.',
+      res.status,
+      Array.isArray(data?.fields) ? data.fields.filter((f: unknown) => typeof f === 'string') : [],
+    );
   }
   return data as T;
 }

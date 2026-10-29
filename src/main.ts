@@ -29,7 +29,7 @@ function renderPins(): void {
   state.map?.setPins(state.pins);
   const n = state.pins.length;
   $('pin-count').textContent = n
-    ? `${n.toLocaleString('en-IN')} rent${n === 1 ? '' : 's'} pinned`
+    ? `${n.toLocaleString('en-IN')} ${document.getElementById('demo-banner') ? 'DEMO pin' : 'rent'}${n === 1 ? '' : 's'}${document.getElementById('demo-banner') ? '' : ' pinned'}`
     : '';
 }
 
@@ -143,10 +143,26 @@ async function boot(): Promise<void> {
   });
 
   // ---------- data + map in parallel ----------
-  const pinsPromise = fetchPins().catch(() => {
-    toast('Could not load rents. Check your connection and refresh.', 'error', 8000);
-    return [] as PublicPin[];
-  });
+  // Demo mode (?demo=normal|dense|stress) exists only in `npm run dev`: in production builds
+  // import.meta.env.DEV is false, so this branch and the demo module are removed entirely.
+  const demo = import.meta.env.DEV ? new URLSearchParams(location.search).get('demo') : null;
+  const pinsPromise = demo
+    ? import('./demo/demo-data').then(({ SCENARIOS, demoPins }) => {
+        const scenario = (demo in SCENARIOS ? demo : 'dense') as keyof typeof SCENARIOS;
+        const banner = document.createElement('div');
+        banner.id = 'demo-banner';
+        banner.className = 'banner banner-demo';
+        banner.setAttribute('role', 'note');
+        banner.innerHTML = `<strong>DEMO MODE: fictional rentals, not real listings.</strong> Scenario "${scenario}", ${SCENARIOS[scenario]} pins. Adding pins is off. <a href="/">Exit demo</a>`;
+        $('readonly-banner').before(banner);
+        $('readonly-banner').hidden = true;
+        $('btn-add').hidden = true; // a disabled, translucent button over pins looks broken
+        return demoPins(scenario);
+      })
+    : fetchPins().catch(() => {
+        toast('Could not load rents. Check your connection and refresh.', 'error', 8000);
+        return [] as PublicPin[];
+      });
 
   try {
     const { createMap } = await import('./map');
@@ -161,11 +177,18 @@ async function boot(): Promise<void> {
   state.pins = await pinsPromise;
   renderPins();
 
-  state.map.onPinClick((id) => {
-    const pin = state.pins.find((p) => p.id === id);
-    if (!pin) return;
-    state.map?.select(id);
-    void pinCard.open(pin);
+  state.map.onPinClick((ids) => {
+    const pins = ids
+      .map((id) => state.pins.find((p) => p.id === id))
+      .filter((p): p is PublicPin => Boolean(p));
+    if (!pins.length) return;
+    if (pins.length === 1) {
+      state.map?.select(pins[0].id);
+      void pinCard.open(pins[0]);
+    } else {
+      // Several rents at the same ~100 m spot (e.g. one building): let the user pick.
+      void pinCard.openMany(pins, (p) => state.map?.select(p.id));
+    }
   });
 
   state.map.onMapClick(async (lat, lng) => {

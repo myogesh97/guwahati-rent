@@ -17,7 +17,8 @@ export interface MapView {
   select(id: string | null): void;
   setDraft(point: { lat: number; lng: number } | null): void;
   focus(lat: number, lng: number, zoom?: number): void;
-  onPinClick(cb: (id: string) => void): void;
+  /** All pins under the tap (more than one when pins share a spot). */
+  onPinClick(cb: (ids: string[]) => void): void;
   onMapClick(cb: (lat: number, lng: number) => void): void;
   setPlacing(on: boolean): void;
   resize(): void;
@@ -82,9 +83,11 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
   );
 
   await new Promise<void>((resolve) => map.once('load', () => resolve()));
+  // Dev-only hook for browser QA scripts; stripped from production builds.
+  if (import.meta.env.DEV) (window as unknown as { __grMap?: unknown }).__grMap = map;
 
   let placing = false;
-  let pinClick: ((id: string) => void) | null = null;
+  let pinClick: ((ids: string[]) => void) | null = null;
   let mapClick: ((lat: number, lng: number) => void) | null = null;
 
   map.on('click', async (e) => {
@@ -98,6 +101,13 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
     const f = hits[0];
     if (!f) return;
     const props = f.properties as Record<string, unknown>;
+    const ids = [
+      ...new Set(
+        hits
+          .map((h) => (h.properties as Record<string, unknown>).id)
+          .filter((id): id is string => typeof id === 'string'),
+      ),
+    ];
     if (props.cluster) {
       const src = map.getSource(PIN_SOURCE) as GeoJSONSource;
       const zoom = await src.getClusterExpansionZoom(props.cluster_id as number);
@@ -107,8 +117,8 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
         zoom: Math.min(zoom + 0.5, 17),
         duration: reducedMotion() ? 0 : 500,
       });
-    } else if (typeof props.id === 'string') {
-      pinClick?.(props.id);
+    } else if (ids.length) {
+      pinClick?.(ids);
     }
   });
 

@@ -16,8 +16,22 @@ With no `.env` the map works in **read-only mode** (no pins, "Pin your rent" dis
 To enable pinning, copy `.env.example` to `.env` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (Supabase → Project Settings → API; the anon / publishable key, **never** the service role / secret key). In `npm run dev` without a Turnstile key, Cloudflare's always-pass test key is used automatically.
 
 ```bash
-npm run typecheck && npm run lint && npm run build
+npm run typecheck && npm run lint && npm test && npm run build
 ```
+
+`npm test` runs the shared-rules unit tests with Node's built-in runner (Node ≥ 22.18, no extra dependency).
+
+### Demo mode (development only)
+
+`npm run dev`, then open one of:
+
+| URL | Fictional pins | Purpose |
+|---|---|---|
+| `/?demo=normal` | 25 | normal density |
+| `/?demo=dense` | 80 | many pins per area, 8 spots shared by 2+ pins |
+| `/?demo=stress` | 260 | stress test, 32 shared spots |
+
+Every demo pin is generated in the browser by `src/demo/demo-data.ts` (deterministic: same scenario, same pins). Nothing is written to any database, so there is nothing to clean up: remove `?demo=` (or click **Exit demo**). A banner says DEMO MODE, every pin card says **DEMO — NOT A REAL RENTAL**, real pins are not loaded, and adding pins is off. The whole branch sits behind `import.meta.env.DEV`, so production builds contain no demo data, banner or QA hook (verify: `grep -r "demoPins\|__grMap" dist/` is empty).
 
 ## Map tiles and assets
 
@@ -49,6 +63,18 @@ npm run typecheck && npm run lint && npm run build
    ```
    `RESEND_API_KEY`, `EMAIL_FROM`, `SITE_URL` are only needed from Phase 3.
 
+## Migration 0003: living conditions (water, monsoon detail, power cuts, maintenance)
+
+Additive only: new nullable columns on `pins` plus three consistency constraints, and `public_pins` re-created with the new columns **appended** (grants kept). Existing pins are untouched and read as "not reported". `waterlogging` stays and is now derived by `submit-pin` from the detailed answer, so the heatmap/stats (SPEC §8.3) keep working.
+
+Deploy in this order, or new submissions fail until the next step is done:
+
+1. `npx supabase db push` (applies `0003_living_conditions.sql`)
+2. `npx supabase functions deploy submit-pin`
+3. Netlify deploy of the frontend
+
+The frontend reads `public_pins?select=*`, so the map keeps loading even if step 3 happens before step 1.
+
 ## Deploy (Netlify)
 
 `netlify.toml` is ready (build `npm run build`, publish `dist`, Node 22). In Netlify: **Add new site → Import from Git → this repo**, then Site configuration → Environment variables:
@@ -75,6 +101,9 @@ Against a local Postgres 16 + PostGIS with Supabase's roles and default grants, 
 Not testable from the build machine: real Cloudflare Turnstile (stubbed locally), a real Supabase project, Netlify's range-request behaviour (the fallback covers it), real phones on 4G.
 
 ## Deviations from the spec
+
+- **Living-condition fields (migration 0003)** go beyond SPEC §6.1, at the owner's request. They are optional, carry no contact data, and are shown as "renter-reported, not verified". Rules shared by the form and `submit-pin` live in `_shared/rules.ts` (`pruneConditions`, `conditionProblems`, `waterlogSummary`).
+- **Demo mode** is a dev-only, in-browser fixture. It is deliberately not a database seed because SPEC §5.13 says "never invent seed data".
 
 - Reads use plain `fetch` to PostgREST instead of supabase-js (main bundle is ~7 KB gzipped vs a 60 KB budget). supabase-js stays a dependency for the Phase 4 admin page.
 - Zod runs in the Edge Functions only. Shared rules (bbox, plausibility bands) live in `supabase/functions/_shared/rules.ts`, which both the browser and Deno import.

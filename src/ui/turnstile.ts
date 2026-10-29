@@ -64,6 +64,16 @@ export class TurnstileWidget {
     return (this.id && this.api?.getResponse(this.id)) || '';
   }
 
+  /** The check usually finishes on its own within a few seconds; wait for it instead of
+   *  failing a fast tap on Submit. Resolves '' if it still isn't done after `ms`. */
+  async waitForToken(ms = 8000): Promise<string> {
+    const end = Date.now() + ms;
+    for (let t = this.token(); ; t = this.token()) {
+      if (t || Date.now() >= end) return t;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+
   reset(): void {
     if (this.id) this.api?.reset(this.id);
   }
