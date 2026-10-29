@@ -1,0 +1,678 @@
+/* Guwahati Rent — mobile-first. System fonts only (no font download on slow networks). */
+:root {
+  --ink: #0b3b4a;
+  --ink-2: #33535e;
+  --muted: #5d7680;
+  --line: #d6e1e4;
+  --bg: #f4f8f9;
+  --card: #ffffff;
+  --brand: #0e7490;
+  --brand-dark: #0b5566;
+  --accent: #c2410c;
+  --danger: #b91c1c;
+  --ok: #15803d;
+  --wa: #128c4b;
+  --radius: 14px;
+  --shadow: 0 10px 30px rgba(11, 59, 74, 0.18);
+  --topbar-h: 52px;
+  --focus: 0 0 0 3px #fff, 0 0 0 6px #c2410c;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Noto Sans',
+    sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  overflow: hidden;
+  line-height: 1.45;
+}
+
+a {
+  color: var(--brand-dark);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+  border-radius: 6px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -60px;
+  z-index: 50;
+  background: var(--ink);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+.skip-link:focus {
+  top: 8px;
+}
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: calc(var(--topbar-h) + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  z-index: 10;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 750;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-decoration: none;
+  min-height: 44px;
+}
+.brand-mark {
+  width: 26px;
+  height: 26px;
+  color: var(--brand);
+}
+.tagline {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar-link {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  font-weight: 600;
+  text-decoration: none;
+}
+@media (max-width: 480px) {
+  .tagline {
+    display: none;
+  }
+  .brand {
+    flex: 1;
+  }
+}
+
+/* ---------- map ---------- */
+main {
+  position: fixed;
+  inset: calc(var(--topbar-h) + env(safe-area-inset-top)) 0 0 0;
+}
+/* #map beats MapLibre's `.maplibregl-map { position: relative }`, whose CSS loads later
+   (lazy chunk). Without this the map collapses to 0px height. */
+#map.map {
+  position: absolute;
+  inset: 0;
+  background: #e8eef0;
+}
+.map.is-placing::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 4px var(--accent);
+}
+.map-status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--card);
+  padding: 12px 18px;
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  font-weight: 600;
+  max-width: calc(100% - 32px);
+  text-align: center;
+}
+
+.banner,
+.placement {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 12px;
+  margin: 0 auto;
+  max-width: 560px;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+  font-size: 0.92rem;
+  z-index: 5;
+}
+.banner {
+  border-left: 5px solid var(--accent);
+}
+.placement {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 2px solid var(--accent);
+}
+.placement p {
+  margin: 0;
+  flex: 1;
+}
+
+.legend {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+  box-shadow: 0 2px 8px rgba(11, 59, 74, 0.12);
+  max-width: calc(100% - 24px);
+  z-index: 2;
+}
+.banner:not([hidden]) ~ .legend,
+.placement:not([hidden]) ~ .legend {
+  display: none;
+}
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend-count {
+  font-weight: 650;
+  color: var(--ink);
+}
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.swatch-solid {
+  background: var(--brand);
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 3px var(--line);
+}
+.swatch-ring {
+  background: #fff;
+  border: 3px solid var(--brand);
+}
+
+.actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 4;
+}
+.actions > * {
+  pointer-events: auto;
+}
+
+/* keep MapLibre controls clear of the FAB on narrow screens */
+.maplibregl-ctrl-bottom-right {
+  margin-bottom: calc(76px + env(safe-area-inset-bottom));
+}
+.maplibregl-ctrl-group button {
+  width: 40px;
+  height: 40px;
+}
+
+/* ---------- buttons ---------- */
+.btn {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  min-height: 44px;
+  padding: 10px 18px;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--brand);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-dark);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px var(--line);
+}
+.btn-ghost:hover {
+  box-shadow: inset 0 0 0 1.5px var(--ink-2);
+}
+.btn-danger {
+  background: #fff;
+  color: var(--danger);
+  box-shadow: inset 0 0 0 1.5px var(--danger);
+}
+.btn-whatsapp {
+  background: var(--wa);
+  color: #fff;
+}
+.btn-fab {
+  font-size: 1.05rem;
+  padding: 14px 26px;
+  box-shadow: var(--shadow);
+}
+.icon-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+.icon-btn:hover {
+  background: var(--bg);
+}
+
+/* ---------- dialogs: bottom sheet on phones, centered card on desktop ---------- */
+.dlg {
+  border: 0;
+  padding: 0;
+  width: min(560px, 100vw);
+  max-width: 100vw;
+  max-height: min(88dvh, 860px);
+  border-radius: 20px 20px 0 0;
+  margin: auto auto 0;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.dlg[open] {
+  display: flex;
+  flex-direction: column;
+}
+.dlg > form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+.dlg::backdrop {
+  background: rgba(11, 30, 38, 0.45);
+}
+@media (min-width: 640px) {
+  .dlg {
+    margin: auto;
+    border-radius: 20px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dlg[open] {
+    animation: sheet-in 0.18s ease-out;
+  }
+  @keyframes sheet-in {
+    from {
+      transform: translateY(24px);
+      opacity: 0.6;
+    }
+  }
+}
+.dlg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 10px 4px 20px;
+}
+.dlg h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+.dlg-body {
+  padding: 8px 20px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  flex: 1;
+  min-height: 0;
+}
+.dlg-body > h2 {
+  margin-top: 12px;
+}
+.dlg-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px calc(14px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.dlg-actions-stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.ticks {
+  padding-left: 0;
+  list-style: none;
+}
+.ticks li {
+  padding-left: 26px;
+  position: relative;
+  margin: 6px 0;
+}
+.ticks li::before {
+  content: '✓';
+  position: absolute;
+  left: 4px;
+  color: var(--ok);
+  font-weight: 800;
+}
+.fine {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.hint {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+/* choices */
+.choice-list {
+  display: grid;
+  gap: 10px;
+  padding-top: 10px;
+}
+.choice {
+  appearance: none;
+  text-align: left;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 14px 16px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 2px;
+  min-height: 56px;
+}
+.choice:hover:not(:disabled) {
+  border-color: var(--brand);
+  background: #f0f8fa;
+}
+.choice:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.choice-title {
+  font-weight: 700;
+}
+.choice-sub {
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+/* ---------- form ---------- */
+.field {
+  border: 0;
+  margin: 0 0 16px;
+  padding: 0;
+  min-width: 0;
+}
+.field > label,
+.field > legend {
+  display: block;
+  font-weight: 650;
+  font-size: 0.92rem;
+  margin-bottom: 6px;
+  padding: 0;
+}
+.req {
+  font-weight: 500;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-left: 4px;
+}
+.help {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.field-row > .field {
+  margin-bottom: 16px;
+}
+input[type='text'],
+input[type='number'],
+select {
+  width: 100%;
+  min-height: 44px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 16px; /* prevents iOS zoom-on-focus */
+  color: var(--ink);
+  background: #fff;
+}
+input:focus-visible,
+select:focus-visible {
+  border-color: var(--brand);
+}
+input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+.money {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.money input {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+/* segmented radio group */
+.seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.seg label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.92rem;
+  user-select: none;
+}
+.seg input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.seg label:has(input:checked) {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+  font-weight: 650;
+}
+.seg label:has(input:focus-visible) {
+  box-shadow: var(--focus);
+}
+
+.more {
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  padding: 4px 14px;
+  margin-bottom: 16px;
+}
+.more summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 650;
+}
+.more[open] summary {
+  margin-bottom: 8px;
+}
+
+.form-error {
+  background: #fdecec;
+  color: #7f1d1d;
+  border-left: 4px solid var(--danger);
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  font-size: 0.92rem;
+}
+.turnstile {
+  min-height: 65px;
+}
+
+/* ---------- pin card ---------- */
+.pin-rent {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 4px 0 0;
+  letter-spacing: -0.02em;
+}
+.pin-rent span {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--muted);
+  margin-left: 4px;
+}
+.pin-home {
+  margin: 2px 0 12px;
+  color: var(--ink-2);
+}
+.kvs {
+  margin: 0;
+  display: grid;
+  gap: 0;
+}
+.kv {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.kv dt {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+.kv dd {
+  margin: 0;
+}
+.oneliner {
+  margin: 12px 0;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-radius: 10px;
+  font-style: italic;
+}
+.note-warn {
+  background: #fff7ed;
+  border-left: 4px solid var(--accent);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+}
+
+/* ---------- toast ---------- */
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(92px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 12px;
+  max-width: calc(100% - 32px);
+  width: max-content;
+  font-size: 0.92rem;
+  box-shadow: var(--shadow);
+  z-index: 20;
+  word-break: break-word;
+}
+.toast[data-kind='error'] {
+  background: var(--danger);
+}
+
+.noscript {
+  position: fixed;
+  inset: 40% 16px auto;
+  text-align: center;
+  font-weight: 600;
+}

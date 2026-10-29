@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Guwahati Rent — real rents, pinned by real renters</title>
+    <meta
+      name="description"
+      content="See what people in Guwahati actually pay in rent, area by area. Anonymous, free, no login, no brokers. Pin your rent in 30 seconds."
+    />
+    <meta name="theme-color" content="#0b3b4a" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Guwahati Rent — what people actually pay" />
+    <meta
+      property="og:description"
+      content="An anonymous map of real rents in Guwahati, shared by renters. No brokers, no login."
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/styles/main.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-actions">Skip to actions</a>
+
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Guwahati Rent home">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2c-4 0-7 3-7 7 0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" fill="currentColor" />
+          <path d="M8.5 9.5 12 7l3.5 2.5V13h-7z" fill="#fff" />
+        </svg>
+        <span>Guwahati&nbsp;Rent</span>
+      </a>
+      <p class="tagline">Real rents, pinned by real renters</p>
+      <a class="topbar-link" href="/about.html">About</a>
+    </header>
+
+    <main id="main">
+      <div
+        id="map"
+        class="map"
+        role="region"
+        aria-label="Map of rents in Guwahati. Each dot is a rent someone pays. Use the buttons below the map to add your rent."
+      ></div>
+
+      <div id="map-status" class="map-status" role="status" aria-live="polite">Loading map…</div>
+
+      <div id="readonly-banner" class="banner" hidden>
+        Read-only preview: adding pins switches on once the database is connected.
+      </div>
+
+      <div id="placement-banner" class="placement" hidden>
+        <p>
+          <strong>Tap where the flat is.</strong> A nearby spot is fine. We round it to about 100 m.
+        </p>
+        <button type="button" class="btn btn-ghost" id="placement-cancel">Cancel</button>
+      </div>
+
+      <div class="legend" aria-label="Legend">
+        <span class="legend-item"
+          ><span class="swatch swatch-solid" aria-hidden="true"></span>Gated society</span
+        >
+        <span class="legend-item"
+          ><span class="swatch swatch-ring" aria-hidden="true"></span>Not gated</span
+        >
+        <span id="pin-count" class="legend-count"></span>
+      </div>
+
+      <div id="main-actions" class="actions">
+        <button type="button" class="btn btn-primary btn-fab" id="btn-add" aria-haspopup="dialog">
+          <span aria-hidden="true">＋</span> Pin your rent
+        </button>
+      </div>
+
+      <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    </main>
+
+    <!-- Welcome + consent ------------------------------------------------------>
+    <dialog
+      id="dlg-welcome"
+      class="dlg"
+      aria-labelledby="welcome-title"
+      data-backdrop-close="false"
+    >
+      <div class="dlg-body">
+        <h2 id="welcome-title">What do people in Guwahati actually pay?</h2>
+        <p>
+          Brokers quote high. This map shows the rents real tenants pay, shared anonymously. Look
+          around, then add yours. It takes 30 seconds and helps the next person who's flat-hunting.
+        </p>
+        <ul class="ticks">
+          <li>No login, no name, no phone number needed to pin your rent</li>
+          <li>Locations are rounded to about 100 m</li>
+          <li>Free. No brokers.</li>
+        </ul>
+        <p class="fine">
+          By continuing you agree to our <a href="/privacy.html">Privacy Policy</a> and
+          <a href="/terms.html">Terms</a>.
+        </p>
+      </div>
+      <div class="dlg-actions">
+        <button type="button" class="btn btn-primary" id="welcome-ok" autofocus>
+          Show me the map
+        </button>
+      </div>
+    </dialog>
+
+    <!-- What do you want to do? ------------------------------------------------>
+    <dialog id="dlg-add" class="dlg" aria-labelledby="add-title">
+      <div class="dlg-head">
+        <h2 id="add-title">What would you like to do?</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+      </div>
+      <div class="dlg-body choice-list">
+        <button type="button" class="choice" id="choose-rent">
+          <span class="choice-title">Pin what I pay</span>
+          <span class="choice-sub">Anonymous. 30 seconds. Helps everyone see real prices.</span>
+        </button>
+        <button type="button" class="choice" disabled>
+          <span class="choice-title">List my flat for rent</span>
+          <span class="choice-sub">Coming soon: owners reach tenants directly, no broker.</span>
+        </button>
+        <button type="button" class="choice" disabled>
+          <span class="choice-title">I'm looking for a flat</span>
+          <span class="choice-sub">Coming soon: get matched with flats near you by email.</span>
+        </button>
+        <button type="button" class="choice" disabled>
+          <span class="choice-title">Spotted a To-Let board</span>
+          <span class="choice-sub">Coming soon: snap it and put it on the map.</span>
+        </button>
+      </div>
+    </dialog>
+
+    <!-- Rent pin form -------------------------------------------------------->
+    <dialog
+      id="dlg-rent-pin"
+      class="dlg dlg-tall"
+      aria-labelledby="rent-title"
+      data-backdrop-close="false"
+    >
+      <form id="rent-form" novalidate>
+        <div class="dlg-head">
+          <h2 id="rent-title">What do you pay?</h2>
+          <button type="button" class="icon-btn" data-close aria-label="Close form">✕</button>
+        </div>
+        <div class="dlg-body">
+          <p class="hint" id="rent-locality">Your rent stays anonymous.</p>
+
+          <div id="rent-error" class="form-error" role="alert" hidden></div>
+
+          <fieldset class="field">
+            <legend>Type of home <span class="req">required</span></legend>
+            <div class="seg" role="radiogroup">
+              <label><input type="radio" name="property_type" value="flat" checked /> Flat</label>
+              <label
+                ><input type="radio" name="property_type" value="independent" /> Independent</label
+              >
+              <label><input type="radio" name="property_type" value="1rk" /> 1RK</label>
+              <label><input type="radio" name="property_type" value="room" /> Room</label>
+              <label><input type="radio" name="property_type" value="pg" /> PG</label>
+            </div>
+          </fieldset>
+
+          <fieldset class="field" id="bhk-field">
+            <legend>Bedrooms <span class="req">required</span></legend>
+            <div class="seg" role="radiogroup">
+              <label><input type="radio" name="bhk" value="1" /> 1 BHK</label>
+              <label><input type="radio" name="bhk" value="2" checked /> 2 BHK</label>
+              <label><input type="radio" name="bhk" value="3" /> 3 BHK</label>
+              <label><input type="radio" name="bhk" value="4" /> 4 BHK</label>
+              <label><input type="radio" name="bhk" value="5" /> 5+</label>
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <label for="rent-amount">Monthly rent (₹) <span class="req">required</span></label>
+            <div class="money">
+              <span aria-hidden="true">₹</span>
+              <input
+                id="rent-amount"
+                name="rent"
+                type="number"
+                inputmode="numeric"
+                min="1000"
+                max="500000"
+                step="1"
+                required
+                placeholder="e.g. 12000"
+                aria-describedby="rent-amount-help"
+              />
+            </div>
+            <p class="help" id="rent-amount-help">What you pay each month, without electricity.</p>
+          </div>
+
+          <fieldset class="field">
+            <legend>Furnishing <span class="req">required</span></legend>
+            <div class="seg" role="radiogroup">
+              <label
+                ><input type="radio" name="furnishing" value="unfurnished" checked />
+                Unfurnished</label
+              >
+              <label><input type="radio" name="furnishing" value="semi" /> Semi</label>
+              <label><input type="radio" name="furnishing" value="furnished" /> Furnished</label>
+            </div>
+          </fieldset>
+
+          <fieldset class="field">
+            <legend>Gated society? <span class="req">required</span></legend>
+            <div class="seg" role="radiogroup">
+              <label><input type="radio" name="gated" value="true" /> Yes, gated</label>
+              <label><input type="radio" name="gated" value="false" checked /> No</label>
+            </div>
+          </fieldset>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="parking">Car parking spots</label>
+              <input
+                id="parking"
+                name="parking_cars"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                max="5"
+                value="0"
+              />
+            </div>
+            <div class="field">
+              <label for="society">Building or society name</label>
+              <input
+                id="society"
+                name="society_name"
+                type="text"
+                maxlength="120"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <fieldset class="field">
+            <legend>Does it waterlog in the monsoon?</legend>
+            <div class="seg seg-wrap" role="radiogroup">
+              <label><input type="radio" name="waterlogging" value="none" /> No</label>
+              <label><input type="radio" name="waterlogging" value="road_only" /> Road only</label>
+              <label
+                ><input type="radio" name="waterlogging" value="enters_premises" /> Water comes
+                in</label
+              >
+              <label
+                ><input type="radio" name="waterlogging" value="unknown" checked /> Not sure</label
+              >
+            </div>
+          </fieldset>
+
+          <details class="more">
+            <summary>More details (optional)</summary>
+            <div class="field-row">
+              <div class="field">
+                <label for="water">Water supply</label>
+                <select id="water" name="water_supply">
+                  <option value="">—</option>
+                  <option value="24x7">24×7</option>
+                  <option value="timed">Fixed hours</option>
+                  <option value="tanker">Tanker</option>
+                  <option value="unknown">Not sure</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="power">Power backup</label>
+                <select id="power" name="power_backup">
+                  <option value="">—</option>
+                  <option value="full">Full</option>
+                  <option value="partial">Partial</option>
+                  <option value="none">None</option>
+                  <option value="unknown">Not sure</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="deposit">Deposit (months)</label>
+                <input
+                  id="deposit"
+                  name="deposit_months"
+                  type="number"
+                  inputmode="numeric"
+                  min="0"
+                  max="12"
+                />
+              </div>
+              <div class="field">
+                <label for="sqft">Size (sq ft)</label>
+                <input
+                  id="sqft"
+                  name="sqft"
+                  type="number"
+                  inputmode="numeric"
+                  min="80"
+                  max="10000"
+                />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="occupants">Who lives there?</label>
+                <select id="occupants" name="occupants">
+                  <option value="">—</option>
+                  <option value="family">Family</option>
+                  <option value="bachelor">Bachelor(s)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="maint">Maintenance</label>
+                <select id="maint" name="maintenance_incl">
+                  <option value="">—</option>
+                  <option value="true">Included in rent</option>
+                  <option value="false">Paid separately</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row" id="pg-fields" hidden>
+              <div class="field">
+                <label for="pg-meals">Meals included?</label>
+                <select id="pg-meals" name="pg_meals">
+                  <option value="">—</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="pg-gender">PG for</label>
+                <select id="pg-gender" name="pg_gender">
+                  <option value="">—</option>
+                  <option value="boys">Boys</option>
+                  <option value="girls">Girls</option>
+                  <option value="mixed">Mixed</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="oneliner">One line about the place</label>
+              <input
+                id="oneliner"
+                name="one_liner"
+                type="text"
+                maxlength="150"
+                placeholder="e.g. Quiet lane, 5 min walk to Beltola bazaar"
+              />
+              <p class="help">Don't include names, phone numbers or your house number.</p>
+            </div>
+          </details>
+
+          <div class="turnstile" id="rent-turnstile" aria-label="Spam check"></div>
+        </div>
+        <div class="dlg-actions">
+          <button type="button" class="btn btn-ghost" id="rent-move">Move pin</button>
+          <button type="submit" class="btn btn-primary" id="rent-submit">Add my rent</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Pin details ---------------------------------------------------------->
+    <dialog id="dlg-pin" class="dlg" aria-labelledby="pin-title">
+      <div class="dlg-head">
+        <h2 id="pin-title">Rent details</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+      </div>
+      <div class="dlg-body" id="pin-body"></div>
+      <div class="dlg-actions" id="pin-actions"></div>
+    </dialog>
+
+    <!-- After submit: share ---------------------------------------------------->
+    <dialog id="dlg-shared" class="dlg" aria-labelledby="shared-title">
+      <div class="dlg-body">
+        <h2 id="shared-title">Thanks, your rent is on the map</h2>
+        <p>
+          Every pin makes the map more useful. Share it with one group of friends who rent in
+          Guwahati.
+        </p>
+        <p class="fine">
+          You can delete your pin any time from this phone or browser: tap it and choose Delete.
+        </p>
+      </div>
+      <div class="dlg-actions dlg-actions-stack">
+        <a class="btn btn-whatsapp" id="share-whatsapp" target="_blank" rel="noopener"
+          >Share on WhatsApp</a
+        >
+        <button type="button" class="btn btn-ghost" id="share-copy">Copy link</button>
+        <button type="button" class="btn btn-ghost" data-close>Done</button>
+      </div>
+    </dialog>
+
+    <noscript>
+      <p class="noscript">Guwahati Rent needs JavaScript to show the map.</p>
+    </noscript>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+# Minimal Supabase CLI config. `npx supabase link --project-ref <ref>` fills in the rest.
+project_id = "guwahati-rent"
+
+# Public functions do their own protection (Turnstile + rate limits + edit tokens),
+# so the gateway JWT check is off. This also keeps them working with the new
+# `sb_publishable_...` keys, which are not JWTs.
+[functions.submit-pin]
+verify_jwt = false
+
+[functions.edit-pin]
+verify_jwt = false
