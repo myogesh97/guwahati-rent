@@ -7,7 +7,6 @@ import { $dialog, closeDialog, openDialog, wireDialogs } from './ui/dialog';
 import { toast } from './ui/toast';
 import { setupRentForm } from './forms/rent-pin';
 import { setupPinCard } from './ui/pin-card';
-import { setupResults } from './ui/results';
 import { inGuwahati } from '../supabase/functions/_shared/rules';
 import type { MapView } from './map';
 import type { PublicPin } from './types';
@@ -26,11 +25,8 @@ function setStatus(text: string | null): void {
   el.hidden = !text;
 }
 
-let refreshList: () => void = () => {};
-
 function renderPins(): void {
   state.map?.setPins(state.pins);
-  refreshList();
   const n = state.pins.length;
   $('pin-count').textContent = n
     ? `${n.toLocaleString('en-IN')} ${document.getElementById('demo-banner') ? 'DEMO pin' : 'rent'}${n === 1 ? '' : 's'}${document.getElementById('demo-banner') ? '' : ' pinned'}`
@@ -209,30 +205,8 @@ async function boot(): Promise<void> {
     return;
   }
 
-  const results = setupResults({
-    onSelect(pin) {
-      state.map?.focus(pin.lat, pin.lng, 16);
-      state.map?.select(pin.id);
-      void pinCard.open(pin);
-    },
-    onPreview(id) {
-      if (!$dialog('dlg-pin').open) state.map?.select(id);
-    },
-  });
-  let queued = false;
-  refreshList = () => {
-    if (queued || !state.map) return;
-    queued = true;
-    requestAnimationFrame(() => {
-      queued = false;
-      if (state.map)
-        results.render(state.pins, state.map.getBounds(), state.map.getCenter(), canAdd);
-    });
-  };
-
   state.pins = await pinsPromise;
   renderPins();
-  state.map.onViewChange(refreshList);
 
   state.map.onPinClick((ids) => {
     const pins = ids

@@ -24,9 +24,7 @@ export interface MapView {
   /** Click on empty map (no pin or cluster under it) outside placement mode. */
   onEmptyClick(cb: (lat: number, lng: number) => void): void;
   getCenter(): { lat: number; lng: number };
-  getBounds(): { west: number; south: number; east: number; north: number };
   /** Called after every pan/zoom (and once when ready). */
-  onViewChange(cb: () => void): void;
   setPlacing(on: boolean): void;
   resize(): void;
 }
@@ -186,14 +184,6 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
     },
     onEmptyClick(cb) {
       emptyClick = cb;
-    },
-    getBounds() {
-      const b = map.getBounds();
-      return { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() };
-    },
-    onViewChange(cb) {
-      map.on('moveend', cb);
-      cb();
     },
     getCenter() {
       const c = map.getCenter();

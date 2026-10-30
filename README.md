@@ -108,7 +108,6 @@ Not testable from the build machine: real Cloudflare Turnstile (stubbed locally)
 
 - **Living-condition fields (migration 0003)** go beyond SPEC §6.1, at the owner's request. They are optional, carry no contact data, and are shown as "renter-reported, not verified". Rules shared by the form and `submit-pin` live in `_shared/rules.ts` (`pruneConditions`, `conditionProblems`, `waterlogSummary`).
 - **flatpickr** (MIT, ~15 KB gzipped) was added beyond SPEC §16 at the owner's request, for the "when did you last see these conditions" calendar. It is loaded on demand (its own chunk), only when the rent form opens. Dropdowns were replaced by option chips instead of a dropdown library.
-- **Results panel / phone sheet** (rents in the current map view, medians per BHK from 3+ pins) is the SPEC §8.6 list view, built ahead of Phase 2 at the owner's request. Filters are still Phase 2.
 - **Look:** clean neutral palette (near-black + white) with one accent, burnt orange `#c2410c`, used only for actions and your/selected pin. Water and monsoon warnings use amber. Basemap flavour is Protomaps `white`.
 - **Demo mode** is a dev-only, in-browser fixture. It is deliberately not a database seed because SPEC §5.13 says "never invent seed data".
 
