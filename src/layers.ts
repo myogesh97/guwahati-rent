@@ -5,11 +5,11 @@ export const PIN_SOURCE = 'pins';
 export const DRAFT_SOURCE = 'draft';
 
 export const COLOR = {
-  ink: '#18181b', // pins + clusters: near-black, so the map stays neutral
-  pin: '#18181b',
-  pinDark: '#000000',
+  ink: '#102a35', // label text
+  pin: '#0b5566', // pins + clusters: brand deep teal, distinct from the basemap's colours
+  pinDark: '#073f4c',
   white: '#ffffff',
-  draft: '#c2410c', // the one accent: your pin, and the selected pin
+  draft: '#d14400', // the one accent: your pin, and the selected pin
 } as const;
 
 const FONT = ['Noto Sans Medium'];
@@ -23,8 +23,8 @@ export const pinLayers: LayerSpecification[] = [
     source: PIN_SOURCE,
     filter: ['has', 'point_count'],
     paint: {
-      'circle-color': COLOR.ink,
-      'circle-opacity': 0.92,
+      'circle-color': COLOR.pin,
+      'circle-opacity': 0.95,
       'circle-radius': ['step', ['get', 'point_count'], 16, 10, 20, 50, 26, 200, 32],
       'circle-stroke-width': 3,
       'circle-stroke-color': COLOR.white,

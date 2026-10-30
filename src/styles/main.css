@@ -3,22 +3,27 @@
  * Design rules:
  * - Borders only where they carry meaning: inputs, selected/focused controls, dialog edges.
  *   Sections are separated by space and headings, not by boxes or rules.
- * - One accent for actions (teal), one for attention (burnt orange). Orange is never decoration.
+ * - Deep teal = brand + "chosen" (header, selected options, pins). Orange = act (buttons, your
+ *   pin, selected pin). Bright cyan = small highlights only. Amber = heads-up (water flags).
+ * - The basemap keeps its own natural colours; the UI never tints or filters it.
  * - One focus style everywhere (see :focus-visible).
  * - Every interactive control is at least 44 × 44 px.
  */
 
 /* ============================== tokens ============================== */
 :root {
-  /* palette: clean neutral + ONE accent. Orange = act (buttons, your pin, selected pin).
-     Near-black = chosen (selected options, pins). Amber = heads-up (water/monsoon flags). */
-  --ink: #18181b;
-  --ink-2: #3f3f46;
-  --muted: #5f5f68; /* 6.3:1 on white */
-  --brand: #c2410c; /* the accent: white text on it is 5.2:1 */
-  --brand-dark: #9a3412;
+  /* palette. Contrast ratios are against white. */
+  --ink: #102a35; /* main text, 15:1 */
+  --ink-2: #2b4652; /* secondary headings, 10:1 */
+  --muted: #526b75; /* help + metadata, 5.6:1 */
+  --teal: #0b5566; /* primary brand: header, selected chips, pins. White on it: 8.4:1 */
+  --teal-2: #0e7490; /* interactive text + borders (links, secondary buttons), 5.4:1 */
+  --cyan: #06b6d4; /* bright highlight, decorative only (never text) */
+  --teal-tint: #e3f4f7; /* hover fill for teal controls */
+  --brand: #d14400; /* action orange. White on it: 4.6:1 */
+  --brand-dark: #a93700;
   --brand-tint: #fff1e8;
-  --accent: #c2410c;
+  --accent: #d14400;
   --warn-tint: #fef3c7;
   --warn-ink: #854d0e;
   --danger: #b42318;
@@ -26,11 +31,11 @@
   --wa: #128c4b;
 
   /* surfaces + lines */
-  --bg: #fafafa;
+  --bg: #f8fafc;
   --card: #ffffff;
-  --fill: #f4f4f5; /* unselected option chips, quiet surfaces */
-  --line: #e4e4e7; /* decorative separators only */
-  --field-line: #8e8e96; /* input boundaries: 3.3:1 against white (WCAG 1.4.11) */
+  --fill: #f1f5f9; /* quiet surfaces */
+  --line: #cbd5e1; /* separators */
+  --field-line: #7c8fa0; /* input + chip boundaries: 3.3:1 against white (WCAG 1.4.11) */
 
   /* type scale */
   --fs-xs: 0.8125rem; /* 13px: metadata */
@@ -57,10 +62,10 @@
   --tap: 44px;
 
   /* elevation: one level for floating map UI, one for dialogs */
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-2: 0 12px 40px rgba(0, 0, 0, 0.18);
+  --shadow-1: 0 1px 2px rgba(16, 42, 53, 0.12), 0 2px 8px rgba(16, 42, 53, 0.1);
+  --shadow-2: 0 12px 40px rgba(16, 42, 53, 0.22);
 
-  --focus-ring: 0 0 0 2px var(--card), 0 0 0 4px var(--ink);
+  --focus-ring: 0 0 0 2px var(--card), 0 0 0 4px #0891b2; /* cyan-600: 3.7:1 on white */
   --topbar-h: 56px;
 
   font-family:
@@ -132,7 +137,7 @@ a {
   left: var(--s2);
   top: -60px;
   z-index: 50;
-  background: var(--ink);
+  background: var(--teal);
   color: #fff;
   padding: 10px 14px;
   border-radius: var(--r-sm);
@@ -150,9 +155,16 @@ a {
   display: flex;
   align-items: center;
   gap: var(--s3);
-  background: var(--card);
-  border-bottom: 1px solid var(--line);
+  background: var(--teal);
+  border-bottom: 3px solid var(--cyan);
+  color: #fff;
   z-index: 10;
+}
+/* On the teal bar the ring is inverted: teal gap, white ring. */
+.topbar :focus-visible {
+  box-shadow:
+    0 0 0 2px var(--teal),
+    0 0 0 4px #fff;
 }
 .brand {
   display: flex;
@@ -162,7 +174,7 @@ a {
   font-weight: 750;
   font-size: var(--fs-lg);
   letter-spacing: -0.01em;
-  color: var(--ink);
+  color: #fff;
   text-decoration: none;
   white-space: nowrap;
   border-radius: var(--r-sm);
@@ -171,13 +183,13 @@ a {
   width: 26px;
   height: 26px;
   flex-shrink: 0;
-  color: var(--accent);
+  color: #fb923c; /* logo only: a bright orange that reads on teal */
 }
 .tagline {
   margin: 0;
   flex: 1;
   min-width: 0;
-  color: var(--muted);
+  color: #cde8ee; /* 6.6:1 on teal */
   font-size: var(--fs-sm);
   white-space: nowrap;
   overflow: hidden;
@@ -191,12 +203,11 @@ a {
   border-radius: var(--r-pill);
   font-weight: 600;
   font-size: var(--fs-sm);
-  color: var(--ink-2);
+  color: #fff;
   text-decoration: none;
 }
 .topbar-link:hover {
-  background: var(--fill);
-  color: var(--ink);
+  background: rgba(255, 255, 255, 0.14);
 }
 @media (max-width: 480px) {
   .tagline {
@@ -222,7 +233,7 @@ main {
 #map.map {
   position: absolute;
   inset: 0;
-  background: #f4f4f5;
+  background: #e7ecef;
 }
 .map-status {
   position: absolute;
@@ -261,7 +272,7 @@ main {
 }
 /* Banners are notices, not errors: a thin accent bar on the left, no full outline. */
 .banner {
-  border-left: 4px solid var(--ink);
+  border-left: 4px solid var(--teal-2);
 }
 .banner-demo {
   border-left-color: var(--accent);
@@ -299,7 +310,7 @@ main {
   transform: translate(-50%, -100%);
   pointer-events: none;
   z-index: 3;
-  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 3px 4px rgba(16, 42, 53, 0.35));
 }
 .crosshair::after {
   content: '';
@@ -354,12 +365,12 @@ main {
   display: inline-block;
 }
 .swatch-solid {
-  background: var(--ink);
+  background: var(--teal);
   box-shadow: 0 0 0 2px #fff;
 }
 .swatch-ring {
   background: #fff;
-  border: 3px solid var(--ink);
+  border: 3px solid var(--teal);
 }
 
 .actions {
@@ -392,8 +403,11 @@ main {
 .maplibregl-ctrl-group button + button {
   border-top-color: var(--line);
 }
+.maplibregl-ctrl-group button:hover:not(:disabled) {
+  background-color: var(--teal-tint);
+}
 .maplibregl-ctrl button:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--ink);
+  box-shadow: inset 0 0 0 2px #0891b2;
 }
 .maplibregl-ctrl-attrib.maplibregl-compact {
   border-radius: var(--r-pill);
@@ -433,15 +447,16 @@ main {
   background: var(--brand-dark);
 }
 .btn-primary:active:not(:disabled) {
-  background: #7c2d12;
+  background: #8a2e00;
 }
-/* Secondary: quiet fill, no outline. */
+/* Secondary: white with a teal outline, so it reads as a button, not as text. */
 .btn-ghost {
-  background: var(--fill);
-  color: var(--ink);
+  background: var(--card);
+  color: var(--teal);
+  box-shadow: inset 0 0 0 1.5px var(--teal-2);
 }
 .btn-ghost:hover:not(:disabled) {
-  background: #e4e4e7;
+  background: var(--teal-tint);
 }
 .btn-danger {
   background: var(--danger-tint);
@@ -480,8 +495,8 @@ main {
   color: var(--ink-2);
 }
 .icon-btn:hover {
-  background: var(--fill);
-  color: var(--ink);
+  background: var(--teal-tint);
+  color: var(--teal);
 }
 
 /* ============================== dialogs ============================== */
@@ -510,7 +525,7 @@ main {
   flex: 1;
 }
 .dlg::backdrop {
-  background: rgba(9, 9, 11, 0.45);
+  background: rgba(16, 42, 53, 0.5);
 }
 @media (min-width: 640px) {
   .dlg {
@@ -578,7 +593,7 @@ main {
   content: '✓';
   position: absolute;
   left: 4px;
-  color: var(--brand);
+  color: var(--teal-2);
   font-weight: 800;
 }
 .fine {
@@ -673,15 +688,15 @@ select {
   background: var(--card);
 }
 input::placeholder {
-  color: #7a8f97;
+  color: #6b8290;
 }
 input:hover,
 select:hover {
-  border-color: var(--ink-2);
+  border-color: var(--teal-2);
 }
 input:focus-visible,
 select:focus-visible {
-  border-color: var(--ink);
+  border-color: var(--teal);
 }
 input[aria-invalid='true'],
 select[aria-invalid='true'] {
@@ -720,7 +735,7 @@ select {
   font-size: var(--fs-sm);
 }
 
-/* Option chips (radio + checkbox groups): quiet fill when off, solid when on. No outlines. */
+/* Option chips (radio + checkbox groups): outlined when off, solid teal when on. */
 .seg {
   display: flex;
   flex-wrap: wrap;
@@ -733,7 +748,8 @@ select {
   min-height: var(--tap);
   padding: var(--s2) 14px;
   border-radius: var(--r-pill);
-  background: var(--fill);
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--field-line);
   color: var(--ink);
   font-size: 0.9375rem;
   cursor: pointer;
@@ -741,7 +757,8 @@ select {
   transition: background-color 0.12s;
 }
 .seg label:hover {
-  background: #e4e4e7;
+  background: var(--teal-tint);
+  box-shadow: inset 0 0 0 1px var(--teal-2);
 }
 /* Short, fixed choices: equal columns so the group reads as one aligned row. */
 .seg-grid {
@@ -761,7 +778,8 @@ select {
   cursor: pointer;
 }
 .seg label:has(input:checked) {
-  background: var(--ink);
+  background: var(--teal);
+  box-shadow: none;
   color: #fff;
   font-weight: 600;
 }
@@ -784,7 +802,7 @@ select {
   margin: calc(-1 * var(--s2)) 0 var(--s5);
   padding: var(--s1) 0 0 var(--s4);
   min-width: 0;
-  border-left: 2px solid var(--line);
+  border-left: 2px solid var(--cyan);
 }
 .cond > .field:last-child,
 .cond > .field-row:last-child > .field {
@@ -834,8 +852,8 @@ select {
   height: 8px;
   margin-left: auto;
   margin-right: 6px;
-  border-right: 2px solid var(--ink-2);
-  border-bottom: 2px solid var(--ink-2);
+  border-right: 2px solid var(--teal-2);
+  border-bottom: 2px solid var(--teal-2);
   transform: rotate(45deg) translateY(-2px);
   transition: transform 0.15s;
 }
@@ -861,7 +879,7 @@ select {
   font: inherit;
   font-size: var(--fs-sm);
   font-weight: 600;
-  color: var(--ink-2);
+  color: var(--teal-2);
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
@@ -956,8 +974,8 @@ span.flatpickr-weekday {
 }
 .flatpickr-calendar .flatpickr-day:hover,
 .flatpickr-calendar .flatpickr-day:focus {
-  background: var(--fill);
-  border-color: var(--fill);
+  background: var(--teal-tint);
+  border-color: var(--teal-tint);
 }
 .flatpickr-calendar .flatpickr-day.today {
   border-color: var(--accent);
@@ -965,14 +983,14 @@ span.flatpickr-weekday {
 .flatpickr-calendar .flatpickr-day.selected,
 .flatpickr-calendar .flatpickr-day.selected:hover,
 .flatpickr-calendar .flatpickr-day.selected:focus {
-  background: var(--ink);
-  border-color: var(--ink);
+  background: var(--teal);
+  border-color: var(--teal);
   color: #fff;
 }
 .flatpickr-calendar .flatpickr-day.flatpickr-disabled,
 .flatpickr-calendar .flatpickr-day.prevMonthDay,
 .flatpickr-calendar .flatpickr-day.nextMonthDay {
-  color: #a1a1aa;
+  color: #94a3b8;
 }
 
 /* ============================== pin card ============================== */
@@ -1108,7 +1126,7 @@ span.flatpickr-weekday {
   cursor: pointer;
 }
 .pick:hover {
-  background: var(--fill);
+  background: var(--teal-tint);
 }
 .pick-rent {
   font-weight: 800;
@@ -1121,7 +1139,7 @@ span.flatpickr-weekday {
   left: 50%;
   bottom: calc(96px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
-  background: var(--ink);
+  background: var(--teal);
   color: #fff;
   padding: var(--s3) var(--s4);
   border-radius: var(--r-md);
@@ -1171,7 +1189,7 @@ span.flatpickr-weekday {
 .map-hint {
   margin: 0;
   pointer-events: none;
-  background: rgba(24, 24, 27, 0.9);
+  background: rgba(11, 85, 102, 0.94);
   color: #fff;
   padding: 10px var(--s4);
   border-radius: var(--r-pill);

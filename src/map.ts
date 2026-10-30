@@ -74,7 +74,7 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
         [DRAFT_SOURCE]: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       },
       // 'white': a quiet, nearly colourless basemap so the rents (and the one orange accent) lead.
-      layers: [...layers('base', namedFlavor('white'), { lang: 'en' }), ...pinLayers],
+      layers: [...layers('base', namedFlavor('light'), { lang: 'en' }), ...pinLayers],
     },
   });
 
