@@ -1,4 +1,4 @@
-import { ApiError, deletePin } from '../api';
+import { ApiError, deletePin, fetchPinDetails, leanPins } from '../api';
 import { SITE_URL } from '../config';
 import {
   DRINKING_LABEL,
@@ -21,7 +21,7 @@ import {
   relativeDate,
   rupees,
 } from '../format';
-import { PREMISES_PLACES } from '../../supabase/functions/_shared/rules';
+import { PREMISES_PLACES, WATERLOG_PLACES } from '../../supabase/functions/_shared/rules';
 import { localityName } from '../localities';
 import { browserId, forgetEditToken, getEditToken } from '../tokens';
 import type { PublicPin } from '../types';
@@ -57,7 +57,10 @@ function waterLine(p: PublicPin): string | null {
 function monsoonLine(p: PublicPin): string | null {
   if (p.waterlog_where?.length) {
     const parts = [
-      `Water collects at the ${p.waterlog_where.map((w) => WATERLOG_PLACE_LABEL[w]).join(', ')}`,
+      `Water collects at the ${[...p.waterlog_where]
+        .sort((a, b) => WATERLOG_PLACES.indexOf(a) - WATERLOG_PLACES.indexOf(b))
+        .map((w) => WATERLOG_PLACE_LABEL[w])
+        .join(', ')}`,
     ];
     if (p.waterlog_severity) parts.push(SEVERITY_LABEL[p.waterlog_severity]);
     if (p.waterlog_duration) parts.push(DURATION_LABEL[p.waterlog_duration]);
@@ -99,10 +102,21 @@ export function setupPinCard({ onDeleted }: Options) {
   }
 
   async function open(pin: PublicPin, trigger?: HTMLElement | null): Promise<void> {
+    // Map pins arrive with only the map columns; load the rest once, then keep it on the pin.
+    if (leanPins.has(pin)) {
+      try {
+        Object.assign(pin, await fetchPinDetails(pin.id));
+        leanPins.delete(pin);
+      } catch (err) {
+        toast(err instanceof ApiError ? err.message : 'Could not load this pin.', 'error');
+        return;
+      }
+    }
     const locality = await localityName(pin.locality_slug);
     const pg = pin.property_type === 'pg';
     const chips = flags(pin);
     const other = [
+      row('Floor', pin.floor_level ? FLOOR_LABEL[pin.floor_level] : null),
       row(
         'Deposit',
         pin.deposit_months != null
@@ -160,17 +174,13 @@ export function setupPinCard({ onDeleted }: Options) {
     body.innerHTML = `
       ${demo ? '<p class="demo-flag">DEMO — NOT A REAL RENTAL</p>' : ''}
       <p class="pin-rent">${rupees(pin.rent)}<span>/month</span></p>
-      <p class="pin-home">${escapeHtml(homeLabel(pin))} · ${FURNISHING_LABEL[pin.furnishing]} · ${pin.gated ? 'Gated society' : 'Not gated'}</p>
+      <p class="pin-home">${escapeHtml(homeLabel(pin))} · ${FURNISHING_LABEL[pin.furnishing]}</p>
+      <p class="pin-meta">${[locality ? `Near ${escapeHtml(locality)}` : null, pin.gated ? 'Gated society' : 'Not gated', pin.society_name ? escapeHtml(pin.society_name) : null].filter(Boolean).join(' · ')}</p>
       ${pin.is_outlier ? '<p class="note-warn">This rent is unusually far from others nearby. Treat it with caution.</p>' : ''}
       ${chips.length ? `<ul class="flags" aria-label="Reported conditions">${chips.map((c) => `<li class="flag${c.warn ? ' flag-warn' : ''}">${escapeHtml(c.text)}</li>`).join('')}</ul>` : ''}
-      <dl class="kvs">
-        ${row('Area', locality ? `Near ${locality}` : null)}
-        ${row('Building', pin.society_name)}
-        ${row('Floor', pin.floor_level ? FLOOR_LABEL[pin.floor_level] : null)}
-      </dl>
       ${
         hasConditions
-          ? `<h3 class="kvs-title">Living conditions <span class="badge-unverified">Renter-reported · not verified</span></h3>
+          ? `<h3 class="kvs-title">Living conditions <span class="badge-unverified">Reported by the renter, not verified</span></h3>
       <dl class="kvs">
         ${row('Water', waterLine(pin))}
         ${row('Source', pin.water_sources?.length ? pin.water_sources.map((w) => WATER_SOURCE_LABEL[w]).join(', ') : null)}
@@ -190,12 +200,12 @@ export function setupPinCard({ onDeleted }: Options) {
         ${row('Power backup', pin.power_backup && pin.power_backup !== 'unknown' ? POWER_LABEL[pin.power_backup] : null)}
         ${row('Power cuts', pin.power_cuts ? POWER_CUTS_LABEL[pin.power_cuts] : null)}
       </dl>
-      <p class="fine">${asOf}</p>`
+      <p class="fine card-foot">${asOf}</p>`
           : ''
       }
       ${other ? `<h3 class="kvs-title">Other details</h3><dl class="kvs">${other}</dl>` : ''}
       ${pin.one_liner ? `<blockquote class="oneliner">“${escapeHtml(pin.one_liner)}”</blockquote>` : ''}
-      <p class="fine">${demo ? 'Fictional demo record for testing. No such rental exists.' : `Pinned ${relativeDate(pin.created_at)} by a renter. This is what they pay, not an ad. The flat may not be available.`}</p>
+      <p class="fine card-foot">${demo ? 'Fictional demo record for testing. No such rental exists.' : `Pinned ${relativeDate(pin.created_at)} by a renter. This is what they pay, not an ad. The flat may not be available.`}</p>
     `;
 
     actions.innerHTML = '';

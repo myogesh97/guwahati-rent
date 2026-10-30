@@ -19,17 +19,21 @@ To enable pinning, copy `.env.example` to `.env` and fill in `VITE_SUPABASE_URL`
 npm run typecheck && npm run lint && npm test && npm run build
 ```
 
-`npm test` runs the shared-rules unit tests with Node's built-in runner (Node ≥ 22.18, no extra dependency).
+`npm test` runs the unit tests (shared rules + the `full` demo dataset) with Node's built-in runner via `tsx`.
 
 ### Demo mode (development only)
 
 `npm run dev`, then open one of:
 
-| URL | Fictional pins | Purpose |
-|---|---|---|
-| `/?demo=normal` | 25 | normal density |
-| `/?demo=dense` | 80 | many pins per area, 8 spots shared by 2+ pins |
-| `/?demo=stress` | 260 | stress test, 32 shared spots |
+| URL              | Fictional pins | Purpose                                                                                                        |
+| ---------------- | -------------- | -------------------------------------------------------------------------------------------------------------- |
+| `/?demo=normal`  | 25             | normal density                                                                                                 |
+| `/?demo=dense`   | 80             | many pins per area, 8 spots shared by 2+ pins                                                                  |
+| `/?demo=stress`  | 260            | stress test, 32 shared spots                                                                                   |
+| `/?demo=crowded` | 1,000          | crowded city, 20% of pins share a building                                                                     |
+| `/?demo=packed`  | 5,000          | very crowded                                                                                                   |
+| `/?demo=max`     | 20,000         | the most SPEC §8.4 expects to load at once                                                                     |
+| `/?demo=full`    | 500            | every pin is a complete form submission that follows all the form rules (checked by `tests/demo-data.test.ts`) |
 
 Every demo pin is generated in the browser by `src/demo/demo-data.ts` (deterministic: same scenario, same pins). Nothing is written to any database, so there is nothing to clean up: remove `?demo=` (or click **Exit demo**). A banner says DEMO MODE, every pin card says **DEMO — NOT A REAL RENTAL**, real pins are not loaded, and adding pins is off. The whole branch sits behind `import.meta.env.DEV`, so production builds contain no demo data, banner or QA hook (verify: `grep -r "demoPins\|__grMap" dist/` is empty).
 
@@ -79,12 +83,12 @@ The frontend reads `public_pins?select=*`, so the map keeps loading even if step
 
 `netlify.toml` is ready (build `npm run build`, publish `dist`, Node 22). In Netlify: **Add new site → Import from Git → this repo**, then Site configuration → Environment variables:
 
-| Variable | Value |
-|---|---|
-| `VITE_SUPABASE_URL` | `https://<ref>.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | anon / publishable key |
+| Variable                  | Value                                                                             |
+| ------------------------- | --------------------------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`       | `https://<ref>.supabase.co`                                                       |
+| `VITE_SUPABASE_ANON_KEY`  | anon / publishable key                                                            |
 | `VITE_TURNSTILE_SITE_KEY` | Turnstile site key (add the netlify.app hostname to the widget's allowed domains) |
-| `VITE_SITE_URL` | `https://<your-site>.netlify.app` |
+| `VITE_SITE_URL`           | `https://<your-site>.netlify.app`                                                 |
 
 Redeploy after changing variables (they're baked in at build time).
 
@@ -103,6 +107,9 @@ Not testable from the build machine: real Cloudflare Turnstile (stubbed locally)
 ## Deviations from the spec
 
 - **Living-condition fields (migration 0003)** go beyond SPEC §6.1, at the owner's request. They are optional, carry no contact data, and are shown as "renter-reported, not verified". Rules shared by the form and `submit-pin` live in `_shared/rules.ts` (`pruneConditions`, `conditionProblems`, `waterlogSummary`).
+- **flatpickr** (MIT, ~15 KB gzipped) was added beyond SPEC §16 at the owner's request, for the "when did you last see these conditions" calendar. It is loaded on demand (its own chunk), only when the rent form opens. Dropdowns were replaced by option chips instead of a dropdown library.
+- **Results panel / phone sheet** (rents in the current map view, medians per BHK from 3+ pins) is the SPEC §8.6 list view, built ahead of Phase 2 at the owner's request. Filters are still Phase 2.
+- **Look:** clean neutral palette (near-black + white) with one accent, burnt orange `#c2410c`, used only for actions and your/selected pin. Water and monsoon warnings use amber. Basemap flavour is Protomaps `white`.
 - **Demo mode** is a dev-only, in-browser fixture. It is deliberately not a database seed because SPEC §5.13 says "never invent seed data".
 
 - Reads use plain `fetch` to PostgREST instead of supabase-js (main bundle is ~7 KB gzipped vs a 60 KB budget). supabase-js stays a dependency for the Phase 4 admin page.

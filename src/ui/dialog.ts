@@ -13,10 +13,12 @@ export function openDialog(dlg: HTMLDialogElement, trigger?: HTMLElement | null)
   }
   returnFocus.set(dlg, trigger ?? (document.activeElement as HTMLElement | null));
   if (!dlg.open) dlg.showModal();
-  const first = dlg.querySelector<HTMLElement>(
-    '[autofocus], input:not([type=hidden]), select, textarea, button',
-  );
-  first?.focus();
+  // Focus the title (announced by screen readers) unless a control asks for it with
+  // [autofocus]. Focusing the first control would put a focus ring on the ✕ every time.
+  const target =
+    dlg.querySelector<HTMLElement>('[autofocus]') ?? dlg.querySelector<HTMLElement>('h2');
+  if (target?.tagName === 'H2') target.tabIndex = -1;
+  target?.focus();
 }
 
 export function closeDialog(dlg: HTMLDialogElement): void {
@@ -27,8 +29,12 @@ export function closeDialog(dlg: HTMLDialogElement): void {
 export function wireDialogs(): void {
   for (const dlg of document.querySelectorAll<HTMLDialogElement>('dialog')) {
     dlg.addEventListener('close', () => {
+      // Hand focus back to what opened the dialog, but only if focus hasn't already moved on
+      // (the close event fires a moment later; never pull focus away from where the user is).
+      const active = document.activeElement;
+      const stillHere = !active || active === document.body || dlg.contains(active);
       const t = returnFocus.get(dlg);
-      if (t && document.contains(t)) t.focus();
+      if (stillHere && t && document.contains(t)) t.focus();
     });
     dlg.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;

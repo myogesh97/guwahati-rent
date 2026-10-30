@@ -5,11 +5,11 @@ export const PIN_SOURCE = 'pins';
 export const DRAFT_SOURCE = 'draft';
 
 export const COLOR = {
-  ink: '#0b3b4a',
-  pin: '#0e7490',
-  pinDark: '#0b5566',
+  ink: '#18181b', // pins + clusters: near-black, so the map stays neutral
+  pin: '#18181b',
+  pinDark: '#000000',
   white: '#ffffff',
-  draft: '#c2410c',
+  draft: '#c2410c', // the one accent: your pin, and the selected pin
 } as const;
 
 const FONT = ['Noto Sans Medium'];

@@ -30,7 +30,7 @@ const NUMBER_FIELDS = [
   'maintenance_amount',
 ] as const;
 const BOOL_FIELDS = ['gated', 'maintenance_incl', 'pg_meals', 'water_shared'] as const;
-const LIST_FIELDS = ['water_sources', 'waterlog_where'] as const;
+const LIST_FIELDS = ['waterlog_where'] as const;
 const TEXT_FIELDS = [
   'property_type',
   'furnishing',
@@ -84,6 +84,8 @@ export function setupRentForm({ onSubmitted, onMoveRequested }: Options) {
   const litresLabel = document.getElementById('water-litres-label') as HTMLElement;
   const litresHelp = document.getElementById('water-litres-help') as HTMLElement;
   const asOf = document.getElementById('as-of') as HTMLInputElement;
+  const asOfClear = document.getElementById('as-of-clear') as HTMLButtonElement;
+  let datePicker: { clear(): void; set(k: 'maxDate', v: Date): void } | null = null;
   const localityHint = document.getElementById('rent-locality') as HTMLElement;
   const submitBtn = document.getElementById('rent-submit') as HTMLButtonElement;
   const turnstile = new TurnstileWidget(document.getElementById('rent-turnstile') as HTMLElement);
@@ -232,7 +234,12 @@ export function setupRentForm({ onSubmitted, onMoveRequested }: Options) {
     const unplaced: string[] = [];
     for (const { field, message } of problems) {
       const err = document.getElementById(`err-${field}`);
-      const inputs = [...form.querySelectorAll<HTMLInputElement>(`[name="${field}"]`)];
+      // A flatpickr field submits through a hidden input; mark and focus the visible one.
+      const inputs = [...form.querySelectorAll<HTMLInputElement>(`[name="${field}"]`)].map(
+        (i) =>
+          (i as HTMLInputElement & { _flatpickr?: { altInput?: HTMLInputElement } })._flatpickr
+            ?.altInput ?? i,
+      );
       if (err && !err.textContent) {
         err.textContent = message;
         err.hidden = false;
@@ -272,6 +279,29 @@ export function setupRentForm({ onSubmitted, onMoveRequested }: Options) {
     errorBox.focus();
     errorBox.scrollIntoView({ block: 'nearest' });
   }
+
+  // Optional chip groups have no "—" option, so tapping the chosen chip again clears it.
+  let wasChecked: HTMLInputElement | null = null;
+  form.addEventListener('pointerdown', (e) => {
+    const input = (e.target as HTMLElement).closest('label')?.querySelector('input');
+    wasChecked =
+      input?.type === 'radio' && input.checked && input.closest('[data-optional]') ? input : null;
+  });
+  form.addEventListener('click', (e) => {
+    const input = (e.target as HTMLElement).closest('label')?.querySelector('input');
+    if (input && input === wasChecked) {
+      input.checked = false;
+      wasChecked = null;
+      form.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+
+  asOfClear.addEventListener('click', () => {
+    datePicker?.clear();
+    asOf.value = '';
+    asOfClear.hidden = true;
+    clearFieldError('conditions_as_of');
+  });
 
   form.addEventListener('change', (e) => {
     syncConditional();
@@ -314,6 +344,8 @@ export function setupRentForm({ onSubmitted, onMoveRequested }: Options) {
         browserId: browserId(),
       });
       form.reset();
+      datePicker?.clear();
+      asOfClear.hidden = true;
       syncConditional();
       closeDialog(dlg);
       onSubmitted(result);
@@ -346,6 +378,19 @@ export function setupRentForm({ onSubmitted, onMoveRequested }: Options) {
         : 'Your rent stays anonymous.';
       const d = new Date();
       asOf.max = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      // Calendar (flatpickr) is loaded the first time the form opens, not with the map.
+      if (datePicker) datePicker.set('maxDate', d);
+      else
+        void import('../ui/datepicker')
+          .then(({ attachDatePicker }) => {
+            datePicker ??= attachDatePicker(asOf, () => {
+              asOfClear.hidden = !asOf.value;
+              clearFieldError('conditions_as_of');
+            });
+          })
+          .catch(() => {
+            /* plain date input keeps working */
+          });
       clearErrors();
       openDialog(dlg);
       turnstile.mount().catch((err: Error) => showMessage(err.message));

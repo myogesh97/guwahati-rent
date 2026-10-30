@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "node --test tests/",
+    "test": "node --import tsx --test tests/",
     "format": "prettier --write .",
     "security-check": "bash scripts/security-check.sh"
   },
@@ -17,6 +17,7 @@
     "@protomaps/basemaps": "^5.0.0",
     "@supabase/supabase-js": "^2.45.0",
     "browser-image-compression": "^2.0.2",
+    "flatpickr": "^4.6.13",
     "maplibre-gl": "^5.0.0",
     "pmtiles": "^4.0.0",
     "zod": "^3.23.0"

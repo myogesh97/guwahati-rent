@@ -19,7 +19,14 @@ export interface MapView {
   focus(lat: number, lng: number, zoom?: number): void;
   /** All pins under the tap (more than one when pins share a spot). */
   onPinClick(cb: (ids: string[]) => void): void;
+  /** Click while choosing a spot (placement mode). */
   onMapClick(cb: (lat: number, lng: number) => void): void;
+  /** Click on empty map (no pin or cluster under it) outside placement mode. */
+  onEmptyClick(cb: (lat: number, lng: number) => void): void;
+  getCenter(): { lat: number; lng: number };
+  getBounds(): { west: number; south: number; east: number; north: number };
+  /** Called after every pan/zoom (and once when ready). */
+  onViewChange(cb: () => void): void;
   setPlacing(on: boolean): void;
   resize(): void;
 }
@@ -68,7 +75,8 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
         },
         [DRAFT_SOURCE]: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       },
-      layers: [...layers('base', namedFlavor('light'), { lang: 'en' }), ...pinLayers],
+      // 'white': a quiet, nearly colourless basemap so the rents (and the one orange accent) lead.
+      layers: [...layers('base', namedFlavor('white'), { lang: 'en' }), ...pinLayers],
     },
   });
 
@@ -89,6 +97,7 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
   let placing = false;
   let pinClick: ((ids: string[]) => void) | null = null;
   let mapClick: ((lat: number, lng: number) => void) | null = null;
+  let emptyClick: ((lat: number, lng: number) => void) | null = null;
 
   map.on('click', async (e) => {
     if (placing) {
@@ -99,7 +108,10 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
       layers: CLICKABLE_LAYERS,
     });
     const f = hits[0];
-    if (!f) return;
+    if (!f) {
+      emptyClick?.(e.lngLat.lat, e.lngLat.lng);
+      return;
+    }
     const props = f.properties as Record<string, unknown>;
     const ids = [
       ...new Set(
@@ -171,6 +183,21 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
     },
     onMapClick(cb) {
       mapClick = cb;
+    },
+    onEmptyClick(cb) {
+      emptyClick = cb;
+    },
+    getBounds() {
+      const b = map.getBounds();
+      return { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() };
+    },
+    onViewChange(cb) {
+      map.on('moveend', cb);
+      cb();
+    },
+    getCenter() {
+      const c = map.getCenter();
+      return { lat: c.lat, lng: c.lng };
     },
     setPlacing(on) {
       placing = on;

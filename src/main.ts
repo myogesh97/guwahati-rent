@@ -7,6 +7,7 @@ import { $dialog, closeDialog, openDialog, wireDialogs } from './ui/dialog';
 import { toast } from './ui/toast';
 import { setupRentForm } from './forms/rent-pin';
 import { setupPinCard } from './ui/pin-card';
+import { setupResults } from './ui/results';
 import { inGuwahati } from '../supabase/functions/_shared/rules';
 import type { MapView } from './map';
 import type { PublicPin } from './types';
@@ -25,8 +26,11 @@ function setStatus(text: string | null): void {
   el.hidden = !text;
 }
 
+let refreshList: () => void = () => {};
+
 function renderPins(): void {
   state.map?.setPins(state.pins);
+  refreshList();
   const n = state.pins.length;
   $('pin-count').textContent = n
     ? `${n.toLocaleString('en-IN')} ${document.getElementById('demo-banner') ? 'DEMO pin' : 'rent'}${n === 1 ? '' : 's'}${document.getElementById('demo-banner') ? '' : ' pinned'}`
@@ -47,19 +51,41 @@ async function nearestLocalityName(lat: number, lng: number): Promise<string | n
   return Math.sqrt(bestD) * 111_000 <= 3000 ? best : null;
 }
 
-// ---------- placement mode ----------
-function startPlacement(): void {
+// ---------- adding a pin ----------
+// Desktop (mouse): click any empty spot on the map. Phone/keyboard: "Pin your rent" shows a
+// fixed pin at the map centre; move the map under it and press "Use this spot".
+const hasMouse = (): boolean => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+let canAdd = BACKEND_READY;
+
+function syncAddUi(): void {
+  const placing = !$('placement-banner').hidden;
+  $('map-hint').hidden = !canAdd || placing || !hasMouse();
+  $('btn-add').hidden = placing || !canAdd;
+  $('btn-add-top').hidden = placing || !canAdd;
+  $('map').classList.toggle('can-add', canAdd && hasMouse() && !placing);
+}
+
+function startPlacement(at?: { lat: number; lng: number }): void {
   if (!state.map) return;
+  // Street level, so the pin can be lined up with a road (the city view is too coarse).
+  const c = at ?? state.map.getCenter();
+  state.map.focus(c.lat, c.lng, at ? 16 : 15);
+  state.draft = null;
+  state.map.setDraft(null); // the centre pin stands in for it
   $('placement-banner').hidden = false;
-  $('btn-add').hidden = true;
+  $('crosshair').hidden = false;
+  document.body.classList.add('is-placing');
   state.map.setPlacing(true);
-  $<HTMLButtonElement>('placement-cancel').focus();
+  syncAddUi();
+  $<HTMLButtonElement>('placement-use').focus();
 }
 
 function stopPlacement(): void {
   $('placement-banner').hidden = true;
-  $('btn-add').hidden = false;
+  $('crosshair').hidden = true;
+  document.body.classList.remove('is-placing');
   state.map?.setPlacing(false);
+  syncAddUi();
 }
 
 function shareText(): string {
@@ -68,6 +94,17 @@ function shareText(): string {
 
 async function boot(): Promise<void> {
   wireDialogs();
+
+  async function pickSpot({ lat, lng }: { lat: number; lng: number }): Promise<void> {
+    if (!inGuwahati(lat, lng)) {
+      toast('That spot is outside Guwahati. Only Guwahati pins are accepted for now.', 'error');
+      return;
+    }
+    stopPlacement();
+    state.draft = { lat, lng };
+    state.map?.setDraft(state.draft);
+    rentForm.open(state.draft, await nearestLocalityName(lat, lng));
+  }
 
   const rentForm = setupRentForm({
     onSubmitted(result) {
@@ -82,7 +119,7 @@ async function boot(): Promise<void> {
       openDialog($dialog('dlg-shared'));
     },
     onMoveRequested() {
-      startPlacement();
+      startPlacement(state.draft ?? undefined);
     },
   });
 
@@ -104,23 +141,20 @@ async function boot(): Promise<void> {
   });
 
   // ---------- buttons ----------
-  if (!BACKEND_READY) {
-    $('readonly-banner').hidden = false;
-    $<HTMLButtonElement>('btn-add').disabled = true;
-  }
+  if (!BACKEND_READY) $('readonly-banner').hidden = false;
+  syncAddUi();
+  window.matchMedia('(hover: hover) and (pointer: fine)').addEventListener('change', syncAddUi);
 
-  $('btn-add').addEventListener('click', (e) =>
-    openDialog($dialog('dlg-add'), e.currentTarget as HTMLElement),
-  );
-  $('choose-rent').addEventListener('click', () => {
-    closeDialog($dialog('dlg-add'));
-    startPlacement();
-  });
+  for (const id of ['btn-add', 'btn-add-top'])
+    $(id).addEventListener('click', () => startPlacement());
   $('placement-cancel').addEventListener('click', () => {
     stopPlacement();
     state.draft = null;
     state.map?.setDraft(null);
-    $('btn-add').focus();
+    (hasMouse() ? $('btn-add-top') : $('btn-add')).focus();
+  });
+  $('placement-use').addEventListener('click', () => {
+    if (state.map) void pickSpot(state.map.getCenter());
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !$('placement-banner').hidden) $('placement-cancel').click();
@@ -156,7 +190,8 @@ async function boot(): Promise<void> {
         banner.innerHTML = `<strong>DEMO MODE: fictional rentals, not real listings.</strong> Scenario "${scenario}", ${SCENARIOS[scenario]} pins. Adding pins is off. <a href="/">Exit demo</a>`;
         $('readonly-banner').before(banner);
         $('readonly-banner').hidden = true;
-        $('btn-add').hidden = true; // a disabled, translucent button over pins looks broken
+        canAdd = false;
+        syncAddUi();
         return demoPins(scenario);
       })
     : fetchPins().catch(() => {
@@ -174,8 +209,30 @@ async function boot(): Promise<void> {
     return;
   }
 
+  const results = setupResults({
+    onSelect(pin) {
+      state.map?.focus(pin.lat, pin.lng, 16);
+      state.map?.select(pin.id);
+      void pinCard.open(pin);
+    },
+    onPreview(id) {
+      if (!$dialog('dlg-pin').open) state.map?.select(id);
+    },
+  });
+  let queued = false;
+  refreshList = () => {
+    if (queued || !state.map) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      if (state.map)
+        results.render(state.pins, state.map.getBounds(), state.map.getCenter(), canAdd);
+    });
+  };
+
   state.pins = await pinsPromise;
   renderPins();
+  state.map.onViewChange(refreshList);
 
   state.map.onPinClick((ids) => {
     const pins = ids
@@ -191,15 +248,13 @@ async function boot(): Promise<void> {
     }
   });
 
-  state.map.onMapClick(async (lat, lng) => {
-    if (!inGuwahati(lat, lng)) {
-      toast('That spot is outside Guwahati. Only Guwahati pins are accepted for now.', 'error');
-      return;
-    }
-    stopPlacement();
-    state.draft = { lat, lng };
-    state.map?.setDraft(state.draft);
-    rentForm.open(state.draft, await nearestLocalityName(lat, lng));
+  // While choosing a spot, a click/tap picks it directly (same as "Use this spot").
+  state.map.onMapClick((lat, lng) => void pickSpot({ lat, lng }));
+  // Desktop only: clicking empty map starts a pin right there. On touch screens a tap is
+  // usually exploring, so phones use the button + centre pin instead.
+  state.map.onEmptyClick((lat, lng) => {
+    if (!canAdd || !hasMouse() || document.querySelector('dialog[open]')) return;
+    void pickSpot({ lat, lng });
   });
 
   // Deep links: /?pin=<id> and /?area=<slug>

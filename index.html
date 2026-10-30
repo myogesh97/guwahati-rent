@@ -8,7 +8,7 @@
       name="description"
       content="See what people in Guwahati actually pay in rent, area by area. Anonymous, free, no login, no brokers. Pin your rent in 30 seconds."
     />
-    <meta name="theme-color" content="#0b3b4a" />
+    <meta name="theme-color" content="#ffffff" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Guwahati Rent — what people actually pay" />
     <meta
@@ -30,47 +30,95 @@
         <span>Guwahati&nbsp;Rent</span>
       </a>
       <p class="tagline">Real rents, pinned by real renters</p>
+      <button type="button" class="btn btn-primary btn-sm topbar-add" id="btn-add-top">
+        <span aria-hidden="true">＋</span> Pin your rent
+      </button>
       <a class="topbar-link" href="/about.html">About</a>
     </header>
 
     <main id="main">
-      <div
-        id="map"
-        class="map"
-        role="region"
-        aria-label="Map of rents in Guwahati. Each dot is a rent someone pays. Use the buttons below the map to add your rent."
-      ></div>
+      <!-- Rents in the current map view. Desktop: side panel. Phone: pull-up sheet. -->
+      <aside id="results" class="results" aria-labelledby="results-title">
+        <div class="results-head">
+          <h2 id="results-title" class="results-title">Rents in this area</h2>
+          <p id="results-summary" class="results-summary">Loading rents…</p>
+          <button
+            type="button"
+            id="results-toggle"
+            class="results-toggle"
+            aria-expanded="false"
+            aria-controls="results-body"
+          >
+            <span class="sr-only">Show the list of rents</span>
+          </button>
+        </div>
+        <div id="results-body" class="results-body">
+          <div id="results-stats" class="results-stats"></div>
+          <ol id="results-list" class="results-list"></ol>
+          <p id="results-more" class="results-more" hidden></p>
+          <div id="results-empty" class="results-empty" hidden></div>
+        </div>
+      </aside>
 
-      <div id="map-status" class="map-status" role="status" aria-live="polite">Loading map…</div>
+      <div class="map-area">
+        <div
+          id="map"
+          class="map"
+          role="region"
+          aria-label="Map of rents in Guwahati. Each dot is a rent someone pays. The list of rents in view is next to the map."
+        ></div>
 
-      <div id="readonly-banner" class="banner" hidden>
-        Read-only preview: adding pins switches on once the database is connected.
+        <div id="map-status" class="map-status" role="status" aria-live="polite">Loading map…</div>
+
+        <div id="readonly-banner" class="banner" hidden>
+          Read-only preview: adding pins switches on once the database is connected.
+        </div>
+
+        <div id="placement-banner" class="placement" hidden>
+          <p id="placement-text">
+            <strong>Move the map until the pin is on your home.</strong> A nearby spot is fine. We
+            round it to about 100 m.
+          </p>
+          <div class="placement-actions">
+            <button type="button" class="btn btn-ghost" id="placement-cancel">Cancel</button>
+            <button type="button" class="btn btn-primary" id="placement-use">Use this spot</button>
+          </div>
+        </div>
+
+        <!-- Fixed pin at the map centre while choosing a spot (the map moves under it). -->
+        <div id="crosshair" class="crosshair" hidden aria-hidden="true">
+          <svg viewBox="0 0 24 32" width="36" height="48">
+            <path
+              d="M12 1C6 1 1.5 5.5 1.5 11.3 1.5 19 12 31 12 31s10.5-12 10.5-19.7C22.5 5.5 18 1 12 1z"
+              fill="#c2410c"
+              stroke="#fff"
+              stroke-width="2"
+            />
+            <circle cx="12" cy="11.5" r="4" fill="#fff" />
+          </svg>
+        </div>
+
+        <div class="legend" aria-label="Legend">
+          <span class="legend-item"
+            ><span class="swatch swatch-solid" aria-hidden="true"></span>Gated society</span
+          >
+          <span class="legend-item"
+            ><span class="swatch swatch-ring" aria-hidden="true"></span>Not gated</span
+          >
+          <span id="pin-count" class="legend-count"></span>
+        </div>
+
+        <div id="main-actions" class="actions">
+          <p id="map-hint" class="map-hint" hidden>
+            <span aria-hidden="true">＋</span> Click any empty spot on the map to pin your rent
+          </p>
+          <button type="button" class="btn btn-primary btn-fab" id="btn-add">
+            <span aria-hidden="true">＋</span> Pin your rent
+          </button>
+        </div>
+
+        <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
       </div>
-
-      <div id="placement-banner" class="placement" hidden>
-        <p>
-          <strong>Tap where the flat is.</strong> A nearby spot is fine. We round it to about 100 m.
-        </p>
-        <button type="button" class="btn btn-ghost" id="placement-cancel">Cancel</button>
-      </div>
-
-      <div class="legend" aria-label="Legend">
-        <span class="legend-item"
-          ><span class="swatch swatch-solid" aria-hidden="true"></span>Gated society</span
-        >
-        <span class="legend-item"
-          ><span class="swatch swatch-ring" aria-hidden="true"></span>Not gated</span
-        >
-        <span id="pin-count" class="legend-count"></span>
-      </div>
-
-      <div id="main-actions" class="actions">
-        <button type="button" class="btn btn-primary btn-fab" id="btn-add" aria-haspopup="dialog">
-          <span aria-hidden="true">＋</span> Pin your rent
-        </button>
-      </div>
-
-      <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
     </main>
 
     <!-- Welcome + consent ------------------------------------------------------>
@@ -97,35 +145,7 @@
         </p>
       </div>
       <div class="dlg-actions">
-        <button type="button" class="btn btn-primary" id="welcome-ok" autofocus>
-          Show me the map
-        </button>
-      </div>
-    </dialog>
-
-    <!-- What do you want to do? ------------------------------------------------>
-    <dialog id="dlg-add" class="dlg" aria-labelledby="add-title">
-      <div class="dlg-head">
-        <h2 id="add-title">What would you like to do?</h2>
-        <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
-      </div>
-      <div class="dlg-body choice-list">
-        <button type="button" class="choice" id="choose-rent">
-          <span class="choice-title">Pin what I pay</span>
-          <span class="choice-sub">Anonymous. 30 seconds. Helps everyone see real prices.</span>
-        </button>
-        <button type="button" class="choice" disabled>
-          <span class="choice-title">List my flat for rent</span>
-          <span class="choice-sub">Coming soon: owners reach tenants directly, no broker.</span>
-        </button>
-        <button type="button" class="choice" disabled>
-          <span class="choice-title">I'm looking for a flat</span>
-          <span class="choice-sub">Coming soon: get matched with flats near you by email.</span>
-        </button>
-        <button type="button" class="choice" disabled>
-          <span class="choice-title">Spotted a To-Let board</span>
-          <span class="choice-sub">Coming soon: snap it and put it on the map.</span>
-        </button>
+        <button type="button" class="btn btn-primary" id="welcome-ok">Show me the map</button>
       </div>
     </dialog>
 
@@ -143,83 +163,129 @@
         </div>
         <div class="dlg-body">
           <p class="hint" id="rent-locality">Your rent stays anonymous.</p>
+          <p class="hint-sub">
+            Only <strong>The home</strong> and <strong>Rent</strong> are needed. Skip anything
+            you're not sure about.
+          </p>
 
           <div id="rent-error" class="form-error" role="alert" tabindex="-1" hidden></div>
 
-          <h3 class="sec-first">The home</h3>
-
-          <fieldset class="field">
-            <legend>Type of home <span class="req">required</span></legend>
-            <div class="seg" role="radiogroup">
-              <label><input type="radio" name="property_type" value="flat" checked /> Flat</label>
-              <label
-                ><input type="radio" name="property_type" value="independent" /> Independent</label
-              >
-              <label><input type="radio" name="property_type" value="1rk" /> 1RK</label>
-              <label><input type="radio" name="property_type" value="room" /> Room</label>
-              <label><input type="radio" name="property_type" value="pg" /> PG</label>
+          <section class="form-section" aria-labelledby="sec-home">
+            <h3 id="sec-home">The home</h3>
+            <fieldset class="field">
+              <legend>Type of home</legend>
+              <div class="seg seg-grid" style="--cols: 5" role="radiogroup">
+                <label><input type="radio" name="property_type" value="flat" checked /> Flat</label>
+                <label><input type="radio" name="property_type" value="independent" /> House</label>
+                <label><input type="radio" name="property_type" value="1rk" /> 1RK</label>
+                <label><input type="radio" name="property_type" value="room" /> Room</label>
+                <label><input type="radio" name="property_type" value="pg" /> PG</label>
+              </div>
+            </fieldset>
+            <fieldset class="field" id="bhk-field">
+              <legend>Bedrooms</legend>
+              <div class="seg seg-grid" style="--cols: 5" role="radiogroup">
+                <label><input type="radio" name="bhk" value="1" /> 1 BHK</label>
+                <label><input type="radio" name="bhk" value="2" checked /> 2 BHK</label>
+                <label><input type="radio" name="bhk" value="3" /> 3 BHK</label>
+                <label><input type="radio" name="bhk" value="4" /> 4 BHK</label>
+                <label><input type="radio" name="bhk" value="5" /> 5+</label>
+              </div>
+            </fieldset>
+            <fieldset class="field">
+              <legend>Furnishing</legend>
+              <div class="seg seg-grid" style="--cols: 3" role="radiogroup">
+                <label
+                  ><input type="radio" name="furnishing" value="unfurnished" checked />
+                  Unfurnished</label
+                >
+                <label><input type="radio" name="furnishing" value="semi" /> Semi</label>
+                <label><input type="radio" name="furnishing" value="furnished" /> Furnished</label>
+              </div>
+            </fieldset>
+            <fieldset class="field">
+              <legend>Gated society?</legend>
+              <div class="seg seg-grid" style="--cols: 2" role="radiogroup">
+                <label><input type="radio" name="gated" value="true" /> Yes, gated</label>
+                <label><input type="radio" name="gated" value="false" checked /> No</label>
+              </div>
+            </fieldset>
+          </section>
+          <section class="form-section" aria-labelledby="sec-rent">
+            <h3 id="sec-rent">Rent and deposit</h3>
+            <div class="field">
+              <label for="rent-amount">Monthly rent (₹)</label>
+              <div class="money">
+                <span aria-hidden="true">₹</span>
+                <input
+                  id="rent-amount"
+                  name="rent"
+                  type="number"
+                  inputmode="numeric"
+                  min="1000"
+                  max="500000"
+                  step="1"
+                  required
+                  placeholder="e.g. 12000"
+                  aria-describedby="rent-amount-help err-rent"
+                />
+              </div>
+              <p class="help" id="rent-amount-help">
+                What you pay each month, without electricity.
+              </p>
+              <p class="field-error" id="err-rent" hidden></p>
             </div>
-          </fieldset>
-
-          <fieldset class="field" id="bhk-field">
-            <legend>Bedrooms <span class="req">required</span></legend>
-            <div class="seg" role="radiogroup">
-              <label><input type="radio" name="bhk" value="1" /> 1 BHK</label>
-              <label><input type="radio" name="bhk" value="2" checked /> 2 BHK</label>
-              <label><input type="radio" name="bhk" value="3" /> 3 BHK</label>
-              <label><input type="radio" name="bhk" value="4" /> 4 BHK</label>
-              <label><input type="radio" name="bhk" value="5" /> 5+</label>
+            <div class="field-row">
+              <div class="field">
+                <label for="deposit">Deposit (in months of rent)</label>
+                <input
+                  id="deposit"
+                  name="deposit_months"
+                  type="number"
+                  inputmode="numeric"
+                  min="0"
+                  max="12"
+                  step="1"
+                  placeholder="e.g. 2"
+                  aria-describedby="deposit-help err-deposit_months"
+                />
+                <p class="help" id="deposit-help">Number of months, not the amount in ₹.</p>
+                <p class="field-error" id="err-deposit_months" hidden></p>
+              </div>
+              <fieldset class="field" id="maint">
+                <legend>Maintenance</legend>
+                <div class="seg" role="radiogroup" data-optional>
+                  <label
+                    ><input type="radio" name="maintenance_incl" value="true" /> Included in
+                    rent</label
+                  >
+                  <label
+                    ><input type="radio" name="maintenance_incl" value="false" /> Paid
+                    separately</label
+                  >
+                </div>
+              </fieldset>
             </div>
-          </fieldset>
-
-          <div class="field">
-            <label for="rent-amount">Monthly rent (₹) <span class="req">required</span></label>
-            <div class="money">
-              <span aria-hidden="true">₹</span>
-              <input
-                id="rent-amount"
-                name="rent"
-                type="number"
-                inputmode="numeric"
-                min="1000"
-                max="500000"
-                step="1"
-                required
-                placeholder="e.g. 12000"
-                aria-describedby="rent-amount-help err-rent"
-              />
-            </div>
-            <p class="help" id="rent-amount-help">What you pay each month, without electricity.</p>
-            <p class="field-error" id="err-rent" hidden></p>
-          </div>
-
-          <fieldset class="field">
-            <legend>Furnishing <span class="req">required</span></legend>
-            <div class="seg" role="radiogroup">
-              <label
-                ><input type="radio" name="furnishing" value="unfurnished" checked />
-                Unfurnished</label
-              >
-              <label><input type="radio" name="furnishing" value="semi" /> Semi</label>
-              <label><input type="radio" name="furnishing" value="furnished" /> Furnished</label>
-            </div>
-          </fieldset>
-
-          <fieldset class="field">
-            <legend>Gated society? <span class="req">required</span></legend>
-            <div class="seg" role="radiogroup">
-              <label><input type="radio" name="gated" value="true" /> Yes, gated</label>
-              <label><input type="radio" name="gated" value="false" checked /> No</label>
-            </div>
-          </fieldset>
-
-          <!-- Water ------------------------------------------------------------>
+            <fieldset class="cond" id="maint-amount-row" hidden disabled>
+              <legend class="sr-only">Maintenance amount</legend>
+              <div class="field">
+                <label for="maint-amount">Maintenance per month (₹)</label>
+                <input
+                  id="maint-amount"
+                  name="maintenance_amount"
+                  type="number"
+                  inputmode="numeric"
+                  min="0"
+                  max="50000"
+                  step="1"
+                  aria-describedby="err-maintenance_amount"
+                />
+                <p class="field-error" id="err-maintenance_amount" hidden></p>
+              </div>
+            </fieldset>
+          </section>
           <section class="form-section" aria-labelledby="sec-water">
-            <h3 id="sec-water">Water</h3>
-            <p class="help section-help">
-              Only what you know. Skip anything you're not sure about.
-            </p>
-
+            <h3 id="sec-water">Water <span class="opt">Optional</span></h3>
             <fieldset class="field">
               <legend>How often does water come?</legend>
               <div class="seg" role="radiogroup">
@@ -245,7 +311,6 @@
                 >
               </div>
             </fieldset>
-
             <fieldset class="cond" id="water-schedule" hidden disabled>
               <legend class="sr-only">Supply details</legend>
               <div class="field-row">
@@ -281,27 +346,6 @@
                 </div>
               </div>
             </fieldset>
-
-            <fieldset class="field">
-              <legend>Where does the water come from?</legend>
-              <p class="help seg-help">Pick all that apply.</p>
-              <div class="seg">
-                <label
-                  ><input type="checkbox" name="water_sources" value="piped" /> Piped supply</label
-                >
-                <label
-                  ><input type="checkbox" name="water_sources" value="borewell" /> Borewell</label
-                >
-                <label><input type="checkbox" name="water_sources" value="well" /> Well</label>
-                <label><input type="checkbox" name="water_sources" value="tanker" /> Tanker</label>
-                <label
-                  ><input type="checkbox" name="water_sources" value="shared_tank" /> Shared
-                  building tank</label
-                >
-                <label><input type="checkbox" name="water_sources" value="other" /> Other</label>
-              </div>
-            </fieldset>
-
             <fieldset class="field">
               <legend>Do you pay extra for water?</legend>
               <div class="seg" role="radiogroup">
@@ -317,29 +361,40 @@
                 <label><input type="radio" name="water_extra_cost" value="both" /> Both</label>
               </div>
             </fieldset>
-
             <div class="field-row">
-              <div class="field">
-                <label for="water-shared">Supply shared with other homes?</label>
-                <select id="water-shared" name="water_shared">
-                  <option value="">—</option>
-                  <option value="true">Yes, shared</option>
-                  <option value="false">No, own supply</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="drinking">Drinking water</label>
-                <select id="drinking" name="drinking_water">
-                  <option value="">—</option>
-                  <option value="supplied">Comes with the supply</option>
-                  <option value="purifier">Purifier at home</option>
-                  <option value="buy_cans">Buy water cans</option>
-                  <option value="boil_filter">Boil or filter</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
+              <fieldset class="field" id="water-shared">
+                <legend>Supply shared with other homes?</legend>
+                <div class="seg" role="radiogroup" data-optional>
+                  <label
+                    ><input type="radio" name="water_shared" value="true" /> Shared with other
+                    homes</label
+                  >
+                  <label><input type="radio" name="water_shared" value="false" /> Own supply</label>
+                </div>
+              </fieldset>
+              <fieldset class="field" id="drinking">
+                <legend>Drinking water</legend>
+                <div class="seg" role="radiogroup" data-optional>
+                  <label
+                    ><input type="radio" name="drinking_water" value="supplied" /> Comes with the
+                    supply</label
+                  >
+                  <label
+                    ><input type="radio" name="drinking_water" value="purifier" /> Purifier at
+                    home</label
+                  >
+                  <label
+                    ><input type="radio" name="drinking_water" value="buy_cans" /> Buy water
+                    cans</label
+                  >
+                  <label
+                    ><input type="radio" name="drinking_water" value="boil_filter" /> Boil or
+                    filter</label
+                  >
+                  <label><input type="radio" name="drinking_water" value="other" /> Other</label>
+                </div>
+              </fieldset>
             </div>
-
             <div class="field">
               <label for="water-note">Anything else about water?</label>
               <input
@@ -351,14 +406,11 @@
               />
             </div>
           </section>
-
-          <!-- Monsoon ---------------------------------------------------------->
           <section class="form-section" aria-labelledby="sec-monsoon">
-            <h3 id="sec-monsoon">Monsoon</h3>
-
+            <h3 id="sec-monsoon">Monsoon <span class="opt">Optional</span></h3>
             <fieldset class="field">
               <legend>Does water collect here after heavy rain?</legend>
-              <div class="seg" role="radiogroup">
+              <div class="seg seg-grid" style="--cols: 3" role="radiogroup">
                 <label><input type="radio" name="waterlog_answer" value="no" /> No</label>
                 <label><input type="radio" name="waterlog_answer" value="yes" /> Yes</label>
                 <label
@@ -368,11 +420,10 @@
               </div>
               <p class="help">About this home and its road only, not the whole area.</p>
             </fieldset>
-
             <fieldset class="cond" id="waterlog-detail" hidden disabled>
               <legend class="sr-only">Waterlogging details</legend>
               <fieldset class="field" aria-describedby="err-waterlog_where">
-                <legend>Where does water collect? <span class="req">required</span></legend>
+                <legend>Where does water collect?</legend>
                 <div class="seg">
                   <label
                     ><input type="checkbox" name="waterlog_where" value="access_road" /> Road to the
@@ -420,31 +471,49 @@
               </fieldset>
 
               <div class="field-row">
-                <div class="field">
-                  <label for="waterlog-duration">How long does it stay?</label>
-                  <select id="waterlog-duration" name="waterlog_duration">
-                    <option value="">Not sure</option>
-                    <option value="under_3h">Under 3 hours</option>
-                    <option value="3_to_12h">3 to 12 hours</option>
-                    <option value="12_to_48h">12 to 48 hours</option>
-                    <option value="over_48h">More than 2 days</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label for="road-rain">Can you get in and out?</label>
-                  <select id="road-rain" name="road_in_rain">
-                    <option value="">Not sure</option>
-                    <option value="usable">Yes, road stays usable</option>
-                    <option value="difficult">With difficulty</option>
-                    <option value="cut_off">No, cut off for a while</option>
-                  </select>
-                </div>
+                <fieldset class="field" id="waterlog-duration">
+                  <legend>How long does it stay?</legend>
+                  <div class="seg" role="radiogroup" data-optional>
+                    <label
+                      ><input type="radio" name="waterlog_duration" value="under_3h" /> Under 3
+                      hours</label
+                    >
+                    <label
+                      ><input type="radio" name="waterlog_duration" value="3_to_12h" /> 3 to 12
+                      hours</label
+                    >
+                    <label
+                      ><input type="radio" name="waterlog_duration" value="12_to_48h" /> 12 to 48
+                      hours</label
+                    >
+                    <label
+                      ><input type="radio" name="waterlog_duration" value="over_48h" /> More than 2
+                      days</label
+                    >
+                  </div>
+                </fieldset>
+                <fieldset class="field" id="road-rain">
+                  <legend>Can you get in and out?</legend>
+                  <div class="seg" role="radiogroup" data-optional>
+                    <label
+                      ><input type="radio" name="road_in_rain" value="usable" /> Yes, road stays
+                      usable</label
+                    >
+                    <label
+                      ><input type="radio" name="road_in_rain" value="difficult" /> With
+                      difficulty</label
+                    >
+                    <label
+                      ><input type="radio" name="road_in_rain" value="cut_off" /> No, cut off for a
+                      while</label
+                    >
+                  </div>
+                </fieldset>
               </div>
             </fieldset>
-
             <fieldset class="field">
               <legend>Which floor is the home on?</legend>
-              <div class="seg" role="radiogroup">
+              <div class="seg seg-grid" style="--cols: 3" role="radiogroup">
                 <label><input type="radio" name="floor_level" value="ground" /> Ground floor</label>
                 <label><input type="radio" name="floor_level" value="upper" /> Upper floor</label>
                 <label
@@ -452,7 +521,6 @@
                 >
               </div>
             </fieldset>
-
             <div class="field">
               <label for="waterlog-note">Anything else about the monsoon?</label>
               <input
@@ -463,7 +531,6 @@
                 placeholder="e.g. Clears within an hour once the drain is cleaned"
               />
             </div>
-
             <div class="field">
               <label for="as-of">When did you last see these water and monsoon conditions?</label>
               <input
@@ -474,12 +541,41 @@
                 aria-describedby="as-of-help err-conditions_as_of"
               />
               <p class="help" id="as-of-help">Optional. Leave blank if it's how things are now.</p>
+              <button type="button" class="link-btn" id="as-of-clear" hidden>Clear date</button>
               <p class="field-error" id="err-conditions_as_of" hidden></p>
             </div>
           </section>
-
+          <section class="form-section" aria-labelledby="sec-power">
+            <h3 id="sec-power">Electricity <span class="opt">Optional</span></h3>
+            <div class="field-row">
+              <fieldset class="field" id="power">
+                <legend>Power backup</legend>
+                <div class="seg" role="radiogroup" data-optional>
+                  <label><input type="radio" name="power_backup" value="full" /> Full</label>
+                  <label><input type="radio" name="power_backup" value="partial" /> Partial</label>
+                  <label><input type="radio" name="power_backup" value="none" /> None</label>
+                  <label><input type="radio" name="power_backup" value="unknown" /> Not sure</label>
+                </div>
+              </fieldset>
+              <fieldset class="field" id="power-cuts">
+                <legend>Power cuts</legend>
+                <div class="seg" role="radiogroup" data-optional>
+                  <label><input type="radio" name="power_cuts" value="rare" /> Rare</label>
+                  <label
+                    ><input type="radio" name="power_cuts" value="weekly" /> About once a
+                    week</label
+                  >
+                  <label><input type="radio" name="power_cuts" value="daily" /> Daily</label>
+                  <label
+                    ><input type="radio" name="power_cuts" value="several_daily" /> Several times a
+                    day</label
+                  >
+                </div>
+              </fieldset>
+            </div>
+          </section>
           <details class="more">
-            <summary>More details (optional)</summary>
+            <summary>More details <span class="opt">Optional</span></summary>
             <div class="field-row">
               <div class="field">
                 <label for="parking">Car parking spots</label>
@@ -509,22 +605,6 @@
             </div>
             <div class="field-row">
               <div class="field">
-                <label for="deposit">Deposit (in months of rent)</label>
-                <input
-                  id="deposit"
-                  name="deposit_months"
-                  type="number"
-                  inputmode="numeric"
-                  min="0"
-                  max="12"
-                  step="1"
-                  placeholder="e.g. 2"
-                  aria-describedby="deposit-help err-deposit_months"
-                />
-                <p class="help" id="deposit-help">Number of months, not the amount in ₹.</p>
-                <p class="field-error" id="err-deposit_months" hidden></p>
-              </div>
-              <div class="field">
                 <label for="sqft">Size (sq ft)</label>
                 <input
                   id="sqft"
@@ -538,82 +618,32 @@
                 />
                 <p class="field-error" id="err-sqft" hidden></p>
               </div>
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="occupants">Who lives there?</label>
-                <select id="occupants" name="occupants">
-                  <option value="">—</option>
-                  <option value="family">Family</option>
-                  <option value="bachelor">Bachelor(s)</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="maint">Maintenance</label>
-                <select id="maint" name="maintenance_incl">
-                  <option value="">—</option>
-                  <option value="true">Included in rent</option>
-                  <option value="false">Paid separately</option>
-                </select>
-              </div>
-            </div>
-            <fieldset class="cond" id="maint-amount-row" hidden disabled>
-              <legend class="sr-only">Maintenance amount</legend>
-              <div class="field">
-                <label for="maint-amount">Maintenance per month (₹)</label>
-                <input
-                  id="maint-amount"
-                  name="maintenance_amount"
-                  type="number"
-                  inputmode="numeric"
-                  min="0"
-                  max="50000"
-                  step="1"
-                  aria-describedby="err-maintenance_amount"
-                />
-                <p class="field-error" id="err-maintenance_amount" hidden></p>
-              </div>
-            </fieldset>
-            <div class="field-row">
-              <div class="field">
-                <label for="power">Power backup</label>
-                <select id="power" name="power_backup">
-                  <option value="">—</option>
-                  <option value="full">Full</option>
-                  <option value="partial">Partial</option>
-                  <option value="none">None</option>
-                  <option value="unknown">Not sure</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="power-cuts">Power cuts</label>
-                <select id="power-cuts" name="power_cuts">
-                  <option value="">—</option>
-                  <option value="rare">Rare</option>
-                  <option value="weekly">About once a week</option>
-                  <option value="daily">Daily</option>
-                  <option value="several_daily">Several times a day</option>
-                </select>
-              </div>
+              <fieldset class="field" id="occupants">
+                <legend>Who lives there?</legend>
+                <div class="seg" role="radiogroup" data-optional>
+                  <label><input type="radio" name="occupants" value="family" /> Family</label>
+                  <label
+                    ><input type="radio" name="occupants" value="bachelor" /> Bachelor(s)</label
+                  >
+                </div>
+              </fieldset>
             </div>
             <div class="field-row" id="pg-fields" hidden>
-              <div class="field">
-                <label for="pg-meals">Meals included?</label>
-                <select id="pg-meals" name="pg_meals">
-                  <option value="">—</option>
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="pg-gender">PG for</label>
-                <select id="pg-gender" name="pg_gender">
-                  <option value="">—</option>
-                  <option value="boys">Boys</option>
-                  <option value="girls">Girls</option>
-                  <option value="mixed">Mixed</option>
-                </select>
-              </div>
+              <fieldset class="field" id="pg-meals">
+                <legend>Meals included?</legend>
+                <div class="seg" role="radiogroup" data-optional>
+                  <label><input type="radio" name="pg_meals" value="true" /> Yes</label>
+                  <label><input type="radio" name="pg_meals" value="false" /> No</label>
+                </div>
+              </fieldset>
+              <fieldset class="field" id="pg-gender">
+                <legend>PG for</legend>
+                <div class="seg" role="radiogroup" data-optional>
+                  <label><input type="radio" name="pg_gender" value="boys" /> Boys</label>
+                  <label><input type="radio" name="pg_gender" value="girls" /> Girls</label>
+                  <label><input type="radio" name="pg_gender" value="mixed" /> Mixed</label>
+                </div>
+              </fieldset>
             </div>
             <div class="field">
               <label for="oneliner">One line about the place</label>
@@ -627,8 +657,7 @@
               <p class="help">Don't include names, phone numbers or your house number.</p>
             </div>
           </details>
-
-          <div class="turnstile" id="rent-turnstile" aria-label="Spam check"></div>
+          <div class="turnstile" id="rent-turnstile" role="group" aria-label="Spam check"></div>
         </div>
         <div class="dlg-actions">
           <button type="button" class="btn btn-ghost" id="rent-move">Move pin</button>
