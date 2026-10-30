@@ -82,10 +82,10 @@ export const pinLayers: LayerSpecification[] = [
     source: PIN_SOURCE,
     filter: isPoint,
     paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 5, 15, 8],
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 7, 15, 10],
       'circle-color': ['case', ['get', 'gated'], COLOR.pin, COLOR.white],
       'circle-stroke-color': ['case', ['get', 'gated'], COLOR.white, COLOR.pin],
-      'circle-stroke-width': ['case', ['get', 'gated'], 2, 3],
+      'circle-stroke-width': ['case', ['get', 'gated'], 2.5, 3.5],
     },
   },
   {
@@ -94,7 +94,7 @@ export const pinLayers: LayerSpecification[] = [
     source: PIN_SOURCE,
     filter: ['==', ['get', 'id'], ''],
     paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 10, 15, 14],
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 12, 15, 16],
       'circle-color': 'rgba(0,0,0,0)',
       'circle-stroke-color': COLOR.draft,
       'circle-stroke-width': 3,
@@ -105,12 +105,14 @@ export const pinLayers: LayerSpecification[] = [
     type: 'symbol',
     source: PIN_SOURCE,
     filter: isPoint,
-    minzoom: 13.5,
+    // Rent above every pin from city zoom. Labels that would overlap are dropped, so dense
+    // areas stay readable; zooming in reveals the rest.
+    minzoom: 10,
     layout: {
       'text-field': ['get', 'label'],
       'text-font': FONT,
-      'text-size': 12,
-      'text-offset': [0, -1.25],
+      'text-size': ['interpolate', ['linear'], ['zoom'], 10, 12, 15, 14],
+      'text-offset': [0, -1.1],
       'text-anchor': 'bottom',
       'text-padding': 1,
     },
