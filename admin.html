@@ -29,8 +29,39 @@
           <button type="button" class="a-btn" id="refresh">Refresh</button>
           <button type="button" class="a-btn" id="sign-out">Sign out</button>
         </p>
-        <h2 id="pending-title">Waiting for review</h2>
-        <ul id="boards" class="boards" aria-labelledby="pending-title"></ul>
+        <div class="tabs" role="tablist" aria-label="Review queues">
+          <button
+            type="button"
+            role="tab"
+            id="tab-boards"
+            aria-controls="panel-boards"
+            aria-selected="true"
+          >
+            To-Let boards
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-reports"
+            aria-controls="panel-reports"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            Reported pins
+          </button>
+        </div>
+        <div role="tabpanel" id="panel-boards" aria-labelledby="tab-boards">
+          <h2 id="pending-title">Waiting for review</h2>
+          <ul id="boards" class="boards" aria-labelledby="pending-title"></ul>
+        </div>
+        <div role="tabpanel" id="panel-reports" aria-labelledby="tab-reports" hidden>
+          <h2 id="reports-title">Reported pins</h2>
+          <p class="fine">
+            Keep: the pin stays (or comes back if it was auto-hidden) and its reports are closed.
+            Remove: the pin is taken off the map for good. Report notes are private.
+          </p>
+          <ul id="reported" class="reported" aria-labelledby="reports-title"></ul>
+        </div>
       </section>
 
       <p id="admin-status" class="admin-status" role="status" aria-live="polite"></p>

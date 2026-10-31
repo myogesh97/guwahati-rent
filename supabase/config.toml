@@ -26,3 +26,7 @@ verify_jwt = false
 
 [functions.tolet-maintenance]
 verify_jwt = false
+
+# Phase 2: flag a pin (Turnstile + rate limits + one report per pin per browser).
+[functions.report-pin]
+verify_jwt = false

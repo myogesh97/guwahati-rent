@@ -1,7 +1,13 @@
 // Boot (SPEC §8). The page shell paints first; MapLibre is loaded afterwards via dynamic import.
 import { BACKEND_READY, SITE_URL } from './config';
 import { fetchBoards, fetchPins } from './api';
-import { loadLocalities } from './localities';
+import { loadLocalities, nearestLocality } from './localities';
+import { applyFilters, type Filters } from './filters';
+import { readUrlState, writeUrlState } from './state';
+import { setupFiltersDialog } from './ui/filters-dialog';
+import { setupListView } from './ui/list-view';
+import { setupStats } from './ui/stats';
+import { setupReport } from './ui/report';
 import { hasConsented, recordConsent, saveEditToken } from './tokens';
 import { $dialog, closeDialog, openDialog, wireDialogs } from './ui/dialog';
 import { toast } from './ui/toast';
@@ -22,7 +28,16 @@ const state = {
   placing: 'rent' as 'rent' | 'tolet',
   map: null as MapView | null,
   draft: null as { lat: number; lng: number } | null,
+  /** Filters, Map/List and the monsoon layer, mirrored in the URL (NEXT-PHASES §4.3). */
+  url: readUrlState(),
+  /** Locality names by slug (public/localities.json), for the list view. */
+  names: new Map<string, string>(),
 };
+
+const isDemo = (): boolean => Boolean(document.getElementById('demo-banner'));
+const localityLabel = (slug: string | null): string => (slug && state.names.get(slug)) || '';
+let list: ReturnType<typeof setupListView> | null = null;
+let filtersUi: ReturnType<typeof setupFiltersDialog> | null = null;
 
 function setStatus(text: string | null): void {
   const el = $('map-status');
@@ -30,26 +45,48 @@ function setStatus(text: string | null): void {
   el.hidden = !text;
 }
 
+/** Draws the filtered rents on the map (pins + monsoon heatmap) and in the list. */
 function renderPins(): void {
-  state.map?.setPins(state.pins);
-  const n = state.pins.length;
-  $('pin-count').textContent = n
-    ? `${n.toLocaleString('en-IN')} ${document.getElementById('demo-banner') ? 'DEMO pin' : 'rent'}${n === 1 ? '' : 's'}${document.getElementById('demo-banner') ? '' : ' pinned'}`
-    : '';
+  const f = state.url.filters;
+  const visible = applyFilters(state.pins, f);
+  state.map?.setPins(visible);
+  state.map?.setWaterPins(visible);
+  state.map?.setBoards(f.boards ? state.boards : []);
+  const n = visible.length;
+  const total = state.pins.length;
+  const what = isDemo() ? 'DEMO pin' : 'rent';
+  const s = (k: number) => (k === 1 ? '' : 's');
+  $('pin-count').textContent = !total
+    ? ''
+    : n === total
+      ? `${n.toLocaleString('en-IN')} ${what}${s(n)}${isDemo() ? '' : ' pinned'}`
+      : `${n.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')} ${what}s shown`;
+  list?.setPins(visible, n === total ? '' : ` (of ${total.toLocaleString('en-IN')}, filtered)`);
+  filtersUi?.sync();
 }
 
-async function nearestLocalityName(lat: number, lng: number): Promise<string | null> {
-  const list = await loadLocalities();
-  let best: string | null = null;
-  let bestD = Infinity;
-  for (const l of list) {
-    const d = (l.lat - lat) ** 2 + ((l.lng - lng) * Math.cos((lat * Math.PI) / 180)) ** 2;
-    if (d < bestD) {
-      bestD = d;
-      best = l.name;
-    }
-  }
-  return Math.sqrt(bestD) * 111_000 <= 3000 ? best : null;
+function setFilters(f: Filters): void {
+  state.url.filters = f;
+  writeUrlState(state.url);
+  renderPins();
+}
+
+function setView(view: 'map' | 'list'): void {
+  state.url.view = view;
+  writeUrlState(state.url);
+  document.body.classList.toggle('view-list', view === 'list');
+  $('btn-view-map').setAttribute('aria-pressed', String(view === 'map'));
+  $('btn-view-list').setAttribute('aria-pressed', String(view === 'list'));
+  list?.show(view === 'list');
+  if (view === 'map') state.map?.resize();
+}
+
+function setWater(on: boolean): void {
+  state.url.water = on;
+  writeUrlState(state.url);
+  $('btn-water').setAttribute('aria-pressed', String(on));
+  $('water-legend').hidden = !on;
+  state.map?.showWater(on);
 }
 
 // ---------- adding a pin ----------
@@ -76,6 +113,7 @@ function startPlacement(
   purpose: 'rent' | 'tolet' = 'rent',
 ): void {
   if (!state.map) return;
+  if (state.url.view === 'list') setView('map'); // you place a pin on the map
   state.placing = purpose;
   $('placement-text').innerHTML = PLACEMENT_TEXT[purpose];
   // Street level, so the pin can be lined up with a road (the city view is too coarse).
@@ -118,7 +156,7 @@ async function boot(): Promise<void> {
     }
     state.draft = { lat, lng };
     state.map?.setDraft(state.draft);
-    rentForm.open(state.draft, await nearestLocalityName(lat, lng));
+    rentForm.open(state.draft, await nearestLocality(lat, lng));
   }
 
   const rentForm = setupRentForm({
@@ -132,6 +170,13 @@ async function boot(): Promise<void> {
       const wa = $<HTMLAnchorElement>('share-whatsapp');
       wa.href = `https://wa.me/?text=${encodeURIComponent(shareText())}`;
       openDialog($dialog('dlg-shared'));
+    },
+    onUpdated(pin) {
+      const i = state.pins.findIndex((p) => p.id === pin.id);
+      if (i >= 0) state.pins[i] = Object.assign(state.pins[i], pin);
+      renderPins();
+      state.map?.select(pin.id);
+      toast('Saved. Thanks for keeping it up to date.');
     },
     onMoveRequested() {
       startPlacement(state.draft ?? undefined);
@@ -149,7 +194,14 @@ async function boot(): Promise<void> {
   const boardCard = setupBoardCard();
   $dialog('dlg-board').addEventListener('close', () => state.map?.selectBoard(null));
 
+  const report = setupReport();
   const pinCard = setupPinCard({
+    onEdit(pin, token) {
+      rentForm.edit(pin, token, localityLabel(pin.locality_slug) || null);
+    },
+    onReport(pin, trigger) {
+      report.open(pin.id, trigger);
+    },
     onDeleted(id) {
       state.pins = state.pins.filter((p) => p.id !== id);
       state.map?.select(null);
@@ -201,6 +253,35 @@ async function boot(): Promise<void> {
     }
   });
 
+  // ---------- map tools: filters, list, stats, monsoon ----------
+  void loadLocalities().then((ls) => {
+    state.names = new Map(ls.map((l) => [l.slug, l.name]));
+    renderPins();
+  });
+  list = setupListView({
+    localityName: localityLabel,
+    onOpen(pin, trigger) {
+      void pinCard.open(pin, trigger);
+    },
+  });
+  filtersUi = setupFiltersDialog({
+    get: () => state.url.filters,
+    set: setFilters,
+    count: (f) => applyFilters(state.pins, f).length,
+  });
+  const stats = setupStats({
+    demo: isDemo,
+    bounds: () => state.map?.getBounds() ?? null,
+    localityName: (slug) => localityLabel(slug) || slug,
+  });
+  $('btn-stats').addEventListener('click', (e) => stats.open(e.currentTarget as HTMLElement));
+  $('btn-view-map').addEventListener('click', () => setView('map'));
+  $('btn-view-list').addEventListener('click', () => setView('list'));
+  $('btn-water').addEventListener('click', () => setWater(!state.url.water));
+  setView(state.url.view);
+  $('btn-water').setAttribute('aria-pressed', String(state.url.water));
+  $('water-legend').hidden = !state.url.water;
+
   // ---------- welcome ----------
   if (!hasConsented()) openDialog($dialog('dlg-welcome'));
   $('welcome-ok').addEventListener('click', () => {
@@ -242,13 +323,14 @@ async function boot(): Promise<void> {
   }
 
   state.pins = await pinsPromise;
+  state.map.showWater(state.url.water);
   renderPins();
   // Boards are a separate layer; if they fail (e.g. before migration 0004) rents still show.
   if (!demo) {
     void fetchBoards()
       .then((boards) => {
         state.boards = boards;
-        state.map?.setBoards(boards);
+        renderPins();
       })
       .catch((e: Error) => console.warn('To-Let boards not loaded:', e.message));
   }

@@ -11,7 +11,9 @@ import {
   PIN_SOURCE,
   TOLET_ICON,
   TOLET_SOURCE,
+  WATER_SOURCE,
   pinLayers,
+  waterLayer,
   toletIcon,
   toletLayers,
 } from './layers';
@@ -24,6 +26,10 @@ const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)'
 export interface MapView {
   setPins(pins: PublicPin[]): void;
   setBoards(boards: PublicBoard[]): void;
+  /** Pins feeding the monsoon heatmap (same filtered pins as the map). */
+  setWaterPins(pins: PublicPin[]): void;
+  showWater(on: boolean): void;
+  getBounds(): { west: number; south: number; east: number; north: number };
   select(id: string | null): void;
   selectBoard(id: string | null): void;
   setDraft(point: { lat: number; lng: number } | null): void;
@@ -83,6 +89,7 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
           promoteId: 'id',
         },
         [DRAFT_SOURCE]: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
+        [WATER_SOURCE]: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
         [TOLET_SOURCE]: {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
@@ -92,6 +99,7 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
       // 'light': the full-colour basemap, untinted (the UI never filters or recolours the map).
       layers: [
         ...layers('base', namedFlavor('light'), { lang: 'en' }),
+        waterLayer,
         ...pinLayers,
         ...toletLayers,
       ],
@@ -190,6 +198,25 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
           properties: { id: b.id },
         })),
       });
+    },
+    setWaterPins(pins) {
+      (map.getSource(WATER_SOURCE) as GeoJSONSource).setData({
+        type: 'FeatureCollection',
+        features: pins
+          .filter((p) => p.waterlogging !== 'unknown')
+          .map((p) => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+            properties: { w: p.waterlogging },
+          })),
+      });
+    },
+    showWater(on) {
+      map.setLayoutProperty('waterlog-heat', 'visibility', on ? 'visible' : 'none');
+    },
+    getBounds() {
+      const b = map.getBounds();
+      return { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() };
     },
     select(id) {
       map.setFilter('pin-selected', ['==', ['get', 'id'], id ?? '']);

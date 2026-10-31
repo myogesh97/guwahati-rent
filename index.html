@@ -51,6 +51,85 @@
 
     <main id="main">
       <div class="map-area">
+        <!-- Map tools (NEXT-PHASES §4.3–4.6). Monsoon first: it's the Guwahati differentiator. -->
+        <div class="map-tools" role="toolbar" aria-label="Map tools">
+          <button type="button" class="tool" id="btn-water" aria-pressed="false">
+            <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 3.5s-6 6.6-6 10.9a6 6 0 0 0 12 0C18 10.1 12 3.5 12 3.5z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linejoin="round"
+              /></svg
+            ><span>Monsoon<span class="tool-long"> waterlogging</span></span>
+          </button>
+          <button type="button" class="tool" id="btn-filters" aria-haspopup="dialog">
+            <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M4 6h16M7 12h10M10 18h4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              /></svg
+            ><span id="filters-label">Filters</span>
+          </button>
+          <button type="button" class="tool" id="btn-stats" aria-haspopup="dialog">
+            <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M5 20V11M12 20V5M19 20v-6"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                stroke-linecap="round"
+              /></svg
+            ><span>Stats</span>
+          </button>
+          <div class="view-toggle" role="group" aria-label="View">
+            <button type="button" class="tool" id="btn-view-map" aria-pressed="true">Map</button>
+            <button type="button" class="tool" id="btn-view-list" aria-pressed="false">List</button>
+          </div>
+        </div>
+
+        <!-- Accessible list of the same (filtered) rents as the map (NEXT-PHASES §4.6). -->
+        <section id="list-view" class="list-view" aria-labelledby="list-caption" hidden>
+          <div class="list-scroll">
+            <table class="rent-table">
+              <caption id="list-caption"></caption>
+              <thead>
+                <tr>
+                  <th scope="col" aria-sort="none">
+                    <button type="button" data-sort="area">Area</button>
+                  </th>
+                  <th scope="col" aria-sort="none">
+                    <button type="button" data-sort="home">Home</button>
+                  </th>
+                  <th scope="col" aria-sort="none" class="num">
+                    <button type="button" data-sort="rent">Rent</button>
+                  </th>
+                  <th scope="col" aria-sort="none">
+                    <button type="button" data-sort="furnishing">Furnishing</button>
+                  </th>
+                  <th scope="col" aria-sort="none">
+                    <button type="button" data-sort="gated">Gated</button>
+                  </th>
+                  <th scope="col" aria-sort="none">
+                    <button type="button" data-sort="monsoon">Monsoon</button>
+                  </th>
+                  <th scope="col" aria-sort="descending">
+                    <button type="button" data-sort="posted">Posted</button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="list-body"></tbody>
+            </table>
+            <p id="list-empty" class="list-empty" hidden></p>
+            <p class="list-more-row">
+              <button type="button" class="btn btn-ghost" id="list-more" hidden>Show more</button>
+            </p>
+          </div>
+        </section>
         <div
           id="map"
           class="map"
@@ -99,6 +178,17 @@
             ><span class="swatch swatch-board" aria-hidden="true"></span>To-Let board</span
           >
           <span id="pin-count" class="legend-count"></span>
+        </div>
+
+        <div id="water-legend" class="water-legend" hidden>
+          <p class="water-legend-title">Monsoon waterlogging</p>
+          <div class="water-ramp" aria-hidden="true"></div>
+          <p class="water-legend-scale">
+            <span>Road waterlogs</span><span>Water enters homes</span>
+          </p>
+          <p class="water-legend-note">
+            From renters' reports, not official flood data. Darker = more and worse reports.
+          </p>
         </div>
 
         <div id="main-actions" class="actions">
@@ -663,6 +753,17 @@
               <p class="help">Don't include names, phone numbers or your house number.</p>
             </div>
           </details>
+          <div id="rent-check" class="rent-check" role="alert" hidden>
+            <p id="rent-check-text"></p>
+            <div class="rent-check-actions">
+              <button type="button" class="btn btn-ghost btn-sm" id="rent-check-fix">
+                Let me fix it
+              </button>
+              <button type="button" class="btn btn-primary btn-sm" id="rent-check-yes">
+                Yes, submit
+              </button>
+            </div>
+          </div>
           <div class="turnstile" id="rent-turnstile" role="group" aria-label="Spam check"></div>
         </div>
         <div class="dlg-actions">
@@ -683,6 +784,194 @@
     </dialog>
 
     <!-- After submit: share ---------------------------------------------------->
+    <!-- Report a pin (NEXT-PHASES §4.1). The message is private: moderators only. -->
+    <dialog id="dlg-report" class="dlg" aria-labelledby="report-title" data-backdrop-close="false">
+      <form id="report-form" novalidate>
+        <div class="dlg-head">
+          <h2 id="report-title">Report this pin</h2>
+          <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+        </div>
+        <div class="dlg-body">
+          <p class="hint-sub">
+            Reports go to our moderators. One report never hides a pin on its own.
+          </p>
+          <fieldset class="field" id="report-reason">
+            <legend>What's wrong?</legend>
+            <div
+              class="seg seg-grid"
+              style="--cols: 2"
+              role="radiogroup"
+              aria-describedby="err-reason"
+            >
+              <label><input type="radio" name="reason" value="fake_rent" /> Rent looks fake</label>
+              <label><input type="radio" name="reason" value="broker" /> Broker / advert</label>
+              <label
+                ><input type="radio" name="reason" value="wrong_location" /> Wrong location</label
+              >
+              <label
+                ><input type="radio" name="reason" value="rented_out" /> Already rented /
+                outdated</label
+              >
+              <label
+                ><input type="radio" name="reason" value="offensive" /> Offensive or personal
+                info</label
+              >
+              <label><input type="radio" name="reason" value="other" /> Other</label>
+            </div>
+            <p class="field-error" id="err-reason" hidden></p>
+          </fieldset>
+          <div class="field">
+            <label for="report-message">Anything to add? <span class="opt">Optional</span></label>
+            <textarea
+              id="report-message"
+              name="message"
+              rows="3"
+              maxlength="300"
+              placeholder="What's wrong? Don't include phone numbers or names."
+              aria-describedby="report-count"
+            ></textarea>
+            <p class="help" id="report-count">0 / 300. Only moderators see this.</p>
+          </div>
+          <div class="turnstile" id="report-turnstile" role="group" aria-label="Spam check"></div>
+          <p id="report-error" class="form-error" role="alert" hidden></p>
+        </div>
+        <div class="dlg-actions">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary" id="report-submit">Report</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Filters (NEXT-PHASES §4.3). Applied live; the URL keeps them (shareable). -->
+    <dialog id="dlg-filters" class="dlg dlg-tall" aria-labelledby="filters-title">
+      <form id="filters-form" novalidate>
+        <div class="dlg-head">
+          <h2 id="filters-title">Filters</h2>
+          <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+        </div>
+        <div class="dlg-body">
+          <fieldset class="field">
+            <legend>Show on the map</legend>
+            <div class="seg seg-grid" style="--cols: 2">
+              <label><input type="checkbox" name="show" value="rents" /> Rents</label>
+              <label><input type="checkbox" name="show" value="boards" /> To-Let boards</label>
+            </div>
+          </fieldset>
+          <fieldset class="field">
+            <legend>Posted within</legend>
+            <div class="seg seg-grid" style="--cols: 4" role="radiogroup">
+              <label><input type="radio" name="since" value="30d" /> 30 days</label>
+              <label><input type="radio" name="since" value="6m" /> 6 months</label>
+              <label><input type="radio" name="since" value="18m" /> 18 months</label>
+              <label><input type="radio" name="since" value="all" /> All</label>
+            </div>
+            <p class="help">Older rents stay on the site but are hidden by default.</p>
+          </fieldset>
+          <fieldset class="field">
+            <legend>Bedrooms</legend>
+            <div class="seg seg-grid" style="--cols: 5">
+              <label><input type="checkbox" name="bhk" value="0" /> Room/1RK</label>
+              <label><input type="checkbox" name="bhk" value="1" /> 1</label>
+              <label><input type="checkbox" name="bhk" value="2" /> 2</label>
+              <label><input type="checkbox" name="bhk" value="3" /> 3</label>
+              <label><input type="checkbox" name="bhk" value="4" /> 4+</label>
+            </div>
+          </fieldset>
+          <fieldset class="field">
+            <legend>Rent per month (₹)</legend>
+            <div class="field-row range-row">
+              <div class="field">
+                <label for="f-min">From</label>
+                <input
+                  id="f-min"
+                  name="min"
+                  type="number"
+                  inputmode="numeric"
+                  min="0"
+                  step="500"
+                  placeholder="Any"
+                />
+              </div>
+              <div class="field">
+                <label for="f-max">To</label>
+                <input
+                  id="f-max"
+                  name="max"
+                  type="number"
+                  inputmode="numeric"
+                  min="0"
+                  step="500"
+                  placeholder="Any"
+                />
+              </div>
+            </div>
+          </fieldset>
+          <fieldset class="field">
+            <legend>Type of home</legend>
+            <div class="seg seg-grid" style="--cols: 3">
+              <label><input type="checkbox" name="type" value="flat" /> Flat</label>
+              <label><input type="checkbox" name="type" value="independent" /> House</label>
+              <label><input type="checkbox" name="type" value="room" /> Room</label>
+              <label><input type="checkbox" name="type" value="pg" /> PG</label>
+              <label><input type="checkbox" name="type" value="1rk" /> 1RK</label>
+              <label><input type="checkbox" name="type" value="studio" /> Studio</label>
+            </div>
+          </fieldset>
+          <fieldset class="field">
+            <legend>Furnishing</legend>
+            <div class="seg seg-grid" style="--cols: 3">
+              <label><input type="checkbox" name="furn" value="unfurnished" /> Unfurnished</label>
+              <label><input type="checkbox" name="furn" value="semi" /> Semi</label>
+              <label><input type="checkbox" name="furn" value="furnished" /> Furnished</label>
+            </div>
+          </fieldset>
+          <fieldset class="field">
+            <legend>Gated society</legend>
+            <div class="seg seg-grid" style="--cols: 3" role="radiogroup">
+              <label><input type="radio" name="gated" value="any" /> Any</label>
+              <label><input type="radio" name="gated" value="yes" /> Gated</label>
+              <label><input type="radio" name="gated" value="no" /> Not gated</label>
+            </div>
+          </fieldset>
+          <fieldset class="field">
+            <legend>Monsoon</legend>
+            <div class="seg">
+              <label
+                ><input type="checkbox" name="dry" value="1" /> Hide homes where water comes
+                in</label
+              >
+            </div>
+          </fieldset>
+        </div>
+        <div class="dlg-actions">
+          <button type="button" class="btn btn-ghost" id="filters-clear">Clear all</button>
+          <button type="button" class="btn btn-primary" id="filters-done" data-close>
+            Show results
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Stats (NEXT-PHASES §4.4): medians only, buckets with 3+ rents, last 18 months. -->
+    <dialog id="dlg-stats" class="dlg dlg-tall" aria-labelledby="stats-title">
+      <div class="dlg-head">
+        <h2 id="stats-title">What people pay</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+      </div>
+      <div class="dlg-body" id="stats-body" tabindex="0" role="region" aria-label="Rent medians">
+        <p class="hint-sub">
+          Medians (the middle rent), from rents pinned in the last 18 months. A group needs at least
+          3 rents to be shown.
+        </p>
+        <h3 class="kvs-title">In the area on your screen</h3>
+        <div id="stats-area" aria-live="polite"></div>
+        <h3 class="kvs-title">All of Guwahati</h3>
+        <div id="stats-city"></div>
+        <h3 class="kvs-title">By locality</h3>
+        <div id="stats-localities"></div>
+      </div>
+    </dialog>
+
     <!-- Spot a To-Let: photo -> location -> spam check -> upload (NEXT-PHASES §2a) -->
     <dialog id="dlg-tolet" class="dlg" aria-labelledby="tolet-title" data-backdrop-close="false">
       <div class="dlg-head">

@@ -306,9 +306,74 @@ Do **not** collect names, phone numbers, emails or exact addresses.
 
 (SPEC §15 Phase 2, updated.)
 
-### 4.1 Report a rent pin
-- `report-pin` function (SPEC §7.3): Turnstile, `reporter_hash = sha256(browserId + HASH_SALT)`, unique per pin per reporter, 10/day. Reasons: fake rent, broker/ad, rented out, spam, other.
-- Pin card: a **Report** button opens a small reason picker. 3 reports from different browsers → pin hidden (view already filters `report_count < 3`).
+### 4.1 Report / flag a pin, with admin moderation
+
+**Who can delete what (unchanged, already enforced):** only the browser holding a pin's edit token can delete it (`edit-pin`). Everyone else can only **flag** it. Admins can remove or restore anything.
+
+**Flow**
+1. Pin card → flag button → dialog: reason (required radio: *Rent looks fake* · *Broker / advert* · *Wrong location* · *Already rented / outdated* · *Offensive or personal info* · *Other*) + optional message (max 300 chars, placeholder "What's wrong? Don't include phone numbers or names.") → Turnstile → **Report**.
+2. Toast: "Thanks, we'll review it." Same browser flagging the same pin again → "You've already reported this."
+3. **Safety net:** at **3 open reports** from different browsers the pin is auto-hidden (`status = 'hidden'`) until an admin decides. One report alone never hides a pin.
+4. Admin (`admin.html`, new tab **Reported pins**) sees each pin with: its public details, report count, every reason + message, first/last report time, and whether it is auto-hidden. Actions:
+   - **Keep**: mark its open reports `dismissed`, reset `report_count` to 0, set `status = 'active'` (restores an auto-hidden pin), set `reviewed_at`.
+   - **Remove**: set `status = 'archived'`, mark reports `actioned`, delete any `pin_contacts` row.
+   Both are logged in `moderation_log` (admin id, pin id, action, time).
+
+**Report messages are private.** Never exposed by any public view, shown only to admins, deleted 90 days after the report is resolved (extend `cleanup()`).
+
+**Database: `supabase/migrations/0006_reports_moderation.sql`** (draft, untested)
+```sql
+alter table public.reports drop constraint if exists reports_reason_check;
+alter table public.reports
+  add constraint reports_reason_check
+  check (reason in ('fake_rent','broker','wrong_location','rented_out','offensive','spam','other')),
+  add column if not exists message     text check (char_length(message) <= 300),
+  add column if not exists status      text not null default 'open'
+                                       check (status in ('open','dismissed','actioned')),
+  add column if not exists resolved_at timestamptz;
+create index if not exists reports_open_idx on public.reports (pin_id) where status = 'open';
+
+alter table public.pins add column if not exists reviewed_at timestamptz;
+
+create table if not exists public.moderation_log (
+  id         uuid primary key default gen_random_uuid(),
+  admin_id   uuid not null references auth.users(id),
+  pin_id     uuid references public.pins(id) on delete set null,
+  board_id   uuid references public.tolet_boards(id) on delete set null,
+  action     text not null check (action in ('keep','remove','approve','reject','restore')),
+  created_at timestamptz not null default now()
+);
+alter table public.moderation_log enable row level security;  -- no policies
+
+-- Replace the counter trigger: count OPEN reports, auto-hide at 3 (hidden, not deleted).
+create or replace function public.bump_report_count() returns trigger
+language plpgsql security definer set search_path = public, extensions as $$
+declare open_count int;
+begin
+  select count(*) into open_count from public.reports where pin_id = new.pin_id and status = 'open';
+  update public.pins
+     set report_count = open_count,
+         status = case when open_count >= 3 and status = 'active' then 'hidden'::public.row_status else status end
+   where id = new.pin_id;
+  return new;
+end $$;
+
+revoke all on public.moderation_log from anon, authenticated;
+revoke execute on function public.bump_report_count() from anon, authenticated, public;
+grant all on public.moderation_log to service_role;
+```
+> The `public_pins` view already filters `status = 'active'`, so hidden pins disappear without changing the view. Check `0001` still has the `reports_bump` trigger pointing at `bump_report_count()`.
+
+**Edge Functions**
+
+| Function | Behaviour | Limit |
+|---|---|---|
+| `report-pin` | Zod (`pinId`, `reason`, optional `message` ≤ 300, `browserId`, `turnstileToken`) → Turnstile → pin must be `active` → strip control characters from message → insert into `reports` with `reporter_hash = sha256(browserId + HASH_SALT)`; on a unique-violation, return ok with `already: true` | **10/day** per IP and per browser; plus **max 1 report per pin per browser** (unique constraint) |
+| `admin-review` (extend) | New actions: `list_reports` (pins with open reports or `status='hidden'`, newest report first, max 50, includes reasons/messages), `keep_pin`, `remove_pin` (behaviour above). Every action writes `moderation_log` | admin only |
+
+**Abuse cases to handle:** one person trying to hide a competitor's pin needs 3 different browsers/IPs *and* passes Turnstile each time, and the admin can restore with **Keep**. Report-bombing (many reports from one IP in minutes) is stopped by the 10/day limit. Log counts only, never messages.
+
+**"Not for rent" box on rent pins** (copy the concept, not bengaluru.rent's wording/design): on every `kind = 'rent'` pin card, a small box: "**Not available.** This is what a renter pays, shared to show real prices. The flat isn't being rented out." Hide it for listings (Phase 3).
 
 ### 4.2 Rent double-check step
 - When a locality has ≥ 5 pins and the entered rent is **> 2× its median**, show "That's higher than most rents near here (median ₹X). Is it correct?" with **Yes, submit** / **Let me fix it**. Fetch medians from `public_stats_locality`, cached per session.
@@ -320,7 +385,7 @@ Do **not** collect names, phone numbers, emails or exact addresses.
 
 ### 4.4 Stats (`#dlg-stats`)
 - City medians by BHK × gated from `public_stats_city`; locality medians from `public_stats_locality`. **Medians only.** Never show a bucket with fewer than 3 pins (the views already enforce it).
-- **Recency (§1b):** add migration `0005_stats_recency.sql` that recreates `public_stats_city`, `public_stats_locality` and `area_stats()` with an extra condition `created_at > now() - interval '18 months'`. Keep the existing grants and `having count(*) >= 3`. Re-run the security gate after.
+- **Recency (§1b):** add migration `0007_stats_recency.sql` that recreates `public_stats_city`, `public_stats_locality` and `area_stats()` with an extra condition `created_at > now() - interval '18 months'`. Keep the existing grants and `having count(*) >= 3`. Re-run the security gate after.
 - "Near me / this area" uses `area_stats()` on the current map bounds.
 
 ### 4.5 Waterlogging layer
@@ -335,7 +400,13 @@ Do **not** collect names, phone numbers, emails or exact addresses.
 - `edit-pin` gains `action: 'update'` (rent, furnishing, optional fields) with the same token check and the same validation as `submit-pin`.
 
 ### 4.8 Acceptance
-- [ ] 3 reports → pin gone; the same browser reporting twice counts once
+- [ ] Only the creating browser sees Delete; deleting with a wrong/missing token fails (re-test)
+- [ ] Report with reason + message → appears in admin **Reported pins** with the message
+- [ ] Same browser reporting the same pin twice → counted once, friendly message
+- [ ] 11th report from one device in 24 h → rejected
+- [ ] 3 reports from 3 browsers → pin hidden; admin **Keep** → pin back, count reset; admin **Remove** → pin gone for good
+- [ ] Report messages are not in any public API response (security gate check)
+- [ ] Rent pin cards show the "Not available" box
 - [ ] Filters change map + list; the filtered URL reopens the same view
 - [ ] Stats never show a bucket with < 3 pins, and ignore pins older than 18 months
 - [ ] Default map view hides rent pins older than 18 months; "Posted within → All" shows them
@@ -347,4 +418,6 @@ Do **not** collect names, phone numbers, emails or exact addresses.
 ---
 
 ## 5. Not now (explicitly out of scope until ~300 real pins)
+**Never:** fake/dummy pins presented as real rents in production (dev-only demo mode stays clearly labelled and out of production builds). Public comments on pins (they fill with "how do I contact?" spam and personal data).
+
 Owner listings, seeker matching and emails (Phase 3: needs a custom domain for Resend) · SEO locality pages (Phase 4) · OCR of board phone numbers · AI moderation · comments, ratings · "watch this area" alerts.

@@ -262,7 +262,7 @@ main {
   position: absolute;
   left: var(--s3);
   right: var(--s3);
-  top: var(--s3);
+  top: var(--below-tools);
   margin: 0 auto;
   max-width: 560px;
   border-radius: var(--r-md);
@@ -327,7 +327,7 @@ main {
 .legend {
   position: absolute;
   left: var(--s3);
-  top: var(--s3);
+  top: var(--below-tools);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -419,6 +419,278 @@ main {
 }
 .maplibregl-ctrl-attrib.maplibregl-compact {
   border-radius: var(--r-pill);
+}
+
+/* ============================== map tools ============================== */
+/* One row of tools over the map: Monsoon (first, the Guwahati differentiator), Filters, Stats,
+   Map/List. Scrolls sideways on narrow phones instead of wrapping over the map. */
+:root {
+  --tools-h: 44px;
+  --below-tools: calc(var(--s3) + var(--tools-h) + var(--s2));
+}
+.map-tools {
+  position: absolute;
+  top: var(--s3);
+  left: 0;
+  right: 0;
+  z-index: 7;
+  display: flex;
+  gap: var(--s2);
+  padding: 0 var(--s3);
+  overflow-x: auto;
+  scrollbar-width: none;
+  pointer-events: none;
+}
+.map-tools::-webkit-scrollbar {
+  display: none;
+}
+.map-tools > * {
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+.tool {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tools-h);
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tool:hover {
+  background: var(--teal-tint);
+}
+.tool[aria-pressed='true'],
+.tool.is-on {
+  background: var(--teal);
+  color: #fff;
+}
+#btn-water[aria-pressed='true'] {
+  background: #08306b; /* the darkest heatmap blue: the button matches what it shows */
+}
+.view-toggle {
+  display: inline-flex;
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-1);
+  background: var(--card);
+}
+.view-toggle .tool {
+  box-shadow: none;
+}
+.view-toggle .tool + .tool {
+  margin-left: -4px;
+}
+@media (max-width: 520px) {
+  /* Keep "waterlogging" in the accessible name, show the short label. */
+  .tool-long {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .tool {
+    padding: 0 11px;
+  }
+  .map-tools {
+    gap: 6px;
+    padding: 0 var(--s2);
+  }
+  /* Room for all four tools at 375 px: only Monsoon keeps its icon. */
+  #btn-filters .btn-icon,
+  #btn-stats .btn-icon {
+    display: none;
+  }
+}
+body.is-placing .map-tools {
+  display: none;
+}
+body.is-placing .placement {
+  top: var(--s3);
+}
+
+/* Monsoon heatmap legend: bottom-left, above the floating buttons, only while the layer is on.
+   (Not under the top legend: that one wraps to two lines on phones.) */
+.water-legend {
+  position: absolute;
+  left: var(--s3);
+  bottom: calc(var(--s6) + 100px + env(safe-area-inset-bottom)); /* above buttons + attribution */
+  z-index: 2;
+  /* Leaves the bottom-right free: the map attribution must stay readable (OSM licence). */
+  width: min(280px, calc(100% - 2 * var(--s3)));
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-md);
+  background: var(--card);
+  box-shadow: var(--shadow-1);
+  font-size: var(--fs-xs);
+}
+@media (hover: hover) and (pointer: fine) {
+  .water-legend {
+    bottom: calc(var(--s6) + 4px);
+  }
+}
+.water-legend p {
+  margin: 0;
+}
+.water-legend-title {
+  font-weight: 700;
+  color: var(--ink);
+}
+.water-ramp {
+  height: 10px;
+  margin: 6px 0 2px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, #c6dbef, #6baed6, #2171b5, #08306b);
+}
+.water-legend-scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-2);
+}
+.water-legend-note {
+  margin-top: 4px !important;
+  color: var(--muted);
+}
+
+/* ============================== list view ============================== */
+.list-view {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: var(--bg);
+  padding-top: var(--below-tools);
+}
+body.view-list .legend,
+body.view-list .water-legend,
+body.view-list .actions,
+body.view-list .map-hint {
+  display: none;
+}
+.list-scroll {
+  height: 100%;
+  overflow: auto;
+  padding: 0 var(--s3) var(--s6);
+}
+.rent-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-1);
+  font-size: var(--fs-sm);
+}
+.rent-table caption {
+  text-align: left;
+  padding: var(--s2) 0 var(--s3);
+  font-weight: 650;
+  color: var(--ink-2);
+}
+.rent-table th,
+.rent-table td {
+  padding: 10px var(--s3);
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.rent-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  z-index: 1;
+  padding: 0;
+}
+.rent-table th button {
+  appearance: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  min-height: var(--tap);
+  width: 100%;
+  padding: 0 var(--s3);
+  text-align: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rent-table th button::after {
+  content: '↕';
+  margin-left: 4px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.rent-table th[aria-sort='ascending'] button::after {
+  content: '▲';
+  color: var(--teal-2);
+}
+.rent-table th[aria-sort='descending'] button::after {
+  content: '▼';
+  color: var(--teal-2);
+}
+.rent-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.rent-table td.num {
+  font-weight: 700;
+}
+.rent-table .link-btn {
+  min-height: 0;
+  font-size: inherit;
+  text-align: left;
+}
+.rent-table tbody tr:hover {
+  background: var(--teal-tint);
+}
+.muted {
+  color: var(--muted);
+}
+.list-empty {
+  padding: var(--s5);
+  color: var(--ink-2);
+}
+.list-more-row {
+  text-align: center;
+  margin: var(--s4) 0 0;
+}
+
+/* Stats tables (dialog) */
+.table-scroll {
+  overflow-x: auto;
+}
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+  margin-bottom: var(--s2);
+}
+.stats-table th,
+.stats-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.stats-table thead th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: var(--fs-xs);
+}
+.stats-table tbody th {
+  font-weight: 600;
+}
+.stats-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ============================== buttons ============================== */
@@ -684,6 +956,7 @@ main {
 input[type='text'],
 input[type='number'],
 input[type='date'],
+textarea,
 select {
   width: 100%;
   min-height: 48px;
@@ -699,10 +972,12 @@ input::placeholder {
   color: #6b8290;
 }
 input:hover,
+textarea:hover,
 select:hover {
   border-color: var(--teal-2);
 }
 input:focus-visible,
+textarea:focus-visible,
 select:focus-visible {
   border-color: var(--teal);
 }
@@ -1143,6 +1418,46 @@ span.flatpickr-weekday {
   border-radius: var(--r-sm);
   font-style: italic;
   color: var(--ink-2);
+}
+.not-available {
+  margin: var(--s3) 0 0;
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-sm);
+  background: var(--teal-tint);
+  border-left: 4px solid var(--teal-2);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+.not-available strong {
+  color: var(--ink);
+}
+.rent-check {
+  margin-top: var(--s5);
+  padding: var(--s3) var(--s4);
+  border-radius: var(--r-md);
+  background: var(--warn-tint);
+  color: var(--warn-ink);
+  font-weight: 600;
+}
+.rent-check p {
+  margin: 0 0 var(--s3);
+}
+.rent-check-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s2);
+  flex-wrap: wrap;
+}
+.btn-flag {
+  margin-right: auto;
+}
+.range-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s3);
+}
+.range-row .field {
+  margin-bottom: 0;
 }
 .note-warn {
   background: var(--warn-tint);

@@ -4,6 +4,7 @@ import type { LayerSpecification } from 'maplibre-gl';
 export const PIN_SOURCE = 'pins';
 export const DRAFT_SOURCE = 'draft';
 export const TOLET_SOURCE = 'tolet';
+export const WATER_SOURCE = 'waterlog';
 export const TOLET_ICON = 'tolet-sign';
 
 export const COLOR = {
@@ -18,6 +19,38 @@ export const COLOR = {
 const FONT = ['Noto Sans Medium'];
 
 const isPoint: ['!', ['has', string]] = ['!', ['has', 'point_count']];
+
+// Monsoon waterlogging (NEXT-PHASES §4.5): a heatmap of renters' reports, under the pins and
+// hidden until toggled. Weight: none 0, road only 0.5, water enters the property 1.
+// Blues read as water and stay apart from the teal pins and the orange accent.
+export const WATER_RAMP = ['#c6dbef', '#6baed6', '#2171b5', '#08306b'] as const;
+export const waterLayer: LayerSpecification = {
+  id: 'waterlog-heat',
+  type: 'heatmap',
+  source: WATER_SOURCE,
+  layout: { visibility: 'none' },
+  paint: {
+    'heatmap-weight': ['match', ['get', 'w'], 'road_only', 0.5, 'enters_premises', 1, 0],
+    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 10, 0.8, 15, 2],
+    'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 10, 14, 13, 24, 16, 40],
+    'heatmap-color': [
+      'interpolate',
+      ['linear'],
+      ['heatmap-density'],
+      0,
+      'rgba(198,219,239,0)',
+      0.15,
+      WATER_RAMP[0],
+      0.4,
+      WATER_RAMP[1],
+      0.7,
+      WATER_RAMP[2],
+      1,
+      WATER_RAMP[3],
+    ],
+    'heatmap-opacity': 0.72,
+  },
+};
 
 export const pinLayers: LayerSpecification[] = [
   {

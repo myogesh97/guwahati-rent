@@ -59,6 +59,35 @@ export interface PublicPin {
   power_cuts?: Of<typeof POWER_CUTS> | null;
   maintenance_amount?: number | null;
   conditions_as_of?: string | null;
+  // Migration 0004 (survey imports, Phase 2b).
+  source?: 'user' | 'survey';
+  location_approx?: boolean;
+}
+
+/** public_stats_city (medians only, 3+ pins, last 18 months since migration 0007). */
+export interface CityStat {
+  bhk: number;
+  property_type: PublicPin['property_type'];
+  gated: boolean;
+  n: number;
+  median_rent: number;
+}
+
+/** public_stats_locality. */
+export interface LocalityStat {
+  locality_slug: string;
+  bhk: number;
+  n: number;
+  median_rent: number;
+  pct_waterlog_severe: number | null;
+  last_pin_at: string;
+}
+
+/** area_stats() for the current map bounds. */
+export interface AreaStat {
+  bhk: number;
+  n: number;
+  median_rent: number;
 }
 
 export interface Locality {

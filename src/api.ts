@@ -2,7 +2,7 @@
 // Reads: public views via PostgREST. Writes: Edge Functions only (SPEC §5.2).
 // Plain fetch instead of supabase-js keeps the map page bundle small; the admin page (Phase 4) can use supabase-js.
 import { BACKEND_READY, SUPABASE_ANON_KEY, SUPABASE_URL } from './config';
-import type { PublicBoard, PublicPin } from './types';
+import type { AreaStat, CityStat, LocalityStat, PublicBoard, PublicPin } from './types';
 import type { ToletExt } from '../supabase/functions/_shared/rules';
 
 /**
@@ -100,6 +100,73 @@ export const submitPin = (body: Record<string, unknown>) =>
 
 export const deletePin = (id: string, editToken: string, browserId: string) =>
   callFunction<{ ok: true }>('edit-pin', { id, editToken, action: 'delete', browserId });
+
+/** Same answers and validation as submitPin; the location stays as pinned (NEXT-PHASES §4.7). */
+export const updatePin = (
+  id: string,
+  editToken: string,
+  browserId: string,
+  body: Record<string, unknown>,
+) =>
+  callFunction<{ pin: PublicPin | null }>('edit-pin', {
+    ...body,
+    id,
+    editToken,
+    browserId,
+    action: 'update',
+  });
+
+export type ReportReason =
+  'fake_rent' | 'broker' | 'wrong_location' | 'rented_out' | 'offensive' | 'other';
+
+export const reportPin = (body: {
+  pinId: string;
+  reason: ReportReason;
+  message?: string;
+  browserId: string;
+  turnstileToken: string;
+}) => callFunction<{ already: boolean }>('report-pin', body);
+
+// ---------- Stats (medians only; the views drop buckets under 3 pins) ----------
+
+async function readView<T>(path: string, what: string): Promise<T> {
+  if (!BACKEND_READY) throw new ApiError('Stats need the database, which is not connected.', 503);
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: headers() });
+  if (!res.ok) throw new ApiError(`Could not load ${what}.`, res.status);
+  return (await res.json()) as T;
+}
+
+export const fetchCityStats = () =>
+  readView<CityStat[]>('public_stats_city?select=*', 'city medians');
+
+let localityStats: Promise<LocalityStat[]> | null = null;
+/** Cached for the session (also used by the rent double-check). */
+export function fetchLocalityStats(): Promise<LocalityStat[]> {
+  localityStats ??= readView<LocalityStat[]>(
+    'public_stats_locality?select=*',
+    'area medians',
+  ).catch((e) => {
+    localityStats = null;
+    throw e;
+  });
+  return localityStats;
+}
+
+export async function fetchAreaStats(b: {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+}): Promise<AreaStat[]> {
+  if (!BACKEND_READY) throw new ApiError('Stats need the database, which is not connected.', 503);
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/area_stats`, {
+    method: 'POST',
+    headers: headers({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ min_lng: b.west, min_lat: b.south, max_lng: b.east, max_lat: b.north }),
+  });
+  if (!res.ok) throw new ApiError('Could not load stats for this area.', res.status);
+  return (await res.json()) as AreaStat[];
+}
 
 // ---------- To-Let boards (NEXT-PHASES §2a) ----------
 

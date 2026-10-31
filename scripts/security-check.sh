@@ -5,7 +5,10 @@
 #   SUPABASE_URL=https://<ref>.supabase.co SUPABASE_ANON_KEY=<anon-key> bash scripts/security-check.sh
 # or, with no env vars set, it reads VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY from .env.
 #
-# Before running: [HUMAN] insert the test rows from SPEC §15 (Phase 0, step 1).
+# Before running: [HUMAN] insert the test rows from SPEC §15 (Phase 0, step 1), plus one report
+# with a private message (Phase 2), so a leak would be visible:
+#   insert into reports (pin_id, reporter_hash, reason, message)
+#   select id, 'security-check', 'other', 'leak-report-message' from pins limit 1;
 # After running:  [HUMAN] delete them.
 # Exit code 0 = every check passed. Any FAIL = STOP and fix before building UI.
 
@@ -114,7 +117,7 @@ if is2xx; then pass 7 "anon can run area_stats() -> $BODY (expect [] with < 3 pi
 
 # --- Extra checks for the rest of SPEC §5 (tables/functions added in v2) ---
 echo
-for t in seeker_contacts interests seekers matches reports tolet_boards tolet_reports rate_limits admins; do
+for t in seeker_contacts interests seekers matches reports tolet_boards tolet_reports rate_limits admins moderation_log; do
   expect_denied_or_empty "x" "anon cannot read $t" GET "/rest/v1/$t?select=*"
 done
 expect_error "x" "anon cannot run hit_rate_limit()" POST "/rest/v1/rpc/hit_rate_limit" \
@@ -169,9 +172,30 @@ fi
 expect_error "2a" "public_pins has no import_ref column" GET "/rest/v1/public_pins?select=import_ref"
 expect_error "2a" "anon cannot run bump_tolet_gone()" POST "/rest/v1/rpc/bump_tolet_gone"
 
+# --- Phase 2: reports + moderation (NEXT-PHASES §4.1). Needs migrations 0006 + 0007. ---
+echo
+expect_error "2" "anon cannot INSERT into reports" POST "/rest/v1/reports" \
+  '{"pin_id":"00000000-0000-0000-0000-000000000000","reporter_hash":"x","reason":"other"}'
+expect_error "2" "anon cannot UPDATE reports" PATCH "/rest/v1/reports?pin_id=not.is.null" '{"status":"dismissed"}'
+expect_error "2" "anon cannot INSERT into moderation_log" POST "/rest/v1/moderation_log" \
+  '{"admin_id":"00000000-0000-0000-0000-000000000000","action":"keep"}'
+expect_error "2" "anon cannot run bump_report_count()" POST "/rest/v1/rpc/bump_report_count"
+expect_error "2" "public_pins has no message column" GET "/rest/v1/public_pins?select=message"
+expect_error "2" "public_pins has no reviewed_at column" GET "/rest/v1/public_pins?select=reviewed_at"
+# Report messages must never appear in any public response (insert the test report above first).
+leak=0
+for path in "/rest/v1/public_pins?select=*" "/rest/v1/public_tolet?select=*" "/rest/v1/public_stats_city?select=*" \
+            "/rest/v1/public_stats_locality?select=*" "/rest/v1/public_seeker_dots?select=*"; do
+  req GET "$path"
+  if grep -q 'leak-report-message' <<<"$BODY"; then fail "2" "report message leaked via $path"; leak=1; fi
+done
+req POST "/rest/v1/rpc/area_stats" '{"min_lng":91.5,"min_lat":26.0,"max_lng":92.0,"max_lat":26.3}'
+if grep -q 'leak-report-message' <<<"$BODY"; then fail "2" "report message leaked via area_stats()"; leak=1; fi
+[[ $leak -eq 0 ]] && pass "2" "report messages appear in no public view or function"
+
 echo
 if [[ $failures -eq 0 ]]; then
-  echo "ALL CHECKS PASSED. [HUMAN] now delete the test rows."
+  echo "ALL CHECKS PASSED. [HUMAN] now delete the test rows (and the test report)."
   exit 0
 fi
 echo "$failures CHECK(S) FAILED. STOP: do not loosen RLS/grants; report back."

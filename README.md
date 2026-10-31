@@ -2,7 +2,7 @@
 
 An anonymous, crowdsourced rent map for Guwahati. **Read [SPEC.md](SPEC.md) (v2) first**, starting with §0. It covers scope, security rules, schema and build order.
 
-**Status:** Phases 0–1 live. Phase 2a (To-Let photo boards + admin) built and tested locally, not yet deployed (see below). Next: Phase 2b (survey import), then Phase 2.
+**Status:** Phases 0–1 live. Phase 2a (To-Let boards) committed. Phase 2 (trust, stats, filters, monsoon layer, list view) built and tested locally, not yet deployed. Phase 2b (survey import) is not built yet.
 
 ## Run it locally
 
@@ -99,6 +99,24 @@ Deploy in this order:
 7. Commit, push, Netlify redeploys. Then re-run `npm run security-check` (now includes the Phase 2a checks).
 
 Until step 3 the map simply shows no boards (the old `public_tolet` view has different columns; the app logs a warning and carries on).
+
+## Phase 2: trust, stats, filters, monsoon layer, list view (migrations 0006 + 0007)
+
+- **Report a pin** (flag button on other people's pins): reason + optional private note, Turnstile, 10/day, one report per pin per browser. 3 open reports from different browsers auto-hide a pin (`status = 'hidden'`) until an admin decides. `admin.html` → **Reported pins**: **Keep** (restore, close reports) or **Remove** (archive). Every admin decision, including To-Let approvals, goes to `moderation_log`. Notes are deleted 90 days after a report is resolved (`cleanup()`).
+- **"Not available"** box on every rent pin card.
+- **Rent double-check**: over 2× the area median (5+ rents of that BHK there) asks "Is it correct?".
+- **Filters** (`src/filters.ts`, URL-synced, shareable). Default "posted within" is **18 months**; older rents stay reachable with "All".
+- **Stats** dialog: medians only, 3+ rents per group, last 18 months (`0007_stats_recency.sql`).
+- **Monsoon waterlogging** heatmap toggle with a legend; `?water=1` opens it.
+- **Map / List**: an accessible, sortable table of the same filtered rents (`?view=list`).
+- **Edit your own pin**: `edit-pin` action `update`, same validation as `submit-pin` (shared in `_shared/pin-fields.ts`).
+
+Deploy in this order:
+
+1. `npx supabase db push` (applies `0006_reports_moderation.sql`, then `0007_stats_recency.sql`).
+2. `npx supabase functions deploy report-pin --no-verify-jwt`, then redeploy `edit-pin`, `submit-pin` and `admin-review` (all `--no-verify-jwt`).
+3. Commit, push, Netlify redeploys.
+4. Re-run `npm run security-check` with the test rows **and** the test report from the script header.
 
 ## Deploy (Netlify)
 

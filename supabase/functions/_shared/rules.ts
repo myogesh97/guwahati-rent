@@ -170,3 +170,22 @@ export type ToletExt = (typeof TOLET_EXTS)[number];
 export const TOLET_MIME: Record<ToletExt, string> = { webp: 'image/webp', jpg: 'image/jpeg' };
 /** Boards stay up this long after upload (NEXT-PHASES §1b). Must match 0004's expires_at default. */
 export const TOLET_LIFETIME_DAYS = 60;
+
+// ---------------------------------------------------------------------------
+// Reports (migration 0006, NEXT-PHASES §4.1). Must be a subset of reports_reason_check.
+// ---------------------------------------------------------------------------
+export const REPORT_REASONS = [
+  'fake_rent',
+  'broker',
+  'wrong_location',
+  'rented_out',
+  'offensive',
+  'other',
+] as const;
+export const REPORT_MESSAGE_MAX = 300;
+/** Report notes: control characters removed, whitespace collapsed, capped; empty becomes null. */
+export const cleanMessage = (s: string | undefined | null): string | null => {
+  // eslint-disable-next-line no-control-regex
+  const t = (s ?? '').replace(/[\u0000-\u001f\u007f-\u009f]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return t ? t.slice(0, REPORT_MESSAGE_MAX) : null;
+};

@@ -30,6 +30,10 @@ import { toast } from './toast';
 
 interface Options {
   onDeleted(id: string): void;
+  /** Own pin: open the rent form with its answers (edit-pin `update`). */
+  onEdit(pin: PublicPin, editToken: string): void;
+  /** Someone else's pin: open the report dialog. */
+  onReport(pin: PublicPin, trigger: HTMLElement): void;
 }
 
 const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -91,7 +95,7 @@ function flags(p: PublicPin): { text: string; warn: boolean }[] {
   return out;
 }
 
-export function setupPinCard({ onDeleted }: Options) {
+export function setupPinCard({ onDeleted, onEdit, onReport }: Options) {
   const dlg = $dialog('dlg-pin');
   const body = document.getElementById('pin-body') as HTMLElement;
   const actions = document.getElementById('pin-actions') as HTMLElement;
@@ -176,6 +180,7 @@ export function setupPinCard({ onDeleted }: Options) {
       <p class="pin-rent">${rupees(pin.rent)}<span>/month</span></p>
       <p class="pin-home">${escapeHtml(homeLabel(pin))} · ${FURNISHING_LABEL[pin.furnishing]}</p>
       <p class="pin-meta">${[locality ? `Near ${escapeHtml(locality)}` : null, pin.gated ? 'Gated society' : 'Not gated', pin.society_name ? escapeHtml(pin.society_name) : null].filter(Boolean).join(' · ')}</p>
+      ${pin.kind === 'rent' ? '<p class="not-available"><strong>Not available.</strong> This is what a renter pays, shared to show real prices. The flat isn\'t being rented out.</p>' : ''}
       ${pin.is_outlier ? '<p class="note-warn">This rent is unusually far from others nearby. Treat it with caution.</p>' : ''}
       ${chips.length ? `<ul class="flags" aria-label="Reported conditions">${chips.map((c) => `<li class="flag${c.warn ? ' flag-warn' : ''}">${escapeHtml(c.text)}</li>`).join('')}</ul>` : ''}
       ${
@@ -225,6 +230,26 @@ export function setupPinCard({ onDeleted }: Options) {
     actions.append(share);
 
     const token = getEditToken(pin.id);
+    if (!token && !demo) {
+      const flag = document.createElement('button');
+      flag.type = 'button';
+      flag.className = 'btn btn-ghost btn-flag';
+      flag.innerHTML =
+        '<svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4m0 0h11l-2 4 2 4H5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>Report';
+      flag.addEventListener('click', () => onReport(pin, flag));
+      actions.prepend(flag);
+    }
+    if (token && pin.kind === 'rent') {
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'btn btn-ghost';
+      edit.textContent = 'Edit';
+      edit.addEventListener('click', () => {
+        closeDialog(dlg);
+        onEdit(pin, token);
+      });
+      actions.append(edit);
+    }
     if (token) {
       const del = document.createElement('button');
       del.type = 'button';
