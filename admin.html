@@ -3,10 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin · Guwahati Rent</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Review boards · Guwahati Rent</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/styles/page.css" />
+    <link rel="stylesheet" href="/src/styles/admin.css" />
   </head>
   <body>
-    <h1>Admin · Guwahati Rent</h1>
-    <p>Placeholder. To-Let review is built in Phase 4.</p>
+    <header><a href="/">← Guwahati Rent</a></header>
+    <main class="admin">
+      <h1>Review To-Let boards</h1>
+
+      <section id="signed-out" hidden>
+        <p>Sign in with the admin email. We send you a one-time login link.</p>
+        <form id="login-form" class="admin-login">
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" autocomplete="email" required />
+          <button type="submit" class="a-btn a-btn-primary">Send login link</button>
+        </form>
+      </section>
+
+      <section id="signed-in" hidden>
+        <p class="admin-bar">
+          <span id="who"></span>
+          <button type="button" class="a-btn" id="refresh">Refresh</button>
+          <button type="button" class="a-btn" id="sign-out">Sign out</button>
+        </p>
+        <h2 id="pending-title">Waiting for review</h2>
+        <ul id="boards" class="boards" aria-labelledby="pending-title"></ul>
+      </section>
+
+      <p id="admin-status" class="admin-status" role="status" aria-live="polite"></p>
+    </main>
+    <script type="module" src="/src/pages/admin.ts"></script>
   </body>
 </html>

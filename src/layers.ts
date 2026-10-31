@@ -3,6 +3,8 @@ import type { LayerSpecification } from 'maplibre-gl';
 
 export const PIN_SOURCE = 'pins';
 export const DRAFT_SOURCE = 'draft';
+export const TOLET_SOURCE = 'tolet';
+export const TOLET_ICON = 'tolet-sign';
 
 export const COLOR = {
   ink: '#102a35', // label text
@@ -10,6 +12,7 @@ export const COLOR = {
   pinDark: '#073f4c',
   white: '#ffffff',
   draft: '#d14400', // the one accent: your pin, and the selected pin
+  board: '#f59e0b', // To-Let boards: amber square sign (shape, not just colour, sets them apart)
 } as const;
 
 const FONT = ['Noto Sans Medium'];
@@ -135,4 +138,69 @@ export const pinLayers: LayerSpecification[] = [
   },
 ];
 
-export const CLICKABLE_LAYERS = ['clusters', 'pin-dot'];
+// To-Let boards: their own source (no clustering), a square sign icon instead of a dot, and a
+// "To-Let" label from street zoom. Drawn above rent pins so a board is never hidden by them.
+export const toletLayers: LayerSpecification[] = [
+  {
+    id: 'tolet-icon',
+    type: 'symbol',
+    source: TOLET_SOURCE,
+    layout: {
+      'icon-image': TOLET_ICON,
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 10, 0.75, 15, 1],
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+      'text-field': ['step', ['zoom'], '', 14, 'To-Let'],
+      'text-font': FONT,
+      'text-size': 11,
+      'text-offset': [0, 1.3],
+      'text-anchor': 'top',
+      'text-optional': true,
+    },
+    paint: {
+      'text-color': COLOR.ink,
+      'text-halo-color': COLOR.white,
+      'text-halo-width': 2,
+    },
+  },
+  {
+    id: 'tolet-selected',
+    type: 'circle',
+    source: TOLET_SOURCE,
+    filter: ['==', ['get', 'id'], ''],
+    paint: {
+      'circle-radius': 17,
+      'circle-color': 'rgba(0,0,0,0)',
+      'circle-stroke-color': COLOR.draft,
+      'circle-stroke-width': 3,
+    },
+  },
+];
+
+/** The board icon, drawn once at 2× so it stays crisp: an amber sign with two text lines. */
+export function toletIcon(): ImageData {
+  const px = 48;
+  const c = document.createElement('canvas');
+  c.width = c.height = px;
+  const g = c.getContext('2d')!;
+  const r = 8;
+  const rect = (x: number, y: number, w: number, h: number, rad: number) => {
+    g.beginPath();
+    g.roundRect(x, y, w, h, rad);
+  };
+  rect(4, 4, 40, 40, r);
+  g.fillStyle = COLOR.white;
+  g.fill();
+  rect(8, 8, 32, 32, r - 3);
+  g.fillStyle = COLOR.board;
+  g.fill();
+  g.lineWidth = 2.5;
+  g.strokeStyle = COLOR.ink;
+  g.stroke();
+  g.fillStyle = COLOR.ink;
+  g.fillRect(14, 17, 20, 4);
+  g.fillRect(14, 26, 14, 4);
+  return g.getImageData(0, 0, px, px);
+}
+
+export const CLICKABLE_LAYERS = ['tolet-icon', 'clusters', 'pin-dot'];

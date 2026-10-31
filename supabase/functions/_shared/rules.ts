@@ -8,6 +8,8 @@ export const inGuwahati = (lat: number, lng: number): boolean =>
   lat >= BBOX.minLat && lat <= BBOX.maxLat && lng >= BBOX.minLng && lng <= BBOX.maxLng;
 
 export const round3 = (n: number): number => Math.round(n * 1000) / 1000;
+/** To-Let boards are public signage, so they keep ~11 m precision (NEXT-PHASES §2a.4). */
+export const round4 = (n: number): number => Math.round(n * 10000) / 10000;
 
 export const PROPERTY_TYPES = ['flat', 'independent', 'pg', '1rk', 'room', 'studio'] as const;
 export type PropertyType = (typeof PROPERTY_TYPES)[number];
@@ -156,3 +158,15 @@ export function conditionProblems(c: Conditions, today = new Date()): { field: s
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// To-Let boards (migration 0004, NEXT-PHASES §2a). Shared by the browser and Edge Functions.
+// ---------------------------------------------------------------------------
+
+/** Bucket limit set in migration 0004 (storage.buckets.file_size_limit). */
+export const TOLET_MAX_BYTES = 512 * 1024;
+export const TOLET_EXTS = ['webp', 'jpg'] as const;
+export type ToletExt = (typeof TOLET_EXTS)[number];
+export const TOLET_MIME: Record<ToletExt, string> = { webp: 'image/webp', jpg: 'image/jpeg' };
+/** Boards stay up this long after upload (NEXT-PHASES §1b). Must match 0004's expires_at default. */
+export const TOLET_LIFETIME_DAYS = 60;

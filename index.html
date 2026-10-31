@@ -30,6 +30,19 @@
         <span>Guwahati&nbsp;Rent</span>
       </a>
       <p class="tagline">Real rents, pinned by real renters</p>
+      <button type="button" class="btn btn-ghost btn-sm topbar-add" id="btn-tolet-top">
+        <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M9 4.5 7.6 6.5H5A2.5 2.5 0 0 0 2.5 9v8.5A2.5 2.5 0 0 0 5 20h14a2.5 2.5 0 0 0 2.5-2.5V9A2.5 2.5 0 0 0 19 6.5h-2.6L15 4.5z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linejoin="round"
+          />
+          <circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="2" />
+        </svg>
+        Spot a To-Let
+      </button>
       <button type="button" class="btn btn-primary btn-sm topbar-add" id="btn-add-top">
         <span aria-hidden="true">＋</span> Pin your rent
       </button>
@@ -42,7 +55,7 @@
           id="map"
           class="map"
           role="region"
-          aria-label="Map of rents in Guwahati. Each dot is a rent someone pays. The list of rents in view is next to the map."
+          aria-label="Map of rents in Guwahati. Each dot is a rent someone pays; each square sign is a To-Let board."
         ></div>
 
         <div id="map-status" class="map-status" role="status" aria-live="polite">Loading map…</div>
@@ -82,6 +95,9 @@
           <span class="legend-item"
             ><span class="swatch swatch-ring" aria-hidden="true"></span>Not gated</span
           >
+          <span class="legend-item"
+            ><span class="swatch swatch-board" aria-hidden="true"></span>To-Let board</span
+          >
           <span id="pin-count" class="legend-count"></span>
         </div>
 
@@ -89,6 +105,19 @@
           <p id="map-hint" class="map-hint" hidden>
             <span aria-hidden="true">＋</span> Click any empty spot on the map to pin your rent
           </p>
+          <button type="button" class="btn btn-ghost btn-fab" id="btn-tolet">
+            <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M9 4.5 7.6 6.5H5A2.5 2.5 0 0 0 2.5 9v8.5A2.5 2.5 0 0 0 5 20h14a2.5 2.5 0 0 0 2.5-2.5V9A2.5 2.5 0 0 0 19 6.5h-2.6L15 4.5z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linejoin="round"
+              />
+              <circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="2" />
+            </svg>
+            To-Let board
+          </button>
           <button type="button" class="btn btn-primary btn-fab" id="btn-add">
             <span aria-hidden="true">＋</span> Pin your rent
           </button>
@@ -654,6 +683,76 @@
     </dialog>
 
     <!-- After submit: share ---------------------------------------------------->
+    <!-- Spot a To-Let: photo -> location -> spam check -> upload (NEXT-PHASES §2a) -->
+    <dialog id="dlg-tolet" class="dlg" aria-labelledby="tolet-title" data-backdrop-close="false">
+      <div class="dlg-head">
+        <h2 id="tolet-title">Spotted a To-Let board?</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+      </div>
+      <div class="dlg-body">
+        <p class="hint">Take a photo of the board. It goes on the map once it's checked.</p>
+        <input type="file" id="tolet-file" accept="image/*" capture="environment" hidden />
+        <button type="button" class="btn btn-ghost tolet-pick" id="tolet-pick">
+          <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M9 4.5 7.6 6.5H5A2.5 2.5 0 0 0 2.5 9v8.5A2.5 2.5 0 0 0 5 20h14a2.5 2.5 0 0 0 2.5-2.5V9A2.5 2.5 0 0 0 19 6.5h-2.6L15 4.5z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linejoin="round"
+            />
+            <circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="2" />
+          </svg>
+          <span id="tolet-pick-label">Take a photo</span>
+        </button>
+        <img id="tolet-preview" class="tolet-preview" alt="Your photo of the To-Let board" hidden />
+        <p id="tolet-where" class="tolet-where" hidden></p>
+        <button type="button" class="link-btn" id="tolet-tap" hidden>Tap the map instead</button>
+        <p id="tolet-status" class="tolet-status" role="status" aria-live="polite"></p>
+        <p class="fine">
+          Try to keep faces and number plates out of the photo. Every photo is checked before it
+          appears, and removed after 60 days.
+        </p>
+        <div class="turnstile" id="tolet-turnstile" role="group" aria-label="Spam check"></div>
+        <p id="tolet-error" class="form-error" role="alert" hidden></p>
+      </div>
+      <div class="dlg-actions">
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="button" class="btn btn-primary" id="tolet-submit" disabled>
+          Put it on the map
+        </button>
+      </div>
+    </dialog>
+
+    <!-- One To-Let board -->
+    <dialog id="dlg-board" class="dlg" aria-labelledby="board-title">
+      <div class="dlg-head">
+        <h2 id="board-title">To-Let board</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+      </div>
+      <div class="dlg-body">
+        <button type="button" class="board-photo" id="board-photo">
+          <img id="board-img" alt="Photo of a To-Let board" />
+          <span class="board-photo-hint" id="board-photo-hint">Tap to see the full photo</span>
+        </button>
+        <p class="board-meta" id="board-meta"></p>
+        <p class="fine">
+          Call the number on the board. Verify with the owner. Never pay before seeing the flat.
+        </p>
+        <div id="board-report" hidden>
+          <p class="fine">
+            Is the board no longer there? Confirm the spam check, then press again.
+          </p>
+          <div class="turnstile" id="board-turnstile" role="group" aria-label="Spam check"></div>
+        </div>
+        <p id="board-status" class="tolet-status" role="status" aria-live="polite"></p>
+      </div>
+      <div class="dlg-actions">
+        <button type="button" class="btn btn-danger" id="board-gone">Board is gone</button>
+        <button type="button" class="btn btn-ghost" data-close>Close</button>
+      </div>
+    </dialog>
+
     <dialog id="dlg-shared" class="dlg" aria-labelledby="shared-title">
       <div class="dlg-body">
         <h2 id="shared-title">Thanks, your rent is on the map</h2>

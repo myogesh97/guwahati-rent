@@ -45,12 +45,12 @@ TMP=$(mktemp)
 trap 'rm -f "$TMP"' EXIT
 failures=0
 
-# req <method> <path> [json-body] -> sets STATUS and BODY
+# req <method> <path> [body] [content-type] -> sets STATUS and BODY
 req() {
-  local method=$1 path=$2 data=${3:-}
+  local method=$1 path=$2 data=${3:-} ctype=${4:-application/json}
   if [[ -n "$data" ]]; then
     STATUS=$(curl -s -o "$TMP" -w '%{http_code}' -X "$method" "$URL$path" "${H[@]}" \
-      -H 'Content-Type: application/json' -d "$data")
+      -H "Content-Type: $ctype" --data-binary "$data")
   else
     STATUS=$(curl -s -o "$TMP" -w '%{http_code}' -X "$method" "$URL$path" "${H[@]}")
   fi
@@ -73,14 +73,14 @@ fail() { printf 'FAIL  %-4s %s\n      status=%s body=%s\n' "$1" "$2" "$STATUS" "
 
 # Pass when the request errors, or succeeds with an empty array.
 expect_denied_or_empty() {
-  local n=$1 desc=$2 method=$3 path=$4 data=${5:-}
-  req "$method" "$path" "$data"
+  local n=$1 desc=$2 method=$3 path=$4 data=${5:-} ctype=${6:-application/json}
+  req "$method" "$path" "$data" "$ctype"
   if is2xx && [[ "$BODY" != "[]" ]]; then fail "$n" "$desc"; else pass "$n" "$desc (status $STATUS)"; fi
 }
 # Pass only when the request errors.
 expect_error() {
-  local n=$1 desc=$2 method=$3 path=$4 data=${5:-}
-  req "$method" "$path" "$data"
+  local n=$1 desc=$2 method=$3 path=$4 data=${5:-} ctype=${6:-application/json}
+  req "$method" "$path" "$data" "$ctype"
   if is2xx; then fail "$n" "$desc"; else pass "$n" "$desc (status $STATUS)"; fi
 }
 
@@ -114,7 +114,7 @@ if is2xx; then pass 7 "anon can run area_stats() -> $BODY (expect [] with < 3 pi
 
 # --- Extra checks for the rest of SPEC §5 (tables/functions added in v2) ---
 echo
-for t in seeker_contacts interests seekers matches reports tolet_boards rate_limits admins; do
+for t in seeker_contacts interests seekers matches reports tolet_boards tolet_reports rate_limits admins; do
   expect_denied_or_empty "x" "anon cannot read $t" GET "/rest/v1/$t?select=*"
 done
 expect_error "x" "anon cannot run hit_rate_limit()" POST "/rest/v1/rpc/hit_rate_limit" \
@@ -123,6 +123,51 @@ expect_error "x" "anon cannot run flag_outliers()" POST "/rest/v1/rpc/flag_outli
 expect_error "x" "anon cannot UPDATE pins" PATCH "/rest/v1/pins?id=not.is.null" '{"rent":1000}'
 expect_error "x" "anon cannot DELETE pin_contacts" DELETE "/rest/v1/pin_contacts?pin_id=not.is.null"
 expect_error "x" "anon cannot upload to private tolet bucket" POST "/storage/v1/object/tolet/pending/security-check.jpg" '{}'
+
+# --- Phase 2a: To-Let boards (NEXT-PHASES §2a.10). Needs migration 0004. ---
+echo
+expect_error "2a" "anon cannot INSERT into tolet_boards" POST "/rest/v1/tolet_boards" \
+  '{"photo_path":"x","location":"SRID=4326;POINT(91.79 26.14)","status":"approved"}'
+expect_error "2a" "anon cannot INSERT into tolet_reports" POST "/rest/v1/tolet_reports" \
+  '{"board_id":"00000000-0000-0000-0000-000000000000","reporter_hash":"x"}'
+expect_denied_or_empty "2a" "anon cannot list the private tolet bucket" POST "/storage/v1/object/list/tolet" \
+  '{"prefix":"","limit":100,"offset":0}'
+expect_denied_or_empty "2a" "anon cannot list pending uploads" POST "/storage/v1/object/list/tolet" \
+  '{"prefix":"pending/","limit":100,"offset":0}'
+expect_error "2a" "anon cannot download from the private tolet bucket" GET "/storage/v1/object/tolet/pending/security-check/full.webp"
+expect_error "2a" "anon cannot download via the authenticated route" GET "/storage/v1/object/authenticated/tolet/pending/security-check/full.webp"
+expect_error "2a" "anon cannot read private files via the public route" GET "/storage/v1/object/public/tolet/pending/security-check/full.webp"
+# Sent as image/webp (an allowed type), so a refusal means "not allowed", not "wrong file type".
+WEBP='RIFF0000WEBPsecurity-check'
+expect_error "2a" "anon cannot upload to tolet-public" POST "/storage/v1/object/tolet-public/security-check/full.webp" "$WEBP" image/webp
+expect_error "2a" "anon cannot overwrite in tolet-public" PUT "/storage/v1/object/tolet-public/security-check/full.webp" "$WEBP" image/webp
+expect_error "2a" "anon cannot upload to private tolet bucket (webp)" POST "/storage/v1/object/tolet/pending/security-check/full.webp" "$WEBP" image/webp
+# Storage answers a delete that RLS blocks with 200 [] (nothing removed); a real delete lists the objects.
+expect_denied_or_empty "2a" "anon cannot delete from tolet-public" DELETE "/storage/v1/object/tolet-public" '{"prefixes":["security-check/full.webp"]}'
+
+req GET "/rest/v1/public_tolet?select=*"
+if ! is2xx; then
+  fail "2a" "public_tolet is readable"
+elif grep -qE '"(photo_path|thumb_path|uploader_hash|status|phone_text|note|spotter_name)"' <<<"$BODY"; then
+  fail "2a" "public_tolet exposes a private column"
+else
+  pass "2a" "public_tolet readable, no private columns (status $STATUS)"
+fi
+# An empty view proves nothing about its columns, so also ask for each private column by name.
+for col in photo_path thumb_path uploader_hash status gone_reports; do
+  expect_error "2a" "public_tolet has no $col column" GET "/rest/v1/public_tolet?select=$col"
+done
+
+req GET "/rest/v1/public_pins?select=*&limit=5"
+if ! is2xx; then
+  fail "2a" "public_pins still readable"
+elif grep -q '"import_ref"' <<<"$BODY"; then
+  fail "2a" "public_pins exposes import_ref"
+else
+  pass "2a" "public_pins still readable, no import_ref (status $STATUS)"
+fi
+expect_error "2a" "public_pins has no import_ref column" GET "/rest/v1/public_pins?select=import_ref"
+expect_error "2a" "anon cannot run bump_tolet_gone()" POST "/rest/v1/rpc/bump_tolet_gone"
 
 echo
 if [[ $failures -eq 0 ]]; then

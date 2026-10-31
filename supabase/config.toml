@@ -9,3 +9,20 @@ verify_jwt = false
 
 [functions.edit-pin]
 verify_jwt = false
+
+# Phase 2a: To-Let boards. Public ones use Turnstile + rate limits; admin-review checks the
+# caller's Auth token against `admins` itself; tolet-maintenance checks x-cron-secret.
+[functions.tolet-upload-url]
+verify_jwt = false
+
+[functions.submit-tolet]
+verify_jwt = false
+
+[functions.report-tolet]
+verify_jwt = false
+
+[functions.admin-review]
+verify_jwt = false
+
+[functions.tolet-maintenance]
+verify_jwt = false

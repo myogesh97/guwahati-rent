@@ -38,6 +38,22 @@
 
 ---
 
+## 1b. Delisting policy (applies to every phase)
+
+Things that are **available** expire. Things that are **data** age but stay.
+
+| Item | Lifetime | What happens at expiry | Where enforced |
+|---|---|---|---|
+| To-Let board (2a) | **60 days** from upload | Hidden immediately (view filters `expires_at > now()`); files + row deleted by nightly `tolet-maintenance` | `tolet_boards.expires_at`, `public_tolet`, `tolet-maintenance` |
+| Owner listing, whole flat or room (Phase 3) | **60 days**; owner can renew from their device (`edit-pin` action `renew`, +60 days) | Converts to an ordinary rent pin (keeps the area data); owner contact deleted | `pins.listing_expires_at`, existing `cleanup()`. **Change SPEC's 45 days to 60 in Phase 3.** |
+| Seeker pin (Phase 3) | 30 days; can extend | Archived; contact deleted | `seekers.expires_at`, `cleanup()` |
+| Rent pin ("what I pay") | **Never auto-deleted** | Always shows its date ("Pinned 4 months ago"). Stats, medians and the default map view use pins from the **last 18 months**; older ones stay reachable through the "Posted within → All" filter | Phase 2 (§4.3, §4.4) |
+| Survey import (2b) | Same as rent pin | Same as rent pin | |
+
+Any expiring item shows its remaining time in its dialog ("Expires in 12 days"). Reported items are hidden at 3 reports regardless of age.
+
+---
+
 ## 2. Phase 2a — To-Let photo snap (+ minimal admin)
 
 ### 2a.1 Product
@@ -47,7 +63,7 @@ Anyone can photograph a To-Let board and put it on the map in **three taps, zero
 2. Camera opens → take photo. Location is captured from the device (fallback: tap the map).
 3. Spam check → **Done**. Toast: "Thanks! Your board appears on the map once it's checked (usually within a day)."
 
-The phone number is on the board itself; we never OCR it or ask for it. Boards are **admin-approved before going public** (photos can contain faces, number plates, homes). Boards **expire after 45 days**; their photos are deleted.
+The phone number is on the board itself; we never OCR it or ask for it. Boards are **admin-approved before going public** (photos can contain faces, number plates, homes). Boards **expire after 60 days**; their photos are deleted (see §1b).
 
 ### 2a.2 Storage design
 
@@ -57,7 +73,7 @@ The phone number is on the board itself; we never OCR it or ask for it. Boards a
 | Per board | Two files: `full.webp` (max 1280px long edge, quality 0.72, target ≤ 200 KB) and `thumb.webp` (max 320px, quality 0.6, target ≤ 25 KB) |
 | Paths | `tolet/pending/<boardId>/full.webp`, `…/thumb.webp` → on approval `tolet-public/<boardId>/full.webp`, `…/thumb.webp` |
 | Bucket limits | `file_size_limit = 512 KB`, `allowed_mime_types = {image/webp, image/jpeg}` on both buckets (server-side enforcement) |
-| Budget | Free tier: 1 GB storage, 5 GB/month egress. With 45-day expiry, 20 boards/day ≈ 200 MB steady state. Map/list use thumbs; full image loads only when tapped |
+| Budget | Free tier: 1 GB storage, 5 GB/month egress. With 60-day expiry, 20 boards/day ≈ 250 MB steady state. Map/list use thumbs; full image loads only when tapped |
 | Later | If egress gets near 5 GB/month, move `tolet-public` to Cloudflare R2 (zero egress). Keep all storage calls behind one module so this is a small change |
 
 ### 2a.3 Client-side compression (`src/ui/image.ts`)
@@ -87,7 +103,7 @@ alter table public.tolet_boards
   add column if not exists thumb_path        text,
   add column if not exists public_thumb_path text,
   add column if not exists uploader_hash     text,  -- sha256(browserId + HASH_SALT); abuse tracing only
-  add column if not exists expires_at        timestamptz not null default now() + interval '45 days';
+  add column if not exists expires_at        timestamptz not null default now() + interval '60 days';
 
 alter table public.tolet_boards alter column status set default 'uploading';
 create index if not exists tolet_status_idx on public.tolet_boards (status, expires_at);
@@ -237,6 +253,7 @@ Add these anon checks:
 - [ ] 3 "Board is gone" reports from 3 browsers → board disappears
 - [ ] 6th upload from one device in 24 h → rejected with a clear message
 - [ ] Running `tolet-maintenance` manually deletes expired/rejected rows **and** their files
+- [ ] A board shows "Expires in N days" in its dialog; a board with `expires_at` in the past is not in `public_tolet`
 - [ ] Extended security gate: all PASS on the live project
 
 ---
@@ -297,12 +314,13 @@ Do **not** collect names, phone numbers, emails or exact addresses.
 - When a locality has ≥ 5 pins and the entered rent is **> 2× its median**, show "That's higher than most rents near here (median ₹X). Is it correct?" with **Yes, submit** / **Let me fix it**. Fetch medians from `public_stats_locality`, cached per session.
 
 ### 4.3 Filters (`#dlg-filters`, `src/filters.ts`, `src/state.ts`)
-- Type (rent data / To-Let boards), BHK (1RK, 1, 2, 3, 4+), rent range, furnishing, gated, property type, hide "water comes in", posted within (30/90/180 days/all).
+- Type (rent data / To-Let boards), BHK (1RK, 1, 2, 3, 4+), rent range, furnishing, gated, property type, hide "water comes in", posted within (30 days / 6 months / **18 months (default)** / all).
 - Filter state lives in the URL query string (shareable). Filters rebuild the **source data** (so cluster counts match), not just `setFilter`.
 - A visible "Filters (n)" button with the active count; a **Clear all** button.
 
 ### 4.4 Stats (`#dlg-stats`)
 - City medians by BHK × gated from `public_stats_city`; locality medians from `public_stats_locality`. **Medians only.** Never show a bucket with fewer than 3 pins (the views already enforce it).
+- **Recency (§1b):** add migration `0005_stats_recency.sql` that recreates `public_stats_city`, `public_stats_locality` and `area_stats()` with an extra condition `created_at > now() - interval '18 months'`. Keep the existing grants and `having count(*) >= 3`. Re-run the security gate after.
 - "Near me / this area" uses `area_stats()` on the current map bounds.
 
 ### 4.5 Waterlogging layer
@@ -319,7 +337,8 @@ Do **not** collect names, phone numbers, emails or exact addresses.
 ### 4.8 Acceptance
 - [ ] 3 reports → pin gone; the same browser reporting twice counts once
 - [ ] Filters change map + list; the filtered URL reopens the same view
-- [ ] Stats never show a bucket with < 3 pins
+- [ ] Stats never show a bucket with < 3 pins, and ignore pins older than 18 months
+- [ ] Default map view hides rent pins older than 18 months; "Posted within → All" shows them
 - [ ] Waterlogging toggle shows/hides the heatmap; legend present
 - [ ] List view: keyboard-only and screen reader (VoiceOver/TalkBack) pass
 - [ ] Lighthouse mobile: Performance ≥ 80, Accessibility ≥ 95

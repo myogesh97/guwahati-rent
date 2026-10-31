@@ -70,6 +70,14 @@ export function relativeDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
 }
 
+/** Time left on something that expires (NEXT-PHASES §1b), e.g. "Expires in 12 days". */
+export function expiresIn(iso: string, now = Date.now()): string {
+  const days = Math.ceil((new Date(iso).getTime() - now) / 86400000);
+  if (days <= 0) return 'Expires today';
+  if (days === 1) return 'Expires tomorrow';
+  return `Expires in ${days} days`;
+}
+
 export function escapeHtml(s: string): string {
   return s.replace(
     /[&<>"']/g,

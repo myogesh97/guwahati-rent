@@ -1,20 +1,25 @@
 // Boot (SPEC §8). The page shell paints first; MapLibre is loaded afterwards via dynamic import.
 import { BACKEND_READY, SITE_URL } from './config';
-import { fetchPins } from './api';
+import { fetchBoards, fetchPins } from './api';
 import { loadLocalities } from './localities';
 import { hasConsented, recordConsent, saveEditToken } from './tokens';
 import { $dialog, closeDialog, openDialog, wireDialogs } from './ui/dialog';
 import { toast } from './ui/toast';
 import { setupRentForm } from './forms/rent-pin';
 import { setupPinCard } from './ui/pin-card';
+import { setupToletForm } from './forms/tolet';
+import { setupBoardCard } from './ui/board-card';
 import { inGuwahati } from '../supabase/functions/_shared/rules';
 import type { MapView } from './map';
-import type { PublicPin } from './types';
+import type { PublicBoard, PublicPin } from './types';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const state = {
   pins: [] as PublicPin[],
+  boards: [] as PublicBoard[],
+  /** What the centre pin is being placed for: your rent, or a To-Let board you photographed. */
+  placing: 'rent' as 'rent' | 'tolet',
   map: null as MapView | null,
   draft: null as { lat: number; lng: number } | null,
 };
@@ -56,13 +61,23 @@ let canAdd = BACKEND_READY;
 function syncAddUi(): void {
   const placing = !$('placement-banner').hidden;
   $('map-hint').hidden = !canAdd || placing || !hasMouse();
-  $('btn-add').hidden = placing || !canAdd;
-  $('btn-add-top').hidden = placing || !canAdd;
+  for (const id of ['btn-add', 'btn-add-top', 'btn-tolet', 'btn-tolet-top'])
+    $(id).hidden = placing || !canAdd;
   $('map').classList.toggle('can-add', canAdd && hasMouse() && !placing);
 }
 
-function startPlacement(at?: { lat: number; lng: number }): void {
+const PLACEMENT_TEXT = {
+  rent: '<strong>Move the map until the pin is on your home.</strong> A nearby spot is fine. We round it to about 100 m.',
+  tolet: '<strong>Move the map until the pin is on the board.</strong> Then press "Use this spot".',
+};
+
+function startPlacement(
+  at?: { lat: number; lng: number } | null,
+  purpose: 'rent' | 'tolet' = 'rent',
+): void {
   if (!state.map) return;
+  state.placing = purpose;
+  $('placement-text').innerHTML = PLACEMENT_TEXT[purpose];
   // Street level, so the pin can be lined up with a road (the city view is too coarse).
   const c = at ?? state.map.getCenter();
   state.map.focus(c.lat, c.lng, at ? 16 : 15);
@@ -97,6 +112,10 @@ async function boot(): Promise<void> {
       return;
     }
     stopPlacement();
+    if (state.placing === 'tolet') {
+      toletForm.resume({ lat, lng });
+      return;
+    }
     state.draft = { lat, lng };
     state.map?.setDraft(state.draft);
     rentForm.open(state.draft, await nearestLocalityName(lat, lng));
@@ -118,6 +137,17 @@ async function boot(): Promise<void> {
       startPlacement(state.draft ?? undefined);
     },
   });
+
+  const toletForm = setupToletForm({
+    pickOnMap(near) {
+      startPlacement(near, 'tolet');
+    },
+    onUploaded() {
+      // Nothing to draw yet: boards appear only after review.
+    },
+  });
+  const boardCard = setupBoardCard();
+  $dialog('dlg-board').addEventListener('close', () => state.map?.selectBoard(null));
 
   const pinCard = setupPinCard({
     onDeleted(id) {
@@ -143,8 +173,14 @@ async function boot(): Promise<void> {
 
   for (const id of ['btn-add', 'btn-add-top'])
     $(id).addEventListener('click', () => startPlacement());
+  for (const id of ['btn-tolet', 'btn-tolet-top'])
+    $(id).addEventListener('click', (e) => toletForm.start(e.currentTarget as HTMLElement));
   $('placement-cancel').addEventListener('click', () => {
     stopPlacement();
+    if (state.placing === 'tolet') {
+      toletForm.resume(null); // back to the photo, nothing lost
+      return;
+    }
     state.draft = null;
     state.map?.setDraft(null);
     (hasMouse() ? $('btn-add-top') : $('btn-add')).focus();
@@ -207,6 +243,22 @@ async function boot(): Promise<void> {
 
   state.pins = await pinsPromise;
   renderPins();
+  // Boards are a separate layer; if they fail (e.g. before migration 0004) rents still show.
+  if (!demo) {
+    void fetchBoards()
+      .then((boards) => {
+        state.boards = boards;
+        state.map?.setBoards(boards);
+      })
+      .catch((e: Error) => console.warn('To-Let boards not loaded:', e.message));
+  }
+
+  state.map.onBoardClick((id) => {
+    const board = state.boards.find((b) => b.id === id);
+    if (!board) return;
+    state.map?.selectBoard(id);
+    boardCard.open(board);
+  });
 
   state.map.onPinClick((ids) => {
     const pins = ids

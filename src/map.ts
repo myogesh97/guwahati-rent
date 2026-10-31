@@ -5,26 +5,37 @@ import { PMTiles, Protocol } from 'pmtiles';
 import { layers, namedFlavor } from '@protomaps/basemaps';
 import { GUWAHATI_CENTER, TILES_URL } from './config';
 import { RangeOrWholeSource } from './tiles';
-import { CLICKABLE_LAYERS, DRAFT_SOURCE, PIN_SOURCE, pinLayers } from './layers';
+import {
+  CLICKABLE_LAYERS,
+  DRAFT_SOURCE,
+  PIN_SOURCE,
+  TOLET_ICON,
+  TOLET_SOURCE,
+  pinLayers,
+  toletIcon,
+  toletLayers,
+} from './layers';
 import { shortRupees } from './format';
 import { BBOX } from '../supabase/functions/_shared/rules';
-import type { PublicPin } from './types';
+import type { PublicBoard, PublicPin } from './types';
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export interface MapView {
   setPins(pins: PublicPin[]): void;
+  setBoards(boards: PublicBoard[]): void;
   select(id: string | null): void;
+  selectBoard(id: string | null): void;
   setDraft(point: { lat: number; lng: number } | null): void;
   focus(lat: number, lng: number, zoom?: number): void;
   /** All pins under the tap (more than one when pins share a spot). */
   onPinClick(cb: (ids: string[]) => void): void;
+  onBoardClick(cb: (id: string) => void): void;
   /** Click while choosing a spot (placement mode). */
   onMapClick(cb: (lat: number, lng: number) => void): void;
   /** Click on empty map (no pin or cluster under it) outside placement mode. */
   onEmptyClick(cb: (lat: number, lng: number) => void): void;
   getCenter(): { lat: number; lng: number };
-  /** Called after every pan/zoom (and once when ready). */
   setPlacing(on: boolean): void;
   resize(): void;
 }
@@ -72,13 +83,23 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
           promoteId: 'id',
         },
         [DRAFT_SOURCE]: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
+        [TOLET_SOURCE]: {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+          promoteId: 'id',
+        },
       },
-      // 'white': a quiet, nearly colourless basemap so the rents (and the one orange accent) lead.
-      layers: [...layers('base', namedFlavor('light'), { lang: 'en' }), ...pinLayers],
+      // 'light': the full-colour basemap, untinted (the UI never filters or recolours the map).
+      layers: [
+        ...layers('base', namedFlavor('light'), { lang: 'en' }),
+        ...pinLayers,
+        ...toletLayers,
+      ],
     },
   });
 
   map.touchZoomRotate.disableRotation();
+  map.addImage(TOLET_ICON, toletIcon(), { pixelRatio: 2 });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
   map.addControl(
     new maplibregl.GeolocateControl({
@@ -94,6 +115,7 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
 
   let placing = false;
   let pinClick: ((ids: string[]) => void) | null = null;
+  let boardClick: ((id: string) => void) | null = null;
   let mapClick: ((lat: number, lng: number) => void) | null = null;
   let emptyClick: ((lat: number, lng: number) => void) | null = null;
 
@@ -111,9 +133,14 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
       return;
     }
     const props = f.properties as Record<string, unknown>;
+    if (f.layer.id === 'tolet-icon') {
+      if (typeof props.id === 'string') boardClick?.(props.id);
+      return;
+    }
     const ids = [
       ...new Set(
         hits
+          .filter((h) => h.layer.id !== 'tolet-icon')
           .map((h) => (h.properties as Record<string, unknown>).id)
           .filter((id): id is string => typeof id === 'string'),
       ),
@@ -154,8 +181,21 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
         })),
       });
     },
+    setBoards(boards) {
+      (map.getSource(TOLET_SOURCE) as GeoJSONSource).setData({
+        type: 'FeatureCollection',
+        features: boards.map((b) => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [b.lng, b.lat] },
+          properties: { id: b.id },
+        })),
+      });
+    },
     select(id) {
       map.setFilter('pin-selected', ['==', ['get', 'id'], id ?? '']);
+    },
+    selectBoard(id) {
+      map.setFilter('tolet-selected', ['==', ['get', 'id'], id ?? '']);
     },
     setDraft(point) {
       (map.getSource(DRAFT_SOURCE) as GeoJSONSource).setData({
@@ -178,6 +218,9 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
     },
     onPinClick(cb) {
       pinClick = cb;
+    },
+    onBoardClick(cb) {
+      boardClick = cb;
     },
     onMapClick(cb) {
       mapClick = cb;

@@ -1,7 +1,9 @@
-import { round3 } from './rules.ts';
-export { BBOX, inGuwahati, round3 } from './rules.ts';
+import { round3, round4 } from './rules.ts';
+export { BBOX, inGuwahati, round3, round4 } from './rules.ts';
 
 export const toWkt = (lat: number, lng: number) => `SRID=4326;POINT(${round3(lng)} ${round3(lat)})`;
+/** To-Let boards: 4 dp (~11 m), see NEXT-PHASES §2a.4. */
+export const toWkt4 = (lat: number, lng: number) => `SRID=4326;POINT(${round4(lng)} ${round4(lat)})`;
 
 // nearest locality within 3 km (localities copied from public/localities.json into _shared/localities.ts)
 export function nearestLocality(lat: number, lng: number, list: { slug: string; lat: number; lng: number }[]) {

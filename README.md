@@ -2,7 +2,7 @@
 
 An anonymous, crowdsourced rent map for Guwahati. **Read [SPEC.md](SPEC.md) (v2) first**, starting with §0. It covers scope, security rules, schema and build order.
 
-**Status:** Phase 1 (map + rent pins) built and tested locally. Next: connect Supabase, deploy, seed ~50 real pins, then Phase 2.
+**Status:** Phases 0–1 live. Phase 2a (To-Let photo boards + admin) built and tested locally, not yet deployed (see below). Next: Phase 2b (survey import), then Phase 2.
 
 ## Run it locally
 
@@ -79,6 +79,27 @@ Deploy in this order, or new submissions fail until the next step is done:
 
 The frontend reads `public_pins?select=*`, so the map keeps loading even if step 3 happens before step 1.
 
+## Phase 2a: To-Let photo boards (migrations 0004 + 0005)
+
+Anyone can photograph a To-Let board: **Spot a To-Let** (header on desktop, "To-Let board" button on phones) opens the camera, the photo is compressed in the browser (`src/ui/image.ts`: 1280 px WebP + 320 px thumb, JPEG if the browser can't write WebP, metadata stripped), the location comes from GPS (or a tap on the map), then Turnstile → `tolet-upload-url` → two signed uploads → `submit-tolet`. Boards stay private until approved on `/admin.html`, expire after 60 days, and are hidden after 3 "Board is gone" reports. `tolet-maintenance` (nightly via pg_cron) deletes expired/rejected/gone rows **and** their files.
+
+Deploy in this order:
+
+1. **Vault secrets** (SQL editor, never in a migration). Skip `project_url` if it already exists:
+   ```sql
+   select vault.create_secret('https://<ref>.supabase.co', 'project_url');
+   select vault.create_secret('<CRON_SECRET value>', 'cron_secret');
+   ```
+2. `npx supabase secrets set CRON_SECRET=<the same value>` (generate with `openssl rand -hex 32`).
+3. `npx supabase db push` (applies `0004_tolet_and_survey.sql`, then `0005_tolet_cron.sql`).
+4. Deploy the functions, each with `--no-verify-jwt`: `tolet-upload-url`, `submit-tolet`, `report-tolet`, `admin-review`, `tolet-maintenance`.
+5. Supabase → Authentication → URL Configuration: add `http://localhost:5173/admin.html` and `https://<your-site>.netlify.app/admin.html` to Redirect URLs.
+6. Open `/admin.html`, request a login link for your email, open it, then in SQL:
+   `insert into admins (user_id) select id from auth.users where email = '<your email>';`
+7. Commit, push, Netlify redeploys. Then re-run `npm run security-check` (now includes the Phase 2a checks).
+
+Until step 3 the map simply shows no boards (the old `public_tolet` view has different columns; the app logs a warning and carries on).
+
 ## Deploy (Netlify)
 
 `netlify.toml` is ready (build `npm run build`, publish `dist`, Node 22). In Netlify: **Add new site → Import from Git → this repo**, then Site configuration → Environment variables:
@@ -108,7 +129,8 @@ Not testable from the build machine: real Cloudflare Turnstile (stubbed locally)
 
 - **Living-condition fields (migration 0003)** go beyond SPEC §6.1, at the owner's request. They are optional, carry no contact data, and are shown as "renter-reported, not verified". Rules shared by the form and `submit-pin` live in `_shared/rules.ts` (`pruneConditions`, `conditionProblems`, `waterlogSummary`).
 - **flatpickr** (MIT, ~15 KB gzipped) was added beyond SPEC §16 at the owner's request, for the "when did you last see these conditions" calendar. It is loaded on demand (its own chunk), only when the rent form opens. Dropdowns were replaced by option chips instead of a dropdown library.
-- **Look:** clean neutral palette (near-black + white) with one accent, burnt orange `#c2410c`, used only for actions and your/selected pin. Water and monsoon warnings use amber. Basemap flavour is Protomaps `white`.
+- **To-Let entry point:** NEXT-PHASES §2a.1 says to enable a choice in `#dlg-add`, but that chooser was removed earlier (desktop: click the map; phones: the button). "Spot a To-Let" is therefore its own button next to "Pin your rent".
+- **Look:** deep teal brand (`#0b5566`) with an orange action colour (`#d14400`) and amber for water/monsoon warnings and To-Let signs. The basemap is Protomaps `light` in its natural colours; the UI never filters or tints the map.
 - **Demo mode** is a dev-only, in-browser fixture. It is deliberately not a database seed because SPEC §5.13 says "never invent seed data".
 
 - Reads use plain `fetch` to PostgREST instead of supabase-js (main bundle is ~7 KB gzipped vs a 60 KB budget). supabase-js stays a dependency for the Phase 4 admin page.

@@ -1,0 +1,95 @@
+/* admin.html only. Builds on page.css tokens. */
+main.admin {
+  max-width: 960px;
+}
+.admin-login {
+  display: grid;
+  gap: 8px;
+  max-width: 360px;
+}
+.admin-login input {
+  min-height: 44px;
+  padding: 8px 12px;
+  font: inherit;
+  border: 1px solid #7c8fa0;
+  border-radius: 8px;
+}
+.a-btn {
+  min-height: 44px;
+  padding: 8px 16px;
+  font: inherit;
+  font-weight: 650;
+  border-radius: 999px;
+  border: 0;
+  background: #fff;
+  color: var(--teal);
+  box-shadow: inset 0 0 0 1.5px var(--teal-2);
+  cursor: pointer;
+}
+.a-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.a-btn-primary {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: none;
+}
+.a-btn-danger {
+  background: #fdeceb;
+  color: #b42318;
+  box-shadow: none;
+}
+.admin-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.admin-bar span {
+  flex: 1;
+  color: var(--muted);
+}
+.admin-status {
+  color: var(--ink-2);
+  min-height: 1.5em;
+}
+.boards {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+.boards li + li {
+  margin-top: 0;
+}
+.board {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.board img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--fill);
+}
+.board-body {
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+  font-size: 0.9375rem;
+}
+.board-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+.board-actions .a-btn {
+  flex: 1;
+}

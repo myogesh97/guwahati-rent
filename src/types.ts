@@ -67,3 +67,14 @@ export interface Locality {
   lat: number;
   lng: number;
 }
+
+/** Mirrors the public_tolet view (migration 0004): approved, unexpired boards only. */
+export interface PublicBoard {
+  id: string;
+  public_photo_path: string | null;
+  public_thumb_path: string | null;
+  created_at: string;
+  expires_at: string;
+  lat: number;
+  lng: number;
+}

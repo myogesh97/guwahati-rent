@@ -2,7 +2,8 @@
 // Reads: public views via PostgREST. Writes: Edge Functions only (SPEC §5.2).
 // Plain fetch instead of supabase-js keeps the map page bundle small; the admin page (Phase 4) can use supabase-js.
 import { BACKEND_READY, SUPABASE_ANON_KEY, SUPABASE_URL } from './config';
-import type { PublicPin } from './types';
+import type { PublicBoard, PublicPin } from './types';
+import type { ToletExt } from '../supabase/functions/_shared/rules';
 
 /**
  * Only the `apikey` header: it works with both legacy anon JWTs and new `sb_publishable_` keys.
@@ -99,3 +100,67 @@ export const submitPin = (body: Record<string, unknown>) =>
 
 export const deletePin = (id: string, editToken: string, browserId: string) =>
   callFunction<{ ok: true }>('edit-pin', { id, editToken, action: 'delete', browserId });
+
+// ---------- To-Let boards (NEXT-PHASES §2a) ----------
+
+/** Approved, unexpired boards. Before migration 0004 the view has other columns: show none. */
+export async function fetchBoards(): Promise<PublicBoard[]> {
+  if (!BACKEND_READY) return [];
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/public_tolet?select=id,public_photo_path,public_thumb_path,created_at,expires_at,lat,lng`,
+    { headers: headers() },
+  );
+  if (!res.ok) throw new ApiError('Could not load To-Let boards.', res.status);
+  return (await res.json()) as PublicBoard[];
+}
+
+/** Approved photos live in the public bucket; the path comes from public_tolet. */
+export const boardImageUrl = (path: string): string =>
+  `${SUPABASE_URL}/storage/v1/object/public/tolet-public/${path.split('/').map(encodeURIComponent).join('/')}`;
+
+export interface ToletUpload {
+  boardId: string;
+  lat: number;
+  lng: number;
+  uploads: { full: string; thumb: string };
+}
+
+export const requestToletUpload = (body: {
+  turnstileToken: string;
+  browserId: string;
+  lat: number;
+  lng: number;
+  ext: ToletExt;
+}) => callFunction<ToletUpload>('tolet-upload-url', body);
+
+/**
+ * PUT to a signed upload URL from `createSignedUploadUrl` (Storage `PUT /object/upload/sign/
+ * <bucket>/<path>?token=…`). The token in the URL is the authorisation; raw body + content-type
+ * is the same request storage-js 2.x `uploadToSignedUrl` sends for non-Blob bodies.
+ */
+export async function uploadToSignedUrl(url: string, blob: Blob): Promise<void> {
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: 'PUT',
+      body: blob,
+      headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': blob.type, 'x-upsert': 'false' },
+    });
+  } catch {
+    throw new ApiError('The upload was interrupted. Check your connection and try again.', 0);
+  }
+  if (!res.ok) {
+    throw new ApiError(
+      res.status === 413
+        ? 'This photo is too large to upload. Please take it again.'
+        : 'The photo could not be uploaded. Please try again.',
+      res.status,
+    );
+  }
+}
+
+export const submitTolet = (boardId: string, browserId: string) =>
+  callFunction<{ boardId: string }>('submit-tolet', { boardId, browserId });
+
+export const reportTolet = (boardId: string, browserId: string, turnstileToken: string) =>
+  callFunction<{ ok: true }>('report-tolet', { boardId, browserId, turnstileToken });
