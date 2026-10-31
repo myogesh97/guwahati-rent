@@ -19,11 +19,12 @@ main.admin {
   padding: 8px 16px;
   font: inherit;
   font-weight: 650;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 0;
   background: #fff;
   color: var(--teal);
-  box-shadow: inset 0 0 0 1.5px var(--teal-2);
+  box-shadow: inset 0 0 0 1px #7c8fa0;
+  color: var(--ink);
   cursor: pointer;
 }
 .a-btn:disabled {
@@ -144,7 +145,7 @@ main.admin {
   display: inline-block;
   margin-left: 8px;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: 6px;
   background: #fef3c7;
   color: #854d0e;
   font-size: 0.8125rem;

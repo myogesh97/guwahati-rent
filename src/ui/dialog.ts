@@ -36,9 +36,15 @@ export function wireDialogs(): void {
       const t = returnFocus.get(dlg);
       if (stillHere && t && document.contains(t)) t.focus();
     });
+    // A click on the backdrop closes every dialog. Only when the press also started there:
+    // selecting text in a field and releasing outside must not close the form.
+    let downOnBackdrop = false;
+    dlg.addEventListener('pointerdown', (e) => {
+      downOnBackdrop = e.target === dlg;
+    });
     dlg.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
-      if (target === dlg && dlg.dataset.backdropClose !== 'false') dlg.close(); // backdrop
+      if (target === dlg && downOnBackdrop) dlg.close(); // backdrop
       if (target.closest('[data-close]')) dlg.close();
     });
   }

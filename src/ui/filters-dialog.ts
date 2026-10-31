@@ -13,7 +13,7 @@ export function setupFiltersDialog({ get, set, count }: Options) {
   const dlg = $dialog('dlg-filters');
   const form = document.getElementById('filters-form') as HTMLFormElement;
   const done = document.getElementById('filters-done') as HTMLButtonElement;
-  const label = document.getElementById('filters-label') as HTMLElement;
+  const badge = document.getElementById('filters-count') as HTMLElement;
   const trigger = document.getElementById('btn-filters') as HTMLButtonElement;
 
   const checked = (name: string) =>
@@ -62,7 +62,11 @@ export function setupFiltersDialog({ get, set, count }: Options) {
 
   function sync(f: Filters): void {
     const n = activeCount(f);
-    label.textContent = n ? `Filters (${n})` : 'Filters';
+    badge.textContent = String(n);
+    badge.hidden = n === 0;
+    // The badge is just a number; say what it counts (the name still starts with "Filters").
+    if (n) trigger.setAttribute('aria-label', `Filters, ${n} active`);
+    else trigger.removeAttribute('aria-label');
     trigger.classList.toggle('is-on', n > 0);
     const c = count(f);
     done.textContent = f.rents

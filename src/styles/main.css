@@ -1,51 +1,62 @@
-/* Guwahati Rent — mobile-first. System fonts only (no font download on slow networks).
+/* Guwahati Rent — design system + components. Mobile-first, system fonts only.
  *
- * Design rules:
- * - Borders only where they carry meaning: inputs, selected/focused controls, dialog edges.
- *   Sections are separated by space and headings, not by boxes or rules.
- * - Deep teal = brand + "chosen" (header, selected options, pins). Orange = act (buttons, your
- *   pin, selected pin). Bright cyan = small highlights only. Amber = heads-up (water flags).
- * - The basemap keeps its own natural colours; the UI never tints or filters it.
- * - One focus style everywhere (see :focus-visible).
- * - Every interactive control is at least 44 × 44 px.
+ * The map is the product; the UI is a quiet frame around it.
+ *
+ * Geometry   8px controls (buttons, inputs, chips, map controls), 12px floating panels,
+ *            14px dialogs. Circles only where the shape means something: map pins and
+ *            clusters, the legend's gated / not-gated swatches. No pill buttons.
+ * Size       One control height: 40px with a mouse, 44px on touch (--h). Dense map tools are
+ *            36px with a mouse. Every touch target stays at least 44px.
+ * Type       System UI font. 12 meta · 13 label · 14 UI · 16 body/inputs · 18 section ·
+ *            20 dialog title · 30 price. Weights 400 / 500 / 600 only. Prices use tabular
+ *            numerals so columns of rents line up.
+ * Colour     Deep teal = brand and "chosen". Orange = act (one primary action per view) and
+ *            the selected / new pin. Amber = heads-up. Everything else is ink on white.
+ *            The basemap is never tinted or filtered.
+ * Depth      One edge for everything that floats: a 1px hairline ring + a soft shadow (--e2).
+ *            No stacked borders, no cards inside cards.
+ * Focus      One visible keyboard ring everywhere (:focus-visible).
  */
 
 /* ============================== tokens ============================== */
 :root {
-  /* palette. Contrast ratios are against white. */
-  --ink: #102a35; /* main text, 15:1 */
-  --ink-2: #2b4652; /* secondary headings, 10:1 */
-  --muted: #526b75; /* help + metadata, 5.6:1 */
-  --teal: #0b5566; /* primary brand: header, selected chips, pins. White on it: 8.4:1 */
-  --teal-2: #0e7490; /* interactive text + borders (links, secondary buttons), 5.4:1 */
-  --cyan: #06b6d4; /* bright highlight, decorative only (never text) */
-  --teal-tint: #e3f4f7; /* hover fill for teal controls */
-  --brand: #d14400; /* action orange. White on it: 4.6:1 */
-  --brand-dark: #a93700;
-  --brand-tint: #fff1e8;
-  --accent: #d14400;
+  /* colour (contrast against white in brackets) */
+  --ink: #102a35; /* text (15:1) */
+  --ink-2: #2b4652; /* secondary text (10:1) */
+  --muted: #526b75; /* metadata, help (5.6:1) */
+  --teal: #0b5566; /* brand, selected (8.4:1; white on it 8.4:1) */
+  --teal-2: #087f98; /* interactive text on white (4.7:1), outlines */
+  --cyan: #06b6d4; /* decorative highlight only, never text */
+  --tint: #eaf4f6; /* hover / soft-selected fill */
+  --action: #d14400; /* primary button fill: white text 4.6:1 (AA). #EA580C is 3.6:1, so it is
+                        used only as a mark (selected / new pin), never behind text. */
+  --action-hover: #b23a00;
+  --action-press: #923000;
+  --mark: #ea580c;
   --warn-tint: #fef3c7;
   --warn-ink: #854d0e;
   --danger: #b42318;
   --danger-tint: #fdeceb;
   --wa: #128c4b;
 
-  /* surfaces + lines */
   --bg: #f8fafc;
-  --card: #ffffff;
-  --fill: #f1f5f9; /* quiet surfaces */
-  --line: #cbd5e1; /* separators */
-  --field-line: #7c8fa0; /* input + chip boundaries: 3.3:1 against white (WCAG 1.4.11) */
+  --surface: #ffffff;
+  --fill: #f2f5f7; /* quiet surfaces (unselected segment track, notes) */
+  --line: #d7e1e5; /* hairlines between things */
+  --field: #7c8fa0; /* input + chip edges: 3.3:1, so fields are findable (WCAG 1.4.11) */
 
-  /* type scale */
-  --fs-xs: 0.8125rem; /* 13px: metadata */
-  --fs-sm: 0.875rem; /* 14px: help, labels on the card */
-  --fs-md: 1rem; /* 16px: body, inputs (also stops iOS zoom-on-focus) */
-  --fs-lg: 1.125rem; /* 18px: section headings */
-  --fs-xl: 1.3125rem; /* 21px: dialog titles */
-  --fs-price: 2.125rem; /* 34px: the rent */
+  /* type */
+  --font:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans Bengali', sans-serif;
+  --t-12: 0.75rem;
+  --t-13: 0.8125rem;
+  --t-14: 0.875rem;
+  --t-16: 1rem;
+  --t-18: 1.125rem;
+  --t-20: 1.25rem;
+  --t-30: 1.875rem;
 
-  /* spacing scale (4px base) */
+  /* space (4px grid) */
   --s1: 4px;
   --s2: 8px;
   --s3: 12px;
@@ -53,33 +64,38 @@
   --s5: 20px;
   --s6: 24px;
   --s7: 32px;
+  --s8: 40px;
 
-  /* shape */
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 18px;
-  --r-pill: 999px;
+  /* geometry */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 14px;
+  --h: 44px; /* control height; 40px with a mouse (below) */
+  --h-tool: 44px; /* map tool height; 36px with a mouse */
   --tap: 44px;
 
-  /* elevation: one level for floating map UI, one for dialogs */
-  --shadow-1: 0 1px 2px rgba(16, 42, 53, 0.12), 0 2px 8px rgba(16, 42, 53, 0.1);
-  --shadow-2: 0 12px 40px rgba(16, 42, 53, 0.22);
+  /* depth */
+  --e1: 0 1px 2px rgba(16, 42, 53, 0.06);
+  --e2: 0 0 0 1px rgba(16, 42, 53, 0.08), 0 2px 6px rgba(16, 42, 53, 0.1);
+  --e3: 0 0 0 1px rgba(16, 42, 53, 0.06), 0 18px 48px rgba(16, 42, 53, 0.24);
+  --ring: 0 0 0 2px var(--surface), 0 0 0 4px #0891b2; /* 3.7:1 on white */
 
-  --focus-ring: 0 0 0 2px var(--card), 0 0 0 4px #0891b2; /* cyan-600: 3.7:1 on white */
   --topbar-h: 56px;
+  --edge: var(--s3); /* gap between map edge and floating UI */
 
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    'Noto Sans',
-    'Noto Sans Bengali',
-    sans-serif;
+  font-family: var(--font);
   font-size: 100%;
   color: var(--ink);
   background: var(--bg);
   -webkit-text-size-adjust: 100%;
+}
+@media (hover: hover) and (pointer: fine) {
+  :root {
+    --h: 40px;
+    --h-tool: 36px;
+  }
 }
 
 *,
@@ -87,39 +103,31 @@
 *::after {
   box-sizing: border-box;
 }
-
 html,
 body {
   margin: 0;
   height: 100%;
 }
-
 body {
   overflow: hidden;
   line-height: 1.5;
 }
-
 a {
-  color: var(--ink-2);
+  color: var(--teal-2);
   text-underline-offset: 2px;
 }
-
-/* One focus style for everything: a 2px ring with a white gap, keyboard only. */
 :focus {
   outline: none;
 }
 :focus-visible {
-  box-shadow: var(--focus-ring);
+  box-shadow: var(--ring);
 }
-/* Headings and boxes that receive focus programmatically (dialog titles, error summary). */
 [tabindex='-1']:focus-visible {
   box-shadow: none;
 }
-
 [hidden] {
   display: none !important;
 }
-
 .sr-only {
   position: absolute;
   width: 1px;
@@ -131,19 +139,134 @@ a {
   white-space: nowrap;
   border: 0;
 }
-
 .skip-link {
   position: absolute;
   left: var(--s2);
   top: -60px;
   z-index: 50;
-  background: var(--teal);
+  background: var(--ink);
   color: #fff;
   padding: 10px 14px;
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
 }
 .skip-link:focus {
   top: var(--s2);
+}
+.muted {
+  color: var(--muted);
+}
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================== buttons ============================== */
+.btn {
+  appearance: none;
+  border: 0;
+  border-radius: var(--r-md);
+  min-height: var(--h);
+  padding: 0 var(--s4);
+  font: inherit;
+  font-size: var(--t-14);
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 0.12s,
+    box-shadow 0.12s,
+    color 0.12s;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.btn-primary {
+  background: var(--action);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--action-hover);
+}
+.btn-primary:active:not(:disabled) {
+  background: var(--action-press);
+}
+/* Secondary: white, hairline edge, ink text. Quiet next to the one orange action. */
+.btn-secondary,
+.btn-ghost {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--field);
+}
+.btn-secondary:hover:not(:disabled),
+.btn-ghost:hover:not(:disabled) {
+  background: var(--tint);
+}
+.btn-danger {
+  background: var(--danger-tint);
+  color: var(--danger);
+}
+.btn-danger:hover:not(:disabled) {
+  background: #f9d9d6;
+}
+.btn-whatsapp {
+  background: var(--wa);
+  color: #fff;
+}
+.btn-whatsapp:hover {
+  background: #0e7a40;
+}
+.btn-sm {
+  min-height: 36px;
+  padding: 0 var(--s3);
+  font-size: var(--t-14);
+}
+@media (pointer: coarse) {
+  .btn-sm {
+    min-height: var(--tap);
+  }
+}
+.icon-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  width: var(--tap);
+  height: var(--tap);
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--muted);
+}
+.icon-btn:hover {
+  background: var(--fill);
+  color: var(--ink);
+}
+.link-btn {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  min-height: var(--tap);
+  font: inherit;
+  font-size: var(--t-14);
+  font-weight: 500;
+  color: var(--teal-2);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
 }
 
 /* ============================== top bar ============================== */
@@ -154,76 +277,93 @@ a {
   padding: env(safe-area-inset-top) var(--s4) 0;
   display: flex;
   align-items: center;
-  gap: var(--s3);
-  background: var(--teal);
-  border-bottom: 3px solid var(--cyan);
-  color: #fff;
+  gap: var(--s4);
+  background: var(--surface);
+  box-shadow: 0 1px 0 var(--line);
   z-index: 10;
-}
-/* On the teal bar the ring is inverted: teal gap, white ring. */
-.topbar :focus-visible {
-  box-shadow:
-    0 0 0 2px var(--teal),
-    0 0 0 4px #fff;
 }
 .brand {
   display: flex;
   align-items: center;
-  gap: var(--s2);
+  gap: 10px;
   min-height: var(--tap);
-  font-weight: 750;
-  font-size: var(--fs-lg);
-  letter-spacing: -0.01em;
-  color: #fff;
+  color: var(--ink);
   text-decoration: none;
   white-space: nowrap;
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
 }
 .brand-mark {
-  width: 26px;
-  height: 26px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-md);
+  background: var(--teal);
+  color: #fff;
   flex-shrink: 0;
-  color: #fb923c; /* logo only: a bright orange that reads on teal */
+}
+.brand-mark svg {
+  width: 20px;
+  height: 20px;
+}
+.brand-name {
+  font-size: var(--t-16);
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 .tagline {
   margin: 0;
   flex: 1;
   min-width: 0;
-  color: #cde8ee; /* 6.6:1 on teal */
-  font-size: var(--fs-sm);
+  padding-left: var(--s4);
+  box-shadow: inset 1px 0 0 var(--line);
+  color: var(--muted);
+  font-size: var(--t-13);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
 }
 .topbar-link {
   min-height: var(--tap);
   display: inline-flex;
   align-items: center;
   padding: 0 var(--s3);
-  border-radius: var(--r-pill);
-  font-weight: 600;
-  font-size: var(--fs-sm);
-  color: #fff;
+  border-radius: var(--r-md);
+  font-weight: 500;
+  font-size: var(--t-14);
+  color: var(--ink-2);
   text-decoration: none;
 }
 .topbar-link:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--fill);
+  color: var(--ink);
+}
+@media (max-width: 900px) {
+  .tagline {
+    visibility: hidden; /* keeps the flex spacer */
+  }
 }
 @media (max-width: 480px) {
-  .tagline {
-    display: none;
+  :root {
+    --topbar-h: 52px;
   }
-  .brand {
-    flex: 1;
+  .topbar {
+    gap: var(--s2);
+    padding-left: var(--s3);
+    padding-right: var(--s2);
   }
 }
 
-/* ============================== map ============================== */
+/* ============================== map frame ============================== */
 main {
   position: fixed;
   inset: calc(var(--topbar-h) + env(safe-area-inset-top)) 0 0 0;
 }
-/* The map and everything floating on it. */
 .map-area {
   position: absolute;
   inset: 0;
@@ -233,51 +373,184 @@ main {
 #map.map {
   position: absolute;
   inset: 0;
-  background: #e7ecef;
+  background: #e9edef;
 }
 .map-status {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: var(--card);
-  padding: var(--s3) var(--s5);
-  border-radius: var(--r-pill);
-  box-shadow: var(--shadow-1);
-  font-weight: 600;
+  background: var(--surface);
+  padding: var(--s3) var(--s4);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e2);
+  font-size: var(--t-14);
+  font-weight: 500;
   max-width: calc(100% - var(--s7));
   text-align: center;
 }
 
-/* Floating map UI shares one look: white, small radius, one soft shadow, no outline. */
+/* Every floating panel on the map shares one surface: white, 12px corners, hairline + shadow. */
+.map-tools,
 .banner,
 .placement,
-.legend {
-  background: var(--card);
-  box-shadow: var(--shadow-1);
+.legend,
+.water-legend {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e2);
 }
 
+/* ---------- toolbar: one panel, view switch + layer + filters + stats ---------- */
+:root {
+  --tools-top: var(--edge);
+  --below-tools: calc(var(--edge) + var(--h-tool) + 8px + var(--s2));
+}
+.map-tools {
+  position: absolute;
+  top: var(--tools-top);
+  left: var(--edge);
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  max-width: calc(100% - 2 * var(--edge));
+}
+.tool {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--h-tool);
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--t-14);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.12s,
+    color 0.12s;
+}
+.tool .btn-icon {
+  width: 17px;
+  height: 17px;
+}
+.tool:hover {
+  background: var(--fill);
+  color: var(--ink);
+}
+.tools-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 6px 4px;
+  background: var(--line);
+}
+/* Map / List: a segmented control on a quiet track; the current view is solid teal. */
+.view-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--r-md);
+  background: var(--fill);
+}
+.view-toggle .tool {
+  min-height: calc(var(--h-tool) - 4px);
+  border-radius: var(--r-sm);
+}
+.view-toggle .tool[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow:
+    0 0 0 1px rgba(16, 42, 53, 0.1),
+    var(--e1);
+}
+/* Monsoon layer on: the button takes the darkest heatmap blue, so it matches what it shows. */
+#btn-water[aria-pressed='true'] {
+  background: #e7eff9;
+  color: #08306b;
+  font-weight: 600;
+  --drop-fill: 1;
+}
+.tool-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--r-xs);
+  background: var(--teal);
+  color: #fff;
+  font-size: var(--t-12);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+body.is-placing .map-tools {
+  display: none;
+}
+
+/* Phones: the toolbar spans the width; tools share it equally, labels stay short. */
+@media (max-width: 640px) {
+  .map-tools {
+    right: var(--edge);
+  }
+  .map-tools > .tool {
+    flex: 1 1 auto;
+    padding: 0 6px;
+  }
+  .view-toggle .tool {
+    padding: 0 9px;
+  }
+  .view-toggle .btn-icon {
+    display: none;
+  }
+  .tool-long {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .tool {
+    font-size: var(--t-13);
+  }
+}
+@media (max-width: 380px) {
+  #btn-stats .btn-icon,
+  #btn-filters .btn-icon {
+    display: none;
+  }
+}
+
+/* ---------- banners (demo, read-only) and the placement bar ---------- */
 .banner,
 .placement {
   position: absolute;
-  left: var(--s3);
-  right: var(--s3);
+  left: var(--edge);
+  right: var(--edge);
   top: var(--below-tools);
   margin: 0 auto;
   max-width: 560px;
-  border-radius: var(--r-md);
   padding: var(--s3) var(--s4);
-  font-size: var(--fs-sm);
+  font-size: var(--t-14);
   z-index: 5;
 }
-/* Banners are notices, not errors: a thin accent bar on the left, no full outline. */
-.banner {
-  border-left: 4px solid var(--teal-2);
-}
 .banner-demo {
-  border-left-color: var(--accent);
+  box-shadow:
+    inset 3px 0 0 var(--mark),
+    var(--e2);
 }
-
+body.is-placing .placement {
+  top: var(--edge);
+}
 .placement {
   display: flex;
   align-items: center;
@@ -310,7 +583,7 @@ main {
   transform: translate(-50%, -100%);
   pointer-events: none;
   z-index: 3;
-  filter: drop-shadow(0 3px 4px rgba(16, 42, 53, 0.35));
+  filter: drop-shadow(0 2px 3px rgba(16, 42, 53, 0.35));
 }
 .crosshair::after {
   content: '';
@@ -321,22 +594,24 @@ main {
   height: 4px;
   transform: translateX(-50%);
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.3);
 }
 
+/* ---------- legend ---------- */
+/* Wide screens: bottom-left, beside the centred hint. Narrower: one line under the toolbar
+   (on phones the bottom belongs to the action buttons and the attribution). */
 .legend {
   position: absolute;
-  left: var(--s3);
+  left: var(--edge);
   top: var(--below-tools);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--s1) var(--s3);
-  padding: 6px var(--s3);
-  border-radius: var(--r-pill);
-  font-size: var(--fs-xs);
+  padding: 6px 10px;
+  font-size: var(--t-12);
   color: var(--ink-2);
-  max-width: calc(100% - 2 * var(--s3));
+  max-width: calc(100% - 2 * var(--edge));
   z-index: 2;
 }
 .banner:not([hidden]) ~ .legend,
@@ -349,207 +624,77 @@ main {
   gap: 6px;
 }
 .legend-count {
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }
-.legend-count:not(:empty)::before {
-  content: '·';
-  margin-right: var(--s3);
-  color: var(--muted);
-  font-weight: 400;
+.legend-count:not(:empty) {
+  padding-left: var(--s3);
+  box-shadow: inset 1px 0 0 var(--line);
 }
 .swatch {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   display: inline-block;
+  flex-shrink: 0;
 }
 .swatch-solid {
   background: var(--teal);
-  box-shadow: 0 0 0 2px #fff;
 }
 .swatch-ring {
   background: #fff;
-  border: 3px solid var(--teal);
+  border: 2.5px solid var(--teal);
 }
-/* To-Let boards: a square sign, matching the map icon (layers.ts toletIcon). */
 .swatch-board {
-  border-radius: 3px;
+  border-radius: 2px;
   background: #f59e0b;
-  border: 2px solid var(--ink);
+  border: 1.5px solid var(--ink);
 }
-
-.actions {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--s6) + env(safe-area-inset-bottom));
-  display: flex;
-  justify-content: center;
-  gap: var(--s2);
-  padding: 0 var(--s3);
-  pointer-events: none;
-  z-index: 4;
-}
-.actions > * {
-  pointer-events: auto;
-}
-
-/* MapLibre controls, matched to the rest of the UI: 44px targets, one radius, one shadow. */
-.maplibregl-ctrl-bottom-right {
-  margin-bottom: calc(76px + env(safe-area-inset-bottom));
-}
-.maplibregl-ctrl-group:not(:empty) {
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow-1);
-  overflow: hidden;
-}
-.maplibregl-ctrl-group button {
-  width: var(--tap);
-  height: var(--tap);
-}
-.maplibregl-ctrl-group button + button {
-  border-top-color: var(--line);
-}
-.maplibregl-ctrl-group button:hover:not(:disabled) {
-  background-color: var(--teal-tint);
-}
-.maplibregl-ctrl button:focus-visible {
-  box-shadow: inset 0 0 0 2px #0891b2;
-}
-.maplibregl-ctrl-attrib.maplibregl-compact {
-  border-radius: var(--r-pill);
-}
-
-/* ============================== map tools ============================== */
-/* One row of tools over the map: Monsoon (first, the Guwahati differentiator), Filters, Stats,
-   Map/List. Scrolls sideways on narrow phones instead of wrapping over the map. */
-:root {
-  --tools-h: 44px;
-  --below-tools: calc(var(--s3) + var(--tools-h) + var(--s2));
-}
-.map-tools {
-  position: absolute;
-  top: var(--s3);
-  left: 0;
-  right: 0;
-  z-index: 7;
-  display: flex;
-  gap: var(--s2);
-  padding: 0 var(--s3);
-  overflow-x: auto;
-  scrollbar-width: none;
-  pointer-events: none;
-}
-.map-tools::-webkit-scrollbar {
-  display: none;
-}
-.map-tools > * {
-  pointer-events: auto;
-  flex-shrink: 0;
-}
-.tool {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: var(--tools-h);
-  padding: 0 14px;
-  border: 0;
-  border-radius: var(--r-pill);
-  background: var(--card);
-  color: var(--ink);
-  box-shadow: var(--shadow-1);
-  font: inherit;
-  font-size: var(--fs-sm);
-  font-weight: 650;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.tool:hover {
-  background: var(--teal-tint);
-}
-.tool[aria-pressed='true'],
-.tool.is-on {
-  background: var(--teal);
-  color: #fff;
-}
-#btn-water[aria-pressed='true'] {
-  background: #08306b; /* the darkest heatmap blue: the button matches what it shows */
-}
-.view-toggle {
-  display: inline-flex;
-  border-radius: var(--r-pill);
-  box-shadow: var(--shadow-1);
-  background: var(--card);
-}
-.view-toggle .tool {
-  box-shadow: none;
-}
-.view-toggle .tool + .tool {
-  margin-left: -4px;
-}
-@media (max-width: 520px) {
-  /* Keep "waterlogging" in the accessible name, show the short label. */
-  .tool-long {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-  }
-  .tool {
-    padding: 0 11px;
-  }
-  .map-tools {
-    gap: 6px;
-    padding: 0 var(--s2);
-  }
-  /* Room for all four tools at 375 px: only Monsoon keeps its icon. */
-  #btn-filters .btn-icon,
-  #btn-stats .btn-icon {
-    display: none;
+@media (max-width: 640px) {
+  .legend-count {
+    display: none; /* the count is in the list view caption on phones */
   }
 }
-body.is-placing .map-tools {
-  display: none;
-}
-body.is-placing .placement {
-  top: var(--s3);
+@media (min-width: 1280px) and (hover: hover) and (pointer: fine) {
+  .legend {
+    top: auto;
+    bottom: calc(var(--s6) + env(safe-area-inset-bottom));
+  }
 }
 
-/* Monsoon heatmap legend: bottom-left, above the floating buttons, only while the layer is on.
-   (Not under the top legend: that one wraps to two lines on phones.) */
+/* ---------- monsoon legend ---------- */
 .water-legend {
   position: absolute;
-  left: var(--s3);
-  bottom: calc(var(--s6) + 100px + env(safe-area-inset-bottom)); /* above buttons + attribution */
+  left: var(--edge);
+  bottom: calc(var(--s6) + 104px + env(safe-area-inset-bottom)); /* above buttons + attribution */
   z-index: 2;
-  /* Leaves the bottom-right free: the map attribution must stay readable (OSM licence). */
-  width: min(280px, calc(100% - 2 * var(--s3)));
-  padding: var(--s2) var(--s3);
-  border-radius: var(--r-md);
-  background: var(--card);
-  box-shadow: var(--shadow-1);
-  font-size: var(--fs-xs);
+  width: min(272px, calc(100% - 2 * var(--edge)));
+  padding: 10px var(--s3);
+  font-size: var(--t-12);
 }
 @media (hover: hover) and (pointer: fine) {
   .water-legend {
-    bottom: calc(var(--s6) + 4px);
+    bottom: calc(var(--s6) + 48px + env(safe-area-inset-bottom)); /* above the hint row */
+  }
+}
+@media (min-width: 1280px) and (hover: hover) and (pointer: fine) {
+  .water-legend {
+    bottom: calc(var(--s6) + 44px + env(safe-area-inset-bottom)); /* above the legend */
   }
 }
 .water-legend p {
   margin: 0;
 }
 .water-legend-title {
-  font-weight: 700;
+  font-size: var(--t-13);
+  font-weight: 600;
   color: var(--ink);
 }
 .water-ramp {
-  height: 10px;
-  margin: 6px 0 2px;
-  border-radius: var(--r-pill);
+  height: 6px;
+  margin: 8px 0 4px;
+  border-radius: var(--r-xs);
   background: linear-gradient(90deg, #c6dbef, #6baed6, #2171b5, #08306b);
 }
 .water-legend-scale {
@@ -558,8 +703,93 @@ body.is-placing .placement {
   color: var(--ink-2);
 }
 .water-legend-note {
-  margin-top: 4px !important;
+  margin-top: 6px !important;
   color: var(--muted);
+}
+
+/* ---------- bottom actions ---------- */
+.actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--s4) + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: center;
+  gap: var(--s2);
+  padding: 0 var(--edge);
+  pointer-events: none;
+  z-index: 4;
+}
+.actions > * {
+  pointer-events: auto;
+}
+/* Phones: two equal, full-width buttons. Not floating pills: a stable action bar. */
+.btn-fab {
+  flex: 1;
+  max-width: 260px;
+  min-height: 48px;
+  font-size: var(--t-16);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e2);
+}
+.btn-secondary.btn-fab {
+  box-shadow:
+    inset 0 0 0 1px var(--field),
+    var(--e2);
+}
+/* Desktop hint: one compact line, bottom centre, never in the way of a click. */
+.map-hint {
+  margin: 0;
+  pointer-events: none;
+  background: rgba(16, 42, 53, 0.86);
+  color: #fff;
+  padding: 7px var(--s3);
+  border-radius: var(--r-md);
+  font-weight: 500;
+  font-size: var(--t-13);
+}
+
+/* ---------- MapLibre controls, in the same system ---------- */
+.maplibregl-ctrl-bottom-right {
+  margin-bottom: calc(76px + env(safe-area-inset-bottom));
+}
+.maplibregl-ctrl-bottom-right .maplibregl-ctrl {
+  margin: 0 var(--edge) var(--s2) 0;
+}
+.maplibregl-ctrl-group:not(:empty) {
+  border-radius: var(--r-md);
+  box-shadow: var(--e2);
+  overflow: hidden;
+}
+.maplibregl-ctrl-group button {
+  width: var(--h);
+  height: var(--h);
+}
+@media (pointer: coarse) {
+  .maplibregl-ctrl-group button {
+    width: var(--tap);
+    height: var(--tap);
+  }
+}
+.maplibregl-ctrl-group button + button {
+  border-top-color: var(--line);
+}
+.maplibregl-ctrl-group button:hover:not(:disabled) {
+  background-color: var(--fill);
+}
+.maplibregl-ctrl button:focus-visible {
+  box-shadow: inset 0 0 0 2px #0891b2;
+}
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  border-radius: var(--r-md);
+}
+.maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib {
+  margin-right: var(--edge);
+}
+@media (hover: hover) and (pointer: fine) {
+  .maplibregl-ctrl-bottom-right {
+    margin-bottom: calc(var(--s5) + env(safe-area-inset-bottom));
+  }
 }
 
 /* ============================== list view ============================== */
@@ -579,81 +809,110 @@ body.view-list .map-hint {
 .list-scroll {
   height: 100%;
   overflow: auto;
-  padding: 0 var(--s3) var(--s6);
+  padding: 0 var(--edge) var(--s6);
 }
 .rent-table {
   width: 100%;
-  border-collapse: collapse;
-  background: var(--card);
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow-1);
-  font-size: var(--fs-sm);
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e2);
+  font-size: var(--t-14);
 }
 .rent-table caption {
   text-align: left;
-  padding: var(--s2) 0 var(--s3);
-  font-weight: 650;
-  color: var(--ink-2);
+  padding: var(--s1) 0 var(--s3);
+  font-size: var(--t-13);
+  font-weight: 500;
+  color: var(--muted);
 }
 .rent-table th,
 .rent-table td {
-  padding: 10px var(--s3);
+  padding: 0 var(--s3);
+  height: 44px;
   text-align: left;
   border-bottom: 1px solid var(--line);
   white-space: nowrap;
 }
+.rent-table tbody tr:last-child td {
+  border-bottom: 0;
+}
 .rent-table thead th {
   position: sticky;
   top: 0;
-  background: var(--card);
   z-index: 1;
   padding: 0;
+  background: var(--surface);
+}
+.rent-table thead th:first-child {
+  border-top-left-radius: var(--r-lg);
+}
+.rent-table thead th:last-child {
+  border-top-right-radius: var(--r-lg);
 }
 .rent-table th button {
   appearance: none;
   border: 0;
   background: none;
   font: inherit;
-  font-weight: 700;
-  color: var(--ink);
+  font-size: var(--t-13);
+  font-weight: 600;
+  color: var(--muted);
   min-height: var(--tap);
   width: 100%;
   padding: 0 var(--s3);
   text-align: inherit;
   cursor: pointer;
   white-space: nowrap;
+  border-radius: var(--r-md);
+}
+.rent-table th button:hover {
+  color: var(--ink);
 }
 .rent-table th button::after {
-  content: '↕';
-  margin-left: 4px;
-  color: var(--muted);
-  font-weight: 400;
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: 6px;
+  vertical-align: 2px;
+  border: 4px solid transparent;
+  border-top-color: var(--line);
+  border-bottom-width: 0;
 }
-.rent-table th[aria-sort='ascending'] button::after {
-  content: '▲';
-  color: var(--teal-2);
+.rent-table th[aria-sort='descending'] button,
+.rent-table th[aria-sort='ascending'] button {
+  color: var(--ink);
 }
 .rent-table th[aria-sort='descending'] button::after {
-  content: '▼';
-  color: var(--teal-2);
+  border-top-color: var(--teal-2);
+}
+.rent-table th[aria-sort='ascending'] button::after {
+  border-top: 0;
+  border-bottom: 4px solid var(--teal-2);
 }
 .rent-table .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 .rent-table td.num {
-  font-weight: 700;
+  font-weight: 600;
 }
 .rent-table .link-btn {
   min-height: 0;
   font-size: inherit;
+  font-weight: 500;
   text-align: left;
+  color: var(--ink);
+  text-decoration-color: var(--line);
+}
+.rent-table .link-btn:hover {
+  color: var(--teal-2);
+  text-decoration-color: currentColor;
 }
 .rent-table tbody tr:hover {
-  background: var(--teal-tint);
-}
-.muted {
-  color: var(--muted);
+  background: #f6fafb;
 }
 .list-empty {
   padding: var(--s5);
@@ -664,134 +923,19 @@ body.view-list .map-hint {
   margin: var(--s4) 0 0;
 }
 
-/* Stats tables (dialog) */
-.table-scroll {
-  overflow-x: auto;
-}
-.stats-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--fs-sm);
-  margin-bottom: var(--s2);
-}
-.stats-table th,
-.stats-table td {
-  padding: 8px 6px;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-}
-.stats-table thead th {
-  color: var(--muted);
-  font-weight: 600;
-  font-size: var(--fs-xs);
-}
-.stats-table tbody th {
-  font-weight: 600;
-}
-.stats-table .num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ============================== buttons ============================== */
-.btn {
-  appearance: none;
-  border: 0;
-  border-radius: var(--r-pill);
-  min-height: var(--tap);
-  padding: 10px var(--s5);
-  font: inherit;
-  font-size: var(--fs-md);
-  font-weight: 650;
-  line-height: 1.2;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--s2);
-  text-decoration: none;
-  white-space: nowrap;
-  transition:
-    background-color 0.15s,
-    color 0.15s;
-}
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.btn-primary {
-  background: var(--brand);
-  color: #fff;
-}
-.btn-primary:hover:not(:disabled) {
-  background: var(--brand-dark);
-}
-.btn-primary:active:not(:disabled) {
-  background: #8a2e00;
-}
-/* Secondary: white with a teal outline, so it reads as a button, not as text. */
-.btn-ghost {
-  background: var(--card);
-  color: var(--teal);
-  box-shadow: inset 0 0 0 1.5px var(--teal-2);
-}
-.btn-ghost:hover:not(:disabled) {
-  background: var(--teal-tint);
-}
-.btn-danger {
-  background: var(--danger-tint);
-  color: var(--danger);
-}
-.btn-danger:hover:not(:disabled) {
-  background: #f9d9d6;
-}
-.btn-whatsapp {
-  background: var(--wa);
-  color: #fff;
-}
-.btn-whatsapp:hover {
-  background: #0e7a40;
-}
-.btn-fab {
-  padding: 14px var(--s6);
-  font-size: 1.0625rem;
-  box-shadow: var(--shadow-2);
-}
-.btn-sm {
-  min-height: 40px;
-  padding: var(--s2) var(--s4);
-  font-size: var(--fs-sm);
-}
-.icon-btn {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  width: var(--tap);
-  height: var(--tap);
-  flex-shrink: 0;
-  border-radius: 50%;
-  font-size: 1.1rem;
-  cursor: pointer;
-  color: var(--ink-2);
-}
-.icon-btn:hover {
-  background: var(--teal-tint);
-  color: var(--teal);
-}
-
 /* ============================== dialogs ============================== */
-/* Bottom sheet on phones, centred card from 640px. */
+/* Bottom sheet on phones, centred panel from 640px. */
 .dlg {
   border: 0;
   padding: 0;
   width: min(560px, 100vw);
   max-width: 100vw;
   max-height: min(90dvh, 880px);
-  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
   margin: auto auto 0;
-  background: var(--card);
+  background: var(--surface);
   color: var(--ink);
-  box-shadow: var(--shadow-2);
+  box-shadow: var(--e3);
   overflow: hidden;
 }
 .dlg[open] {
@@ -805,12 +949,12 @@ body.view-list .map-hint {
   flex: 1;
 }
 .dlg::backdrop {
-  background: rgba(16, 42, 53, 0.5);
+  background: rgba(16, 42, 53, 0.45);
 }
 @media (min-width: 640px) {
   .dlg {
     margin: auto;
-    border-radius: var(--r-lg);
+    border-radius: var(--r-xl);
   }
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -819,7 +963,8 @@ body.view-list .map-hint {
   }
   @keyframes sheet-in {
     from {
-      transform: translateY(16px);
+      transform: translateY(12px);
+      opacity: 0.6;
     }
   }
 }
@@ -828,17 +973,18 @@ body.view-list .map-hint {
   align-items: center;
   justify-content: space-between;
   gap: var(--s2);
-  padding: var(--s3) var(--s2) 0 var(--s5);
+  padding: var(--s3) var(--s3) var(--s1) var(--s6);
   min-height: 60px;
 }
 .dlg h2 {
   margin: 0;
-  font-size: var(--fs-xl);
-  line-height: 1.25;
-  letter-spacing: -0.015em;
+  font-size: var(--t-20);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
 }
 .dlg-body {
-  padding: var(--s2) var(--s5) var(--s5);
+  padding: var(--s2) var(--s6) var(--s6);
   overflow-y: auto;
   overscroll-behavior: contain;
   flex: 1;
@@ -851,13 +997,32 @@ body.view-list .map-hint {
   display: flex;
   justify-content: flex-end;
   gap: var(--s2);
-  padding: var(--s3) var(--s5) calc(var(--s3) + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--line);
+  padding: var(--s3) var(--s6) calc(var(--s3) + env(safe-area-inset-bottom));
+  box-shadow: inset 0 1px 0 var(--line);
   flex-wrap: wrap;
 }
 .dlg-actions-stack {
   flex-direction: column;
   align-items: stretch;
+}
+@media (max-width: 480px) {
+  .dlg-head {
+    padding-left: var(--s5);
+  }
+  .dlg-body {
+    padding-left: var(--s5);
+    padding-right: var(--s5);
+  }
+  .dlg-actions {
+    padding-left: var(--s5);
+    padding-right: var(--s5);
+  }
+  .dlg-actions > .btn {
+    flex: 1;
+  }
+  .dlg-actions > .btn-flag {
+    flex: 0 0 auto;
+  }
 }
 
 .ticks {
@@ -865,34 +1030,38 @@ body.view-list .map-hint {
   list-style: none;
 }
 .ticks li {
-  padding-left: 28px;
+  padding-left: 26px;
   position: relative;
   margin: var(--s2) 0;
 }
 .ticks li::before {
-  content: '✓';
+  content: '';
   position: absolute;
-  left: 4px;
-  color: var(--teal-2);
-  font-weight: 800;
+  left: 2px;
+  top: 0.45em;
+  width: 12px;
+  height: 7px;
+  border-left: 2px solid var(--teal-2);
+  border-bottom: 2px solid var(--teal-2);
+  transform: rotate(-45deg);
 }
 .fine {
-  font-size: var(--fs-sm);
+  font-size: var(--t-13);
   color: var(--muted);
 }
 .hint {
   margin: 0;
   color: var(--ink-2);
-  font-size: var(--fs-md);
+  font-size: var(--t-16);
 }
 .hint-sub {
   margin: var(--s1) 0 0;
   color: var(--muted);
-  font-size: var(--fs-sm);
+  font-size: var(--t-14);
 }
 
-/* ============================== form ============================== */
-/* Sections are separated by space and a heading, never by boxes or rules. */
+/* ============================== forms ============================== */
+/* Sections are separated by space and a heading, never by boxes. */
 .form-section {
   margin-top: var(--s7);
 }
@@ -901,20 +1070,18 @@ body.view-list .map-hint {
 }
 .dlg-body h3 {
   margin: 0 0 var(--s4);
-  font-size: var(--fs-lg);
+  font-size: var(--t-16);
+  font-weight: 600;
   line-height: 1.3;
-  letter-spacing: -0.01em;
   display: flex;
   align-items: baseline;
   gap: var(--s2);
 }
 .opt {
-  font-size: var(--fs-xs);
+  font-size: var(--t-12);
   font-weight: 500;
   color: var(--muted);
-  letter-spacing: 0;
 }
-
 .field {
   border: 0;
   margin: 0 0 var(--s5);
@@ -924,14 +1091,15 @@ body.view-list .map-hint {
 .field > label,
 .field > legend {
   display: block;
-  font-weight: 600;
-  font-size: var(--fs-md);
+  font-weight: 500;
+  font-size: var(--t-14);
+  color: var(--ink);
   margin-bottom: var(--s2);
   padding: 0;
 }
 .help {
   margin: 6px 0 0;
-  font-size: var(--fs-sm);
+  font-size: var(--t-13);
   color: var(--muted);
 }
 .seg-help {
@@ -942,39 +1110,52 @@ body.view-list .map-hint {
   grid-template-columns: 1fr 1fr;
   gap: 0 var(--s3);
 }
-/* Chip groups (former dropdowns) get the full width, one group per row. */
 .field-row:has(> fieldset.field) {
   display: block;
 }
-/* Phones: one column, so long labels don't push their inputs out of line. */
 @media (max-width: 420px) {
   .field-row {
     grid-template-columns: 1fr;
   }
 }
+.range-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s3);
+}
+.range-row .field {
+  margin-bottom: 0;
+}
 
 input[type='text'],
 input[type='number'],
 input[type='date'],
+input[type='email'],
 textarea,
 select {
   width: 100%;
-  min-height: 48px;
-  border: 1px solid var(--field-line);
-  border-radius: var(--r-sm);
-  padding: 10px var(--s3);
+  min-height: 44px;
+  border: 1px solid var(--field);
+  border-radius: var(--r-md);
+  padding: 9px var(--s3);
   font: inherit;
-  font-size: var(--fs-md); /* 16px stops iOS zoom-on-focus */
+  font-size: var(--t-16); /* 16px stops iOS zoom-on-focus */
   color: var(--ink);
-  background: var(--card);
+  background: var(--surface);
+  transition: border-color 0.12s;
 }
-input::placeholder {
+textarea {
+  resize: vertical;
+  line-height: 1.45;
+}
+input::placeholder,
+textarea::placeholder {
   color: #6b8290;
 }
 input:hover,
 textarea:hover,
 select:hover {
-  border-color: var(--teal-2);
+  border-color: var(--ink-2);
 }
 input:focus-visible,
 textarea:focus-visible,
@@ -989,7 +1170,7 @@ select[aria-invalid='true'] {
 input[aria-invalid='true']:focus-visible {
   box-shadow:
     inset 0 0 0 1px var(--danger),
-    var(--focus-ring);
+    var(--ring);
 }
 select {
   appearance: none;
@@ -998,7 +1179,6 @@ select {
   background-repeat: no-repeat;
   background-position: right 14px center;
 }
-
 .money,
 .unit {
   display: flex;
@@ -1006,19 +1186,20 @@ select {
   gap: var(--s2);
 }
 .money {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: var(--t-20);
+  font-weight: 600;
 }
 .money input {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: var(--t-20);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .unit span {
   color: var(--muted);
-  font-size: var(--fs-sm);
+  font-size: var(--t-14);
 }
 
-/* Option chips (radio + checkbox groups): outlined when off, solid teal when on. */
+/* Option chips (radio + checkbox groups): 8px boxes, hairline edge; solid teal when chosen. */
 .seg {
   display: flex;
   flex-wrap: wrap;
@@ -1029,21 +1210,22 @@ select {
   display: inline-flex;
   align-items: center;
   min-height: var(--tap);
-  padding: var(--s2) 14px;
-  border-radius: var(--r-pill);
-  background: var(--card);
-  box-shadow: inset 0 0 0 1px var(--field-line);
+  padding: 0 var(--s3);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--field);
   color: var(--ink);
-  font-size: 0.9375rem;
+  font-size: var(--t-14);
+  line-height: 1.25;
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.12s;
+  transition:
+    background-color 0.12s,
+    box-shadow 0.12s;
 }
 .seg label:hover {
-  background: var(--teal-tint);
-  box-shadow: inset 0 0 0 1px var(--teal-2);
+  background: var(--tint);
 }
-/* Short, fixed choices: equal columns so the group reads as one aligned row. */
 .seg-grid {
   display: grid;
   grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
@@ -1068,35 +1250,39 @@ select {
 }
 /* Checkboxes say "on" with a tick too, so colour is never the only cue. */
 .seg label:has(input[type='checkbox']:checked)::before {
-  content: '✓';
-  margin-right: 6px;
-  font-weight: 800;
+  content: '';
+  width: 9px;
+  height: 5px;
+  margin: -3px 7px 0 0;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  flex-shrink: 0;
 }
 .seg label:has(input:focus-visible) {
-  box-shadow: var(--focus-ring);
+  box-shadow: var(--ring);
 }
 .seg label:has(input[aria-invalid='true']) {
   box-shadow: inset 0 0 0 1.5px var(--danger);
 }
 
-/* Follow-up questions: indented under the answer that revealed them, a thin rule, no box. */
+/* Follow-up questions: indented under the answer that revealed them, one thin rule. */
 .cond {
   border: 0;
   margin: calc(-1 * var(--s2)) 0 var(--s5);
   padding: var(--s1) 0 0 var(--s4);
   min-width: 0;
-  border-left: 2px solid var(--cyan);
+  box-shadow: inset 2px 0 0 var(--line);
 }
 .cond > .field:last-child,
 .cond > .field-row:last-child > .field {
   margin-bottom: var(--s1);
 }
-
 .field-error {
   margin: 6px 0 0;
   color: var(--danger);
-  font-size: var(--fs-sm);
-  font-weight: 600;
+  font-size: var(--t-13);
+  font-weight: 500;
 }
 .field-error::before {
   content: '⚠ ';
@@ -1105,13 +1291,10 @@ select {
   background: var(--danger-tint);
   color: #7a1a12;
   padding: var(--s3) var(--s4);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
   margin: var(--s4) 0 0;
-  font-size: var(--fs-sm);
-  font-weight: 500;
+  font-size: var(--t-14);
 }
-
-/* "More details": reads like another section heading with a chevron, not a card. */
 .more {
   margin-top: var(--s7);
 }
@@ -1121,22 +1304,22 @@ select {
   display: flex;
   align-items: center;
   gap: var(--s2);
-  font-size: var(--fs-lg);
-  font-weight: 700;
+  font-size: var(--t-16);
+  font-weight: 600;
   cursor: pointer;
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
 }
 .more summary::-webkit-details-marker {
   display: none;
 }
 .more summary::after {
   content: '';
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   margin-left: auto;
-  margin-right: 6px;
-  border-right: 2px solid var(--teal-2);
-  border-bottom: 2px solid var(--teal-2);
+  margin-right: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
   transform: rotate(45deg) translateY(-2px);
   transition: transform 0.15s;
 }
@@ -1146,29 +1329,32 @@ select {
 .more[open] summary {
   margin-bottom: var(--s4);
 }
-
 .turnstile {
   min-height: 65px;
   margin-top: var(--s6);
 }
 
-/* Text-style button (e.g. "Clear date"). */
-.link-btn {
-  appearance: none;
-  border: 0;
-  background: none;
-  padding: 0;
-  min-height: var(--tap);
-  font: inherit;
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  color: var(--teal-2);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
+/* "Is it correct?" (rent double-check) */
+.rent-check {
+  margin-top: var(--s5);
+  padding: var(--s3) var(--s4);
+  border-radius: var(--r-md);
+  background: var(--warn-tint);
+  color: var(--warn-ink);
+  font-size: var(--t-14);
+  font-weight: 500;
+}
+.rent-check p {
+  margin: 0 0 var(--s3);
+}
+.rent-check-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s2);
+  flex-wrap: wrap;
 }
 
-/* flatpickr calendar, matched to the design (loaded with the form, see ui/datepicker.ts). */
+/* flatpickr calendar, matched to the system (loaded with the form, see ui/datepicker.ts). */
 input.flatpickr-input[readonly] {
   cursor: pointer;
 }
@@ -1180,7 +1366,6 @@ input.flatpickr-input[readonly] {
   top: calc(100% + 6px);
   z-index: 5;
 }
-/* Full field width with 44px day cells (flatpickr's default cells are 39px). */
 .flatpickr-calendar.static.open {
   width: 100%;
   max-width: 380px;
@@ -1203,7 +1388,7 @@ input.flatpickr-input[readonly] {
   max-width: none;
   height: var(--tap);
   line-height: var(--tap);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
 }
 .flatpickr-calendar .flatpickr-months {
   align-items: center;
@@ -1216,8 +1401,8 @@ input.flatpickr-input[readonly] {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--fs-md);
-  font-weight: 700;
+  font-size: var(--t-16);
+  font-weight: 600;
 }
 .flatpickr-calendar .flatpickr-prev-month,
 .flatpickr-calendar .flatpickr-next-month {
@@ -1225,7 +1410,6 @@ input.flatpickr-input[readonly] {
   width: var(--tap);
   padding: 14px;
 }
-/* The year box is a number input: undo the form's input styling inside the calendar. */
 .flatpickr-calendar input.cur-year {
   min-height: 0;
   height: auto;
@@ -1239,8 +1423,8 @@ input.flatpickr-input[readonly] {
 }
 .flatpickr-calendar {
   font-family: inherit;
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow-2);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e3);
   border: 0;
 }
 .flatpickr-calendar::before,
@@ -1257,11 +1441,11 @@ span.flatpickr-weekday {
 }
 .flatpickr-calendar .flatpickr-day:hover,
 .flatpickr-calendar .flatpickr-day:focus {
-  background: var(--teal-tint);
-  border-color: var(--teal-tint);
+  background: var(--tint);
+  border-color: var(--tint);
 }
 .flatpickr-calendar .flatpickr-day.today {
-  border-color: var(--accent);
+  border-color: var(--mark);
 }
 .flatpickr-calendar .flatpickr-day.selected,
 .flatpickr-calendar .flatpickr-day.selected:hover,
@@ -1276,17 +1460,193 @@ span.flatpickr-weekday {
   color: #94a3b8;
 }
 
-/* Inline icons inside buttons (camera). */
-.btn-icon {
-  width: 1.2em;
-  height: 1.2em;
-  flex-shrink: 0;
+/* ============================== rent details ============================== */
+.pin-rent {
+  font-size: var(--t-30);
+  font-weight: 600;
+  line-height: 1.15;
+  margin: var(--s1) 0 0;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
-/* The floating secondary button needs its shadow too, or it sinks into the map. */
-.btn-ghost.btn-fab {
-  box-shadow:
-    inset 0 0 0 1.5px var(--teal-2),
-    var(--shadow-2);
+.pin-rent span {
+  font-size: var(--t-14);
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: var(--s1);
+  letter-spacing: 0;
+}
+.pin-home {
+  margin: var(--s1) 0 0;
+  font-size: var(--t-16);
+  font-weight: 500;
+  color: var(--ink);
+}
+.pin-meta {
+  margin: 2px 0 0;
+  font-size: var(--t-14);
+  color: var(--muted);
+}
+.kvs {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(96px, 34%) 1fr;
+  gap: 10px var(--s4);
+}
+.kv {
+  display: contents;
+}
+.kv dt {
+  color: var(--muted);
+  font-size: var(--t-14);
+}
+.kv dd {
+  margin: 0;
+  font-size: var(--t-14);
+}
+.dlg-body .kvs-title {
+  margin: var(--s6) 0 var(--s3);
+  padding-top: var(--s5);
+  box-shadow: inset 0 1px 0 var(--line);
+  font-size: var(--t-14);
+  font-weight: 600;
+  flex-wrap: wrap;
+}
+.badge-unverified {
+  font-size: var(--t-12);
+  font-weight: 400;
+  color: var(--muted);
+}
+.oneliner {
+  margin: var(--s5) 0 0;
+  padding: 0 0 0 var(--s3);
+  box-shadow: inset 2px 0 0 var(--line);
+  color: var(--ink-2);
+  font-size: var(--t-14);
+}
+/* Rent pins are prices, not listings: a calm note, not an alert. */
+.not-available {
+  margin: var(--s4) 0 0;
+  padding: 10px var(--s3);
+  border-radius: var(--r-md);
+  background: var(--fill);
+  color: var(--ink-2);
+  font-size: var(--t-13);
+  line-height: 1.45;
+}
+.not-available strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.note-warn {
+  background: var(--warn-tint);
+  color: var(--warn-ink);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-md);
+  font-size: var(--t-14);
+}
+.card-foot {
+  margin: var(--s5) 0 0;
+}
+.btn-flag {
+  margin-right: auto;
+}
+/* Condition flags: small labels for things that change daily life. */
+.flags {
+  list-style: none;
+  padding: 0;
+  margin: var(--s3) 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.flag {
+  font-size: var(--t-13);
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: var(--r-sm);
+  background: var(--fill);
+  color: var(--ink-2);
+}
+.flag-warn {
+  background: var(--warn-tint);
+  color: var(--warn-ink);
+}
+.demo-flag {
+  margin: 0 0 var(--s3);
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  background: var(--warn-tint);
+  color: var(--warn-ink);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  font-size: var(--t-12);
+  display: inline-block;
+}
+/* same-spot picker */
+.pick-list {
+  list-style: none;
+  margin: var(--s3) 0 0;
+  padding: 0;
+  display: grid;
+}
+.pick {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  text-align: left;
+  padding: 0 var(--s2);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  font-size: var(--t-14);
+  color: inherit;
+  cursor: pointer;
+}
+.pick:hover {
+  background: var(--fill);
+}
+.pick-rent {
+  font-weight: 600;
+  min-width: 84px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stats tables */
+.table-scroll {
+  overflow-x: auto;
+}
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-14);
+  margin-bottom: var(--s2);
+}
+.stats-table th,
+.stats-table td {
+  padding: 9px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.stats-table thead th {
+  color: var(--muted);
+  font-weight: 500;
+  font-size: var(--t-12);
+}
+.stats-table tbody th {
+  font-weight: 500;
+}
+.stats-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.stats-table td.num:nth-child(2),
+.stats-table td.num:nth-child(3) {
+  font-weight: 600;
 }
 
 /* ============================== To-Let ============================== */
@@ -1301,17 +1661,16 @@ span.flatpickr-weekday {
   max-width: 100%;
   max-height: 240px;
   border-radius: var(--r-md);
-  box-shadow: var(--shadow-1);
 }
 .tolet-where {
   margin: var(--s3) 0 0;
-  font-weight: 600;
+  font-weight: 500;
 }
 .tolet-status {
   min-height: 1.4em;
   margin: var(--s3) 0 0;
   color: var(--ink-2);
-  font-size: var(--fs-sm);
+  font-size: var(--t-14);
 }
 .tolet-status:empty {
   margin: 0;
@@ -1343,219 +1702,38 @@ span.flatpickr-weekday {
   position: absolute;
   left: var(--s2);
   bottom: var(--s2);
-  padding: var(--s1) var(--s3);
-  border-radius: var(--r-pill);
-  background: rgba(11, 85, 102, 0.94);
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  background: rgba(16, 42, 53, 0.86);
   color: #fff;
-  font-size: var(--fs-xs);
-  font-weight: 600;
+  font-size: var(--t-12);
+  font-weight: 500;
 }
 .board-meta {
   margin: var(--s3) 0 0;
-  font-weight: 600;
-}
-
-/* ============================== pin card ============================== */
-.pin-rent {
-  font-size: var(--fs-price);
-  font-weight: 800;
-  line-height: 1.1;
-  margin: var(--s1) 0 0;
-  letter-spacing: -0.025em;
-}
-.pin-rent span {
-  font-size: var(--fs-md);
   font-weight: 500;
-  color: var(--muted);
-  margin-left: var(--s1);
-  letter-spacing: 0;
-}
-.pin-home {
-  margin: 6px 0 0;
-  font-size: var(--fs-md);
-  font-weight: 600;
-  color: var(--ink);
-}
-.pin-meta {
-  margin: 2px 0 0;
-  font-size: var(--fs-sm);
-  color: var(--muted);
-}
-
-/* Label / value pairs: aligned columns, separated by space, not by lines. */
-.kvs {
-  margin: 0;
-  display: grid;
-  grid-template-columns: minmax(96px, 34%) 1fr;
-  gap: 10px var(--s4);
-}
-.kv {
-  display: contents;
-}
-.kv dt {
-  color: var(--muted);
-  font-size: var(--fs-sm);
-  padding-top: 1px;
-}
-.kv dd {
-  margin: 0;
-  font-size: 0.9375rem;
-}
-.dlg-body .kvs-title {
-  margin: var(--s6) 0 var(--s3);
-  font-size: var(--fs-md);
-  flex-wrap: wrap;
-}
-.badge-unverified {
-  font-size: var(--fs-xs);
-  font-weight: 500;
-  color: var(--muted);
-}
-.oneliner {
-  margin: var(--s5) 0 0;
-  padding: var(--s3) var(--s4);
-  background: var(--bg);
-  border-radius: var(--r-sm);
-  font-style: italic;
-  color: var(--ink-2);
-}
-.not-available {
-  margin: var(--s3) 0 0;
-  padding: var(--s2) var(--s3);
-  border-radius: var(--r-sm);
-  background: var(--teal-tint);
-  border-left: 4px solid var(--teal-2);
-  color: var(--ink-2);
-  font-size: var(--fs-sm);
-}
-.not-available strong {
-  color: var(--ink);
-}
-.rent-check {
-  margin-top: var(--s5);
-  padding: var(--s3) var(--s4);
-  border-radius: var(--r-md);
-  background: var(--warn-tint);
-  color: var(--warn-ink);
-  font-weight: 600;
-}
-.rent-check p {
-  margin: 0 0 var(--s3);
-}
-.rent-check-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--s2);
-  flex-wrap: wrap;
-}
-.btn-flag {
-  margin-right: auto;
-}
-.range-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--s3);
-}
-.range-row .field {
-  margin-bottom: 0;
-}
-.note-warn {
-  background: var(--warn-tint);
-  color: var(--warn-ink);
-  padding: var(--s2) var(--s3);
-  border-radius: var(--r-sm);
-  font-size: var(--fs-sm);
-}
-.card-foot {
-  margin: var(--s5) 0 0;
-}
-
-/* Condition flags: only for things that change daily life. Text carries the meaning. */
-.flags {
-  list-style: none;
-  padding: 0;
-  margin: var(--s3) 0 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.flag {
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: var(--r-sm);
-  background: var(--fill);
-  color: var(--ink-2);
-}
-.flag-warn {
-  background: var(--warn-tint);
-  color: var(--warn-ink);
-}
-
-/* demo mode (dev only) */
-.demo-flag {
-  margin: 0 0 var(--s3);
-  padding: 6px 10px;
-  border-radius: var(--r-sm);
-  background: var(--warn-tint);
-  color: var(--warn-ink);
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  font-size: var(--fs-xs);
-}
-
-/* same-spot picker */
-.pick-list {
-  list-style: none;
-  margin: var(--s3) 0 0;
-  padding: 0;
-  display: grid;
-  gap: var(--s1);
-}
-.pick {
-  width: 100%;
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  gap: var(--s3);
-  text-align: left;
-  padding: 10px var(--s3);
-  border: 0;
-  border-radius: var(--r-sm);
-  background: transparent;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
-.pick:hover {
-  background: var(--teal-tint);
-}
-.pick-rent {
-  font-weight: 800;
-  min-width: 84px;
 }
 
 /* ============================== toast ============================== */
 .toast {
   position: absolute;
   left: 50%;
-  bottom: calc(96px + env(safe-area-inset-bottom));
+  bottom: calc(84px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
-  background: var(--teal);
+  background: var(--ink);
   color: #fff;
-  padding: var(--s3) var(--s4);
+  padding: 10px var(--s4);
   border-radius: var(--r-md);
   max-width: min(480px, calc(100% - var(--s7)));
   width: max-content;
-  font-size: var(--fs-sm);
-  box-shadow: var(--shadow-2);
+  font-size: var(--t-14);
+  box-shadow: var(--e3);
   z-index: 20;
   word-break: break-word;
 }
 .toast[data-kind='error'] {
   background: var(--danger);
 }
-
 .noscript {
   position: fixed;
   inset: 40% var(--s4) auto;
@@ -1564,8 +1742,8 @@ span.flatpickr-weekday {
 }
 
 /* ====================== mouse vs touch (keep last) ====================== */
-/* Mouse: click the map to add; the floating button becomes a hint + a top-bar button.
-   Touch: keep the floating button (a tap on the map is usually someone exploring).
+/* Mouse: click the map to add; the bottom buttons become a hint + top-bar buttons.
+   Touch: keep the bottom action bar (a tap on the map is usually someone exploring).
    Kept last so it overrides `.btn { display: inline-flex }` above. */
 .topbar-add,
 .map-hint {
@@ -1587,15 +1765,4 @@ span.flatpickr-weekday {
   .map.can-add .maplibregl-canvas-container.maplibregl-interactive:active {
     cursor: grabbing;
   }
-}
-.map-hint {
-  margin: 0;
-  pointer-events: none;
-  background: rgba(11, 85, 102, 0.94);
-  color: #fff;
-  padding: 10px var(--s4);
-  border-radius: var(--r-pill);
-  font-weight: 600;
-  font-size: var(--fs-sm);
-  box-shadow: var(--shadow-1);
 }

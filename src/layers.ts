@@ -9,12 +9,23 @@ export const TOLET_ICON = 'tolet-sign';
 
 export const COLOR = {
   ink: '#102a35', // label text
-  pin: '#0b5566', // pins + clusters: brand deep teal, distinct from the basemap's colours
-  pinDark: '#073f4c',
+  pin: '#0b5566', // gated rents + clusters: brand deep teal, distinct from the basemap's colours
+  pin2: '#087f98', // hover
+  line: '#087f98', // outline of a not-gated tag
   white: '#ffffff',
-  draft: '#d14400', // the one accent: your pin, and the selected pin
+  draft: '#ea580c', // action orange as a mark: your new pin, the selected pin
+  selected: '#d14400', // selected tag fill (white text on it stays AA)
   board: '#f59e0b', // To-Let boards: amber square sign (shape, not just colour, sets them apart)
 } as const;
+
+/** Price-tag images (stretchable, drawn in map.ts): fill / outline / text per state. */
+export const TAGS = {
+  'tag-gated': { fill: COLOR.pin, stroke: null, text: COLOR.white },
+  'tag-open': { fill: COLOR.white, stroke: COLOR.line, text: COLOR.ink },
+  'tag-hover': { fill: COLOR.pin2, stroke: null, text: COLOR.white },
+  'tag-selected': { fill: COLOR.selected, stroke: null, text: COLOR.white },
+} as const;
+export type TagName = keyof typeof TAGS;
 
 const FONT = ['Noto Sans Medium'];
 
@@ -52,6 +63,23 @@ export const waterLayer: LayerSpecification = {
   },
 };
 
+const tagLayout = (image: TagName): LayerSpecification['layout'] => ({
+  'icon-image': image,
+  'icon-text-fit': 'both',
+  'icon-text-fit-padding': [3, 7, 3, 7],
+  'text-field': ['get', 'label'],
+  'text-font': FONT,
+  'text-size': 12,
+  'text-anchor': 'bottom',
+  'text-offset': [0, -0.95],
+  'text-padding': 2,
+  'symbol-sort-key': ['get', 'rent'],
+});
+
+// Rents: a small dot marks the spot; from street-ish zoom a price tag sits just above it.
+// Gated = filled teal tag + filled dot. Not gated = white tag with a teal outline + ring dot.
+// Shape and fill carry the meaning, never colour alone (SPEC §8.6). Tags that would overlap
+// are dropped by MapLibre's collision detection and reappear as you zoom in.
 export const pinLayers: LayerSpecification[] = [
   {
     id: 'clusters',
@@ -60,9 +88,8 @@ export const pinLayers: LayerSpecification[] = [
     filter: ['has', 'point_count'],
     paint: {
       'circle-color': COLOR.pin,
-      'circle-opacity': 0.95,
-      'circle-radius': ['step', ['get', 'point_count'], 16, 10, 20, 50, 26, 200, 32],
-      'circle-stroke-width': 3,
+      'circle-radius': ['step', ['get', 'point_count'], 13, 10, 16, 50, 20, 200, 24],
+      'circle-stroke-width': 2,
       'circle-stroke-color': COLOR.white,
     },
   },
@@ -74,7 +101,7 @@ export const pinLayers: LayerSpecification[] = [
     layout: {
       'text-field': ['to-string', ['get', 'point_count']],
       'text-font': FONT,
-      'text-size': 14,
+      'text-size': 12,
       'text-allow-overlap': true,
     },
     paint: { 'text-color': COLOR.white },
@@ -97,32 +124,53 @@ export const pinLayers: LayerSpecification[] = [
       'text-offset': [
         'step',
         ['get', 'point_count'],
-        ['literal', [0, 2.1]],
+        ['literal', [0, 1.9]],
         50,
-        ['literal', [0, 2.8]],
+        ['literal', [0, 2.4]],
         200,
-        ['literal', [0, 3.3]],
+        ['literal', [0, 2.8]],
       ],
       'text-allow-overlap': true,
     },
     paint: {
       'text-color': COLOR.ink,
       'text-halo-color': COLOR.white,
-      'text-halo-width': 2,
+      'text-halo-width': 1.5,
     },
   },
-  // Gated: solid dot. Not gated: ring. Shape carries the meaning, not colour alone (SPEC §8.6).
   {
     id: 'pin-dot',
     type: 'circle',
     source: PIN_SOURCE,
     filter: isPoint,
     paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 7, 15, 10],
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 5, 16, 6.5],
       'circle-color': ['case', ['get', 'gated'], COLOR.pin, COLOR.white],
       'circle-stroke-color': ['case', ['get', 'gated'], COLOR.white, COLOR.pin],
-      'circle-stroke-width': ['case', ['get', 'gated'], 2.5, 3.5],
+      'circle-stroke-width': ['case', ['get', 'gated'], 1.5, 2.5],
     },
+  },
+  {
+    id: 'pin-tag',
+    type: 'symbol',
+    source: PIN_SOURCE,
+    filter: isPoint,
+    minzoom: 11.5,
+    layout: {
+      ...tagLayout('tag-open'),
+      'icon-image': ['case', ['get', 'gated'], 'tag-gated', 'tag-open'],
+    },
+    paint: { 'text-color': ['case', ['get', 'gated'], COLOR.white, COLOR.ink] },
+  },
+  // Hover and selected: the same tag redrawn on top (always shown, even if it would collide).
+  {
+    id: 'pin-hover',
+    type: 'symbol',
+    source: PIN_SOURCE,
+    minzoom: 11.5,
+    filter: ['==', ['get', 'id'], ''],
+    layout: { ...tagLayout('tag-hover'), 'icon-allow-overlap': true, 'text-allow-overlap': true },
+    paint: { 'text-color': COLOR.white },
   },
   {
     id: 'pin-selected',
@@ -130,46 +178,65 @@ export const pinLayers: LayerSpecification[] = [
     source: PIN_SOURCE,
     filter: ['==', ['get', 'id'], ''],
     paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 12, 15, 16],
-      'circle-color': 'rgba(0,0,0,0)',
-      'circle-stroke-color': COLOR.draft,
-      'circle-stroke-width': 3,
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 6, 16, 7.5],
+      'circle-color': COLOR.draft,
+      'circle-stroke-color': COLOR.white,
+      'circle-stroke-width': 2,
     },
   },
   {
-    id: 'pin-label',
+    id: 'pin-selected-tag',
     type: 'symbol',
     source: PIN_SOURCE,
-    filter: isPoint,
-    // Rent above every pin from city zoom. Labels that would overlap are dropped, so dense
-    // areas stay readable; zooming in reveals the rest.
-    minzoom: 10,
+    filter: ['==', ['get', 'id'], ''],
     layout: {
-      'text-field': ['get', 'label'],
-      'text-font': FONT,
-      'text-size': ['interpolate', ['linear'], ['zoom'], 10, 12, 15, 14],
-      'text-offset': [0, -1.1],
-      'text-anchor': 'bottom',
-      'text-padding': 1,
+      ...tagLayout('tag-selected'),
+      'icon-allow-overlap': true,
+      'text-allow-overlap': true,
     },
-    paint: {
-      'text-color': COLOR.ink,
-      'text-halo-color': COLOR.white,
-      'text-halo-width': 2,
-    },
+    paint: { 'text-color': COLOR.white },
   },
   {
     id: 'draft-pin',
     type: 'circle',
     source: DRAFT_SOURCE,
     paint: {
-      'circle-radius': 9,
+      'circle-radius': 8,
       'circle-color': COLOR.draft,
       'circle-stroke-color': COLOR.white,
-      'circle-stroke-width': 3,
+      'circle-stroke-width': 2.5,
     },
   },
 ];
+
+/** Stretchable rounded-rectangle tag, drawn at 2× (MapLibre fits it around the price text). */
+export function tagImage(name: TagName): {
+  data: ImageData;
+  options: { pixelRatio: number; stretchX: [number, number][]; stretchY: [number, number][] };
+} {
+  const { fill, stroke } = TAGS[name];
+  const w = 32;
+  const h = 28;
+  const r = 10; // 5 px on screen
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const g = c.getContext('2d')!;
+  const inset = stroke ? 1.5 : 0;
+  g.beginPath();
+  g.roundRect(inset, inset, w - 2 * inset, h - 2 * inset, r);
+  g.fillStyle = fill;
+  g.fill();
+  if (stroke) {
+    g.lineWidth = 3; // 1.5 px on screen
+    g.strokeStyle = stroke;
+    g.stroke();
+  }
+  return {
+    data: g.getImageData(0, 0, w, h),
+    options: { pixelRatio: 2, stretchX: [[r, w - r]], stretchY: [[r, h - r]] },
+  };
+}
 
 // To-Let boards: their own source (no clustering), a square sign icon instead of a dot, and a
 // "To-Let" label from street zoom. Drawn above rent pins so a board is never hidden by them.
@@ -236,4 +303,11 @@ export function toletIcon(): ImageData {
   return g.getImageData(0, 0, px, px);
 }
 
-export const CLICKABLE_LAYERS = ['tolet-icon', 'clusters', 'pin-dot'];
+export const CLICKABLE_LAYERS = [
+  'tolet-icon',
+  'clusters',
+  'pin-selected-tag',
+  'pin-hover',
+  'pin-tag',
+  'pin-dot',
+];

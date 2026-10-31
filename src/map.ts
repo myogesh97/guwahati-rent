@@ -9,10 +9,12 @@ import {
   CLICKABLE_LAYERS,
   DRAFT_SOURCE,
   PIN_SOURCE,
+  TAGS,
   TOLET_ICON,
   TOLET_SOURCE,
   WATER_SOURCE,
   pinLayers,
+  tagImage,
   waterLayer,
   toletIcon,
   toletLayers,
@@ -108,6 +110,10 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
 
   map.touchZoomRotate.disableRotation();
   map.addImage(TOLET_ICON, toletIcon(), { pixelRatio: 2 });
+  for (const name of Object.keys(TAGS) as (keyof typeof TAGS)[]) {
+    const { data, options } = tagImage(name);
+    map.addImage(name, data, options);
+  }
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
   map.addControl(
     new maplibregl.GeolocateControl({
@@ -171,6 +177,22 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
     map.on('mouseenter', layer, () => !placing && (map.getCanvas().style.cursor = 'pointer'));
     map.on('mouseleave', layer, () => !placing && (map.getCanvas().style.cursor = ''));
   }
+  // Hover state for rents (mouse only): the hovered tag is redrawn on top in the hover colour.
+  let hovered = '';
+  const setHover = (id: string) => {
+    if (id === hovered) return;
+    hovered = id;
+    map.setFilter('pin-hover', ['==', ['get', 'id'], id]);
+  };
+  map.on('mousemove', (e) => {
+    if (placing) return setHover('');
+    const f = map.queryRenderedFeatures(e.point, {
+      layers: ['pin-tag', 'pin-dot', 'pin-hover'],
+    })[0];
+    const id = (f?.properties as Record<string, unknown> | undefined)?.id;
+    setHover(typeof id === 'string' ? id : '');
+  });
+  map.getCanvas().addEventListener('mouseleave', () => setHover(''));
 
   return {
     setPins(pins) {
@@ -220,6 +242,7 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
     },
     select(id) {
       map.setFilter('pin-selected', ['==', ['get', 'id'], id ?? '']);
+      map.setFilter('pin-selected-tag', ['==', ['get', 'id'], id ?? '']);
     },
     selectBoard(id) {
       map.setFilter('tolet-selected', ['==', ['get', 'id'], id ?? '']);

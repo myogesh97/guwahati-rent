@@ -23,43 +23,92 @@
 
     <header class="topbar">
       <a class="brand" href="/" aria-label="Guwahati Rent home">
-        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 2c-4 0-7 3-7 7 0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" fill="currentColor" />
-          <path d="M8.5 9.5 12 7l3.5 2.5V13h-7z" fill="#fff" />
-        </svg>
-        <span>Guwahati&nbsp;Rent</span>
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M12 3c-3.6 0-6.3 2.7-6.3 6.2 0 4.5 6.3 11.8 6.3 11.8s6.3-7.3 6.3-11.8C18.3 5.7 15.6 3 12 3z"
+              fill="currentColor"
+            />
+            <path d="M9 10 12 7.7 15 10v3.2H9z" fill="#0b5566" />
+          </svg>
+        </span>
+        <span class="brand-name">Guwahati Rent</span>
       </a>
       <p class="tagline">Real rents, pinned by real renters</p>
-      <button type="button" class="btn btn-ghost btn-sm topbar-add" id="btn-tolet-top">
-        <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M9 4.5 7.6 6.5H5A2.5 2.5 0 0 0 2.5 9v8.5A2.5 2.5 0 0 0 5 20h14a2.5 2.5 0 0 0 2.5-2.5V9A2.5 2.5 0 0 0 19 6.5h-2.6L15 4.5z"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linejoin="round"
-          />
-          <circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="2" />
-        </svg>
-        Spot a To-Let
-      </button>
-      <button type="button" class="btn btn-primary btn-sm topbar-add" id="btn-add-top">
-        <span aria-hidden="true">＋</span> Pin your rent
-      </button>
-      <a class="topbar-link" href="/about.html">About</a>
+      <nav class="topbar-nav" aria-label="Site">
+        <a class="topbar-link" href="/about.html">About</a>
+        <button type="button" class="btn btn-secondary btn-sm topbar-add" id="btn-tolet-top">
+          <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M9 4.5 7.6 6.5H5A2.5 2.5 0 0 0 2.5 9v8.5A2.5 2.5 0 0 0 5 20h14a2.5 2.5 0 0 0 2.5-2.5V9A2.5 2.5 0 0 0 19 6.5h-2.6L15 4.5z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linejoin="round"
+            />
+            <circle
+              cx="12"
+              cy="13"
+              r="3.4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+            /></svg
+          >Spot a To-Let
+        </button>
+        <button type="button" class="btn btn-primary btn-sm topbar-add" id="btn-add-top">
+          <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 5v14M5 12h14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+            /></svg
+          >Pin your rent
+        </button>
+      </nav>
     </header>
 
     <main id="main">
       <div class="map-area">
         <!-- Map tools (NEXT-PHASES §4.3–4.6). Monsoon first: it's the Guwahati differentiator. -->
+        <!-- Map tools (NEXT-PHASES §4.3–4.6): one toolbar panel. View first, then Monsoon (the
+             Guwahati differentiator), Filters, Stats. -->
         <div class="map-tools" role="toolbar" aria-label="Map tools">
+          <div class="view-toggle" role="group" aria-label="View">
+            <button type="button" class="tool" id="btn-view-map" aria-pressed="true">
+              <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="m3.5 6.5 5.5-2 6 2 5.5-2v13l-5.5 2-6-2-5.5 2z M9 4.5v13 M15 6.5v13"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linejoin="round"
+                /></svg
+              ><span>Map</span>
+            </button>
+            <button type="button" class="tool" id="btn-view-list" aria-pressed="false">
+              <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M9 6.5h11M9 12h11M9 17.5h11M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                /></svg
+              ><span>List</span>
+            </button>
+          </div>
+          <span class="tools-sep" aria-hidden="true"></span>
           <button type="button" class="tool" id="btn-water" aria-pressed="false">
             <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 d="M12 3.5s-6 6.6-6 10.9a6 6 0 0 0 12 0C18 10.1 12 3.5 12 3.5z"
-                fill="none"
+                fill="currentColor"
+                fill-opacity="var(--drop-fill, 0)"
                 stroke="currentColor"
-                stroke-width="2"
+                stroke-width="1.8"
                 stroke-linejoin="round"
               /></svg
             ><span>Monsoon<span class="tool-long"> waterlogging</span></span>
@@ -67,29 +116,26 @@
           <button type="button" class="tool" id="btn-filters" aria-haspopup="dialog">
             <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path
-                d="M4 6h16M7 12h10M10 18h4"
+                d="M4 7h16M7 12h10M10 17h4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              /></svg
+            ><span id="filters-label">Filters</span
+            ><span class="tool-count" id="filters-count" hidden></span>
+          </button>
+          <button type="button" class="tool" id="btn-stats" aria-haspopup="dialog">
+            <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M6 19v-7M12 19V6M18 19v-4"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
                 stroke-linecap="round"
               /></svg
-            ><span id="filters-label">Filters</span>
-          </button>
-          <button type="button" class="tool" id="btn-stats" aria-haspopup="dialog">
-            <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                d="M5 20V11M12 20V5M19 20v-6"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.4"
-                stroke-linecap="round"
-              /></svg
             ><span>Stats</span>
           </button>
-          <div class="view-toggle" role="group" aria-label="View">
-            <button type="button" class="tool" id="btn-view-map" aria-pressed="true">Map</button>
-            <button type="button" class="tool" id="btn-view-list" aria-pressed="false">List</button>
-          </div>
         </div>
 
         <!-- Accessible list of the same (filtered) rents as the map (NEXT-PHASES §4.6). -->
@@ -167,7 +213,7 @@
           </svg>
         </div>
 
-        <div class="legend" aria-label="Legend">
+        <div class="legend" role="group" aria-label="Legend">
           <span class="legend-item"
             ><span class="swatch swatch-solid" aria-hidden="true"></span>Gated society</span
           >
@@ -186,16 +232,14 @@
           <p class="water-legend-scale">
             <span>Road waterlogs</span><span>Water enters homes</span>
           </p>
-          <p class="water-legend-note">
-            From renters' reports, not official flood data. Darker = more and worse reports.
-          </p>
+          <p class="water-legend-note">Renters' reports, not official flood data.</p>
         </div>
 
         <div id="main-actions" class="actions">
           <p id="map-hint" class="map-hint" hidden>
-            <span aria-hidden="true">＋</span> Click any empty spot on the map to pin your rent
+            Click an empty spot on the map to pin your rent
           </p>
-          <button type="button" class="btn btn-ghost btn-fab" id="btn-tolet">
+          <button type="button" class="btn btn-secondary btn-fab" id="btn-tolet">
             <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 d="M9 4.5 7.6 6.5H5A2.5 2.5 0 0 0 2.5 9v8.5A2.5 2.5 0 0 0 5 20h14a2.5 2.5 0 0 0 2.5-2.5V9A2.5 2.5 0 0 0 19 6.5h-2.6L15 4.5z"
@@ -209,7 +253,15 @@
             To-Let board
           </button>
           <button type="button" class="btn btn-primary btn-fab" id="btn-add">
-            <span aria-hidden="true">＋</span> Pin your rent
+            <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 5v14M5 12h14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+              /></svg
+            >Pin your rent
           </button>
         </div>
 
@@ -218,12 +270,7 @@
     </main>
 
     <!-- Welcome + consent ------------------------------------------------------>
-    <dialog
-      id="dlg-welcome"
-      class="dlg"
-      aria-labelledby="welcome-title"
-      data-backdrop-close="false"
-    >
+    <dialog id="dlg-welcome" class="dlg" aria-labelledby="welcome-title">
       <div class="dlg-body">
         <h2 id="welcome-title">What do people in Guwahati actually pay?</h2>
         <p>
@@ -246,12 +293,7 @@
     </dialog>
 
     <!-- Rent pin form -------------------------------------------------------->
-    <dialog
-      id="dlg-rent-pin"
-      class="dlg dlg-tall"
-      aria-labelledby="rent-title"
-      data-backdrop-close="false"
-    >
+    <dialog id="dlg-rent-pin" class="dlg dlg-tall" aria-labelledby="rent-title">
       <form id="rent-form" novalidate>
         <div class="dlg-head">
           <h2 id="rent-title">What do you pay?</h2>
@@ -785,7 +827,7 @@
 
     <!-- After submit: share ---------------------------------------------------->
     <!-- Report a pin (NEXT-PHASES §4.1). The message is private: moderators only. -->
-    <dialog id="dlg-report" class="dlg" aria-labelledby="report-title" data-backdrop-close="false">
+    <dialog id="dlg-report" class="dlg" aria-labelledby="report-title">
       <form id="report-form" novalidate>
         <div class="dlg-head">
           <h2 id="report-title">Report this pin</h2>
@@ -973,7 +1015,7 @@
     </dialog>
 
     <!-- Spot a To-Let: photo -> location -> spam check -> upload (NEXT-PHASES §2a) -->
-    <dialog id="dlg-tolet" class="dlg" aria-labelledby="tolet-title" data-backdrop-close="false">
+    <dialog id="dlg-tolet" class="dlg" aria-labelledby="tolet-title">
       <div class="dlg-head">
         <h2 id="tolet-title">Spotted a To-Let board?</h2>
         <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>

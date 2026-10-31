@@ -30,6 +30,9 @@ create or replace function public.bump_report_count() returns trigger
 language plpgsql security definer set search_path = public, extensions as $$
 declare open_count int;
 begin
+  -- Lock the pin row first so simultaneous reports are counted one after another
+  -- (otherwise two concurrent inserts can each see only their own report).
+  perform 1 from public.pins where id = new.pin_id for update;
   select count(*) into open_count from public.reports where pin_id = new.pin_id and status = 'open';
   update public.pins
      set report_count = open_count,
