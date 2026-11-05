@@ -40,12 +40,25 @@ export function setupStats({
   const city = document.getElementById('stats-city')!;
   const locs = document.getElementById('stats-localities')!;
 
+  // Area stats depend on the view: refetch only when it moved, and drop an answer that comes
+  // back after a newer request (or after the dialog was reopened somewhere else).
+  let areaFor = '';
+  let areaCtl: AbortController | null = null;
+  const done = { city: false, locs: false };
+
   async function loadArea(): Promise<void> {
     const b = bounds();
     if (!b) return;
+    const key = [b.west, b.south, b.east, b.north].map((v) => v.toFixed(3)).join();
+    if (key === areaFor) return;
+    areaCtl?.abort();
+    const ctl = (areaCtl = new AbortController());
+    areaFor = '';
     area.innerHTML = '<p class="fine">Loading…</p>';
     try {
-      const rows = (await fetchAreaStats(b)).sort((x, y) => x.bhk - y.bhk);
+      const rows = (await fetchAreaStats(b, ctl.signal)).sort((x, y) => x.bhk - y.bhk);
+      if (ctl.signal.aborted) return;
+      areaFor = key;
       area.innerHTML = rows.length
         ? table(
             'Median rent by bedrooms in the area on screen',
@@ -54,11 +67,12 @@ export function setupStats({
           )
         : none('in this area');
     } catch (e) {
-      area.innerHTML = failed(e);
+      if (!ctl.signal.aborted) area.innerHTML = failed(e);
     }
   }
 
   async function loadCity(): Promise<void> {
+    if (done.city) return; // already on screen; the data is cached for the session
     city.innerHTML = '<p class="fine">Loading…</p>';
     try {
       const rows = (await fetchCityStats()).sort(
@@ -84,12 +98,14 @@ export function setupStats({
             ]),
           )
         : none('across the city');
+      done.city = true;
     } catch (e) {
       city.innerHTML = failed(e);
     }
   }
 
   async function loadLocalities(): Promise<void> {
+    if (done.locs) return;
     locs.innerHTML = '<p class="fine">Loading…</p>';
     try {
       const rows = [...(await fetchLocalityStats())].sort(
@@ -110,6 +126,7 @@ export function setupStats({
             ]),
           )
         : none('in any locality');
+      done.locs = true;
     } catch (e) {
       locs.innerHTML = failed(e);
     }

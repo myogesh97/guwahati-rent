@@ -56,26 +56,63 @@ async function compressAs(bitmap: ImageBitmap, ext: ToletExt): Promise<Compresse
   return { full, thumb, ext };
 }
 
-export async function compressPhoto(file: File): Promise<Compressed> {
+/** Instant checks, before any decoding, so a wrong file is reported straight away. */
+export function checkPhoto(file: File): void {
   if (!file.type.startsWith('image/')) throw new ImageError('That file is not a photo.');
   if (file.size > MAX_INPUT_BYTES) throw new ImageError('That photo is too large (over 25 MB).');
-  let bitmap: ImageBitmap;
+}
+
+/** Decodes the photo once (off the main thread). The caller owns the bitmap and must close() it. */
+export async function decodePhoto(file: File): Promise<ImageBitmap> {
+  checkPhoto(file);
   try {
     // 'from-image' applies the EXIF rotation, so phone photos come out upright.
-    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    return await createImageBitmap(file, { imageOrientation: 'from-image' });
   } catch {
     throw new ImageError('This photo could not be opened. Please take it again with the camera.');
   }
+}
+
+/**
+ * Shows the decoded photo in a <canvas>, sized for the screen it's on. Drawing a bitmap that is
+ * already decoded takes a few ms, so the preview appears as soon as decoding finishes: no second
+ * decode of the original, no Base64, no extra blob or object URL to clean up.
+ */
+export function drawPreview(
+  canvas: HTMLCanvasElement,
+  bitmap: ImageBitmap,
+  box: { width: number; height: number },
+): void {
+  const scale = Math.min(1, box.width / bitmap.width, box.height / bitmap.height);
+  const cssW = Math.max(1, Math.round(bitmap.width * scale));
+  const cssH = Math.max(1, Math.round(bitmap.height * scale));
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  canvas.width = Math.min(bitmap.width, Math.round(cssW * dpr));
+  canvas.height = Math.min(bitmap.height, Math.round(cssH * dpr));
+  canvas.style.width = `${cssW}px`;
+  canvas.style.height = `${cssH}px`;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new ImageError('Your browser could not process this photo.');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+}
+
+/** Empties a preview canvas (setting the size to 0 also frees its pixel memory). */
+export function clearPreview(canvas: HTMLCanvasElement): void {
+  canvas.width = 0;
+  canvas.height = 0;
+  canvas.style.removeProperty('width');
+  canvas.style.removeProperty('height');
+}
+
+/** The upload copies (full + thumb). Re-encoding drops EXIF/GPS; the original is never uploaded. */
+export async function compressBitmap(bitmap: ImageBitmap): Promise<Compressed> {
   try {
-    try {
-      return await compressAs(bitmap, 'webp');
-    } catch (e) {
-      // Older Safari can't encode WebP (toBlob returns PNG). Fall back to JPEG + .jpg paths.
-      if (e instanceof ImageError && e.message.startsWith('no '))
-        return await compressAs(bitmap, 'jpg');
-      throw e;
-    }
-  } finally {
-    bitmap.close();
+    return await compressAs(bitmap, 'webp');
+  } catch (e) {
+    // Older Safari can't encode WebP (toBlob returns PNG). Fall back to JPEG + .jpg paths.
+    if (e instanceof ImageError && e.message.startsWith('no '))
+      return await compressAs(bitmap, 'jpg');
+    throw e;
   }
 }

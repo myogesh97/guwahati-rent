@@ -32,6 +32,8 @@ const state = {
   url: readUrlState(),
   /** Locality names by slug (public/localities.json), for the list view. */
   names: new Map<string, string>(),
+  /** The last applyFilters() result, so nothing filters the same pins twice. */
+  visible: [] as PublicPin[],
 };
 
 const isDemo = (): boolean => Boolean(document.getElementById('demo-banner'));
@@ -49,8 +51,10 @@ function setStatus(text: string | null): void {
 function renderPins(): void {
   const f = state.url.filters;
   const visible = applyFilters(state.pins, f);
+  state.visible = visible;
   state.map?.setPins(visible);
-  state.map?.setWaterPins(visible);
+  // The heatmap is a second copy of the data; only send it while it's on (setWater sends it).
+  if (state.url.water) state.map?.setWaterPins(visible);
   state.map?.setBoards(f.boards ? state.boards : []);
   const n = visible.length;
   const total = state.pins.length;
@@ -62,7 +66,7 @@ function renderPins(): void {
       ? `${n.toLocaleString('en-IN')} ${what}${s(n)}${isDemo() ? '' : ' pinned'}`
       : `${n.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')} ${what}s shown`;
   list?.setPins(visible, n === total ? '' : ` (of ${total.toLocaleString('en-IN')}, filtered)`);
-  filtersUi?.sync();
+  filtersUi?.sync(n);
 }
 
 function setFilters(f: Filters): void {
@@ -86,6 +90,7 @@ function setWater(on: boolean): void {
   writeUrlState(state.url);
   $('btn-water').setAttribute('aria-pressed', String(on));
   $('water-legend').hidden = !on;
+  if (on) state.map?.setWaterPins(state.visible);
   state.map?.showWater(on);
 }
 
@@ -267,7 +272,6 @@ async function boot(): Promise<void> {
   filtersUi = setupFiltersDialog({
     get: () => state.url.filters,
     set: setFilters,
-    count: (f) => applyFilters(state.pins, f).length,
   });
   const stats = setupStats({
     demo: isDemo,

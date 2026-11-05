@@ -39,6 +39,8 @@ export function setupListView({ onOpen, localityName }: Options) {
   let sortKey: Key = 'posted';
   let dir: 1 | -1 = -1;
   let shown = PAGE;
+  /** Sorted copy of `pins`; null when pins or the sort changed. Switching Map/List reuses it. */
+  let sorted: PublicPin[] | null = null;
 
   const value = (p: PublicPin, k: Key): string | number => {
     switch (k) {
@@ -59,12 +61,22 @@ export function setupListView({ onOpen, localityName }: Options) {
     }
   };
 
+  function sort(): PublicPin[] {
+    // Compute each pin's sort value once (20k pins x ~15 comparisons each otherwise).
+    const keyed = pins.map((p) => ({ p, v: value(p, sortKey) }));
+    keyed.sort(
+      (a, b) =>
+        (a.v < b.v ? -1 : a.v > b.v ? 1 : 0) * dir || (a.p.created_at < b.p.created_at ? 1 : -1),
+    );
+    return keyed.map((k) => k.p);
+  }
+
+  /** The rows on screen are out of date (new pins arrived while the list was hidden). */
+  let stale = true;
+
   function render(): void {
-    const sorted = [...pins].sort((a, b) => {
-      const x = value(a, sortKey);
-      const y = value(b, sortKey);
-      return (x < y ? -1 : x > y ? 1 : 0) * dir || (a.created_at < b.created_at ? 1 : -1);
-    });
+    sorted ??= sort();
+    stale = false;
     const n = pins.length;
     caption.textContent = `${n.toLocaleString('en-IN')} rent${n === 1 ? '' : 's'}${note}, sorted by ${LABEL[sortKey].toLowerCase()} (${dir === 1 ? 'ascending' : 'descending'})`;
     body.replaceChildren(
@@ -109,6 +121,7 @@ export function setupListView({ onOpen, localityName }: Options) {
         dir = k === 'posted' || k === 'rent' ? -1 : 1;
       }
       shown = PAGE;
+      sorted = null;
       render();
     });
   }
@@ -121,6 +134,8 @@ export function setupListView({ onOpen, localityName }: Options) {
 
   return {
     setPins(next: PublicPin[], extra = '') {
+      if (next !== pins) sorted = null;
+      stale = true;
       pins = next;
       note = extra;
       shown = PAGE;
@@ -128,7 +143,8 @@ export function setupListView({ onOpen, localityName }: Options) {
     },
     show(on: boolean) {
       section.hidden = !on;
-      if (on) render();
+      // Back to the list with the same pins: the rows are still right, keep them.
+      if (on && stale) render();
     },
   };
 }

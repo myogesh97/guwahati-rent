@@ -1036,7 +1036,16 @@
           </svg>
           <span id="tolet-pick-label">Take a photo</span>
         </button>
-        <img id="tolet-preview" class="tolet-preview" alt="Your photo of the To-Let board" hidden />
+        <canvas
+          id="tolet-preview"
+          class="tolet-preview"
+          role="img"
+          aria-label="Your photo of the To-Let board"
+          hidden
+        ></canvas>
+        <button type="button" class="link-btn tolet-clear" id="tolet-clear" hidden>
+          Remove photo
+        </button>
         <p id="tolet-where" class="tolet-where" hidden></p>
         <button type="button" class="link-btn" id="tolet-tap" hidden>Tap the map instead</button>
         <p id="tolet-status" class="tolet-status" role="status" aria-live="polite"></p>

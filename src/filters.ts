@@ -110,12 +110,20 @@ export function sinceCutoff(since: Since, now = Date.now()): number {
 
 const bucket = (p: Pick<PublicPin, 'bhk'>): BhkBucket => BHK[Math.min(Math.max(p.bhk ?? 0, 0), 4)];
 
+// Parsing 20k date strings on every keystroke was the biggest cost of filtering: parse once per pin.
+const createdMs = new WeakMap<PublicPin, number>();
+const created = (p: PublicPin): number => {
+  let t = createdMs.get(p);
+  if (t === undefined) createdMs.set(p, (t = new Date(p.created_at).getTime()));
+  return t;
+};
+
 export function applyFilters(pins: PublicPin[], f: Filters, now = Date.now()): PublicPin[] {
   if (!f.rents) return [];
   const cutoff = sinceCutoff(f.since, now);
   return pins.filter(
     (p) =>
-      (cutoff === -Infinity || new Date(p.created_at).getTime() >= cutoff) &&
+      (cutoff === -Infinity || created(p) >= cutoff) &&
       (!f.bhk.length || f.bhk.includes(bucket(p))) &&
       (f.min === null || p.rent >= f.min) &&
       (f.max === null || p.rent <= f.max) &&

@@ -194,21 +194,42 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
   });
   map.getCanvas().addEventListener('mouseleave', () => setHover(''));
 
+  // One feature object per pin, reused on every filter change (rebuilt only if the pin was edited).
+  type PinFeature = {
+    type: 'Feature';
+    geometry: { type: 'Point'; coordinates: [number, number] };
+    properties: { id: string; rent: number; gated: boolean; kind: string; label: string };
+  };
+  const features = new WeakMap<PublicPin, PinFeature>();
+  const feature = (p: PublicPin): PinFeature => {
+    const f = features.get(p);
+    if (f && f.properties.rent === p.rent && f.properties.gated === p.gated) return f;
+    const next: PinFeature = {
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+      properties: {
+        id: p.id,
+        rent: p.rent,
+        gated: p.gated,
+        kind: p.kind,
+        label: shortRupees(p.rent),
+      },
+    };
+    features.set(p, next);
+    return next;
+  };
+  let lastPins: PublicPin[] = [];
+  const same = (a: PublicPin[], b: PublicPin[]) =>
+    a.length === b.length && a.every((p, i) => p === b[i] && features.get(p) === feature(p));
+
   return {
     setPins(pins) {
+      // Typing "15000" passes through filters that change nothing; don't re-cluster for those.
+      if (same(pins, lastPins)) return;
+      lastPins = pins;
       (map.getSource(PIN_SOURCE) as GeoJSONSource).setData({
         type: 'FeatureCollection',
-        features: pins.map((p) => ({
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-          properties: {
-            id: p.id,
-            rent: p.rent,
-            gated: p.gated,
-            kind: p.kind,
-            label: shortRupees(p.rent),
-          },
-        })),
+        features: pins.map(feature),
       });
     },
     setBoards(boards) {

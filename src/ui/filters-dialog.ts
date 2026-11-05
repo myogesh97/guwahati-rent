@@ -4,12 +4,11 @@ import { $dialog, openDialog } from './dialog';
 
 interface Options {
   get(): Filters;
+  /** Applies the filters; main.ts then calls sync(n) with the number of rents shown. */
   set(f: Filters): void;
-  /** How many rents the given filters would show (for the "Show N rents" button). */
-  count(f: Filters): number;
 }
 
-export function setupFiltersDialog({ get, set, count }: Options) {
+export function setupFiltersDialog({ get, set }: Options) {
   const dlg = $dialog('dlg-filters');
   const form = document.getElementById('filters-form') as HTMLFormElement;
   const done = document.getElementById('filters-done') as HTMLButtonElement;
@@ -60,7 +59,9 @@ export function setupFiltersDialog({ get, set, count }: Options) {
       f.max === null ? '' : String(f.max);
   }
 
-  function sync(f: Filters): void {
+  let shown = 0;
+  function sync(f: Filters, c = shown): void {
+    shown = c;
     const n = activeCount(f);
     badge.textContent = String(n);
     badge.hidden = n === 0;
@@ -68,22 +69,16 @@ export function setupFiltersDialog({ get, set, count }: Options) {
     if (n) trigger.setAttribute('aria-label', `Filters, ${n} active`);
     else trigger.removeAttribute('aria-label');
     trigger.classList.toggle('is-on', n > 0);
-    const c = count(f);
     done.textContent = f.rents
       ? `Show ${c.toLocaleString('en-IN')} rent${c === 1 ? '' : 's'}`
       : 'Show results';
   }
 
-  form.addEventListener('input', () => {
-    const f = read();
-    set(f);
-    sync(f);
-  });
+  form.addEventListener('input', () => set(read()));
   form.addEventListener('submit', (e) => e.preventDefault());
   document.getElementById('filters-clear')!.addEventListener('click', () => {
     fill(DEFAULT_FILTERS);
     set(DEFAULT_FILTERS);
-    sync(DEFAULT_FILTERS);
   });
   trigger.addEventListener('click', () => {
     fill(get());
@@ -91,5 +86,6 @@ export function setupFiltersDialog({ get, set, count }: Options) {
     openDialog(dlg, trigger);
   });
 
-  return { sync: () => sync(get()) };
+  /** `n`: how many rents the current filters show (for the "Show N rents" button). */
+  return { sync: (n: number) => sync(get(), n) };
 }

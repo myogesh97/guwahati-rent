@@ -105,18 +105,25 @@ export function setupPinCard({ onDeleted, onEdit, onReport }: Options) {
     return value ? `<div class="kv"><dt>${label}</dt><dd>${escapeHtml(value)}</dd></div>` : '';
   }
 
+  // Each open() takes a ticket; an older open that finishes later (slow network) is dropped,
+  // so tapping pin A then pin B never ends with A's details on screen.
+  let ticket = 0;
+
   async function open(pin: PublicPin, trigger?: HTMLElement | null): Promise<void> {
+    const mine = ++ticket;
     // Map pins arrive with only the map columns; load the rest once, then keep it on the pin.
     if (leanPins.has(pin)) {
       try {
         Object.assign(pin, await fetchPinDetails(pin.id));
         leanPins.delete(pin);
       } catch (err) {
-        toast(err instanceof ApiError ? err.message : 'Could not load this pin.', 'error');
+        if (mine === ticket)
+          toast(err instanceof ApiError ? err.message : 'Could not load this pin.', 'error');
         return;
       }
     }
     const locality = await localityName(pin.locality_slug);
+    if (mine !== ticket) return;
     const pg = pin.property_type === 'pg';
     const chips = flags(pin);
     const other = [
@@ -285,8 +292,10 @@ export function setupPinCard({ onDeleted, onEdit, onReport }: Options) {
 
   /** Several pins at one spot: list them, then open the chosen one in the same dialog. */
   async function openMany(pins: PublicPin[], onPick: (p: PublicPin) => void): Promise<void> {
+    const mine = ++ticket;
     const sorted = [...pins].sort((a, b) => a.rent - b.rent);
     const locality = await localityName(sorted[0].locality_slug);
+    if (mine !== ticket) return;
     title.textContent = `${sorted.length} rents at this spot`;
     body.innerHTML = `<p class="hint">${locality ? `Near ${escapeHtml(locality)}. ` : ''}Pins are rounded to about 100 m, so homes in the same building share a spot.</p><ul class="pick-list"></ul>`;
     const list = body.querySelector('ul') as HTMLUListElement;

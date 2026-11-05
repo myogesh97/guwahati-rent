@@ -62,6 +62,7 @@ export function setupBoardCard() {
     open(board: PublicBoard, trigger?: HTMLElement | null): void {
       current = board;
       const thumb = board.public_thumb_path ?? board.public_photo_path;
+      img.removeAttribute('src'); // never show the previous board's photo while this one loads
       if (thumb) img.src = boardImageUrl(thumb);
       else img.removeAttribute('src');
       hint.textContent = 'Tap to see the full photo';

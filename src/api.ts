@@ -136,8 +136,15 @@ async function readView<T>(path: string, what: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-export const fetchCityStats = () =>
-  readView<CityStat[]>('public_stats_city?select=*', 'city medians');
+let cityStats: Promise<CityStat[]> | null = null;
+/** City medians barely move within a visit: load once per session, like the locality ones. */
+export function fetchCityStats(): Promise<CityStat[]> {
+  cityStats ??= readView<CityStat[]>('public_stats_city?select=*', 'city medians').catch((e) => {
+    cityStats = null;
+    throw e;
+  });
+  return cityStats;
+}
 
 let localityStats: Promise<LocalityStat[]> | null = null;
 /** Cached for the session (also used by the rent double-check). */
@@ -152,15 +159,14 @@ export function fetchLocalityStats(): Promise<LocalityStat[]> {
   return localityStats;
 }
 
-export async function fetchAreaStats(b: {
-  west: number;
-  south: number;
-  east: number;
-  north: number;
-}): Promise<AreaStat[]> {
+export async function fetchAreaStats(
+  b: { west: number; south: number; east: number; north: number },
+  signal?: AbortSignal,
+): Promise<AreaStat[]> {
   if (!BACKEND_READY) throw new ApiError('Stats need the database, which is not connected.', 503);
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/area_stats`, {
     method: 'POST',
+    signal,
     headers: headers({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ min_lng: b.west, min_lat: b.south, max_lng: b.east, max_lat: b.north }),
   });
