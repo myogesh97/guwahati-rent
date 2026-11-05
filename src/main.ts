@@ -11,6 +11,7 @@ import { setupReport } from './ui/report';
 import { hasConsented, recordConsent, saveEditToken } from './tokens';
 import { $dialog, closeDialog, openDialog, wireDialogs } from './ui/dialog';
 import { toast } from './ui/toast';
+import { guardNumberInputsFromWheel } from './ui/number-inputs';
 import { setupRentForm } from './forms/rent-pin';
 import { setupPinCard } from './ui/pin-card';
 import { setupToletForm } from './forms/tolet';
@@ -148,6 +149,7 @@ function shareText(): string {
 
 async function boot(): Promise<void> {
   wireDialogs();
+  guardNumberInputsFromWheel();
 
   async function pickSpot({ lat, lng }: { lat: number; lng: number }): Promise<void> {
     if (!inGuwahati(lat, lng)) {

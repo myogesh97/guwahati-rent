@@ -1144,6 +1144,16 @@ select {
   background: var(--surface);
   transition: border-color 0.12s;
 }
+/* No spinner arrows: numbers are typed only (wheel/arrow keys blocked in ui/number-inputs.ts). */
+input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 textarea {
   resize: vertical;
   line-height: 1.45;
