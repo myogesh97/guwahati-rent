@@ -2,7 +2,7 @@
 // Every record is FICTIONAL. Nothing here is written to any database (SPEC §5.13: never invent
 // seed data), and this module is only reachable behind `import.meta.env.DEV`, so it is not in
 // production builds. Same scenario => same records and coordinates on every run.
-import localities from '../../public/localities.json';
+import { LOCALITIES as localities } from '../../supabase/functions/_shared/localities';
 import {
   inGuwahati,
   pruneConditions,
