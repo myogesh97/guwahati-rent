@@ -8,3 +8,6 @@ dist
 .DS_Store
 supabase/.temp
 .v1-backup.tar.gz
+
+# Temporary diagnostic copied in by scripts/check-client-ip.sh; never commit or leave deployed
+supabase/functions/ip-check

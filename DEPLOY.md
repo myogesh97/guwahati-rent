@@ -5,7 +5,7 @@ The three deployable parts move independently and **the order matters**: databas
 ## 0. Before every release
 
 ```bash
-npm run typecheck && npm run lint && npm test && npm run test:deno && npm run build
+npm run typecheck && npm run lint && npm test && npm run test:deno && npm run test:db && npm run build && npm run test:browser
 ```
 
 ## 1. Database (migrations)
@@ -39,7 +39,7 @@ Secrets (`npx supabase secrets list` to check names, never values):
 | `TURNSTILE_SECRET_KEY` | submit-pin, report-pin, report-tolet, tolet-upload-url |
 | `HASH_SALT` | every function (rate limits, reporter/uploader hashes) |
 | `ALLOWED_ORIGINS` | CORS allow-list **and** Turnstile hostname check: every site origin, comma-separated |
-| `CRON_SECRET` | tolet-maintenance (and the temporary ip-check) |
+| `CRON_SECRET` | tolet-maintenance (and the temporary ip-check diagnostic) |
 | `CLIENT_IP_HEADER` | optional; set only if `scripts/check-client-ip.sh` says so |
 
 Vault (SQL editor, once): `project_url`, `cron_secret` (same value as `CRON_SECRET`).
@@ -69,13 +69,11 @@ Open the site and `/admin.html` with the browser console open: 0 CSP violations.
 
 Tag every production release (`git tag v0.x && git push --tags`) so there is always something to roll back to.
 
-## 6. Pending release at the time of writing (12 Nov 2026)
+## 6. Pending release (prepared 12 Nov 2026, not deployed)
 
-The working tree holds the 5 Nov security fixes (see `SECURITY_AUDIT_REPORT.md` §11) plus the gap-analysis P1 items. To ship:
+`v0.3.0` (migrations 0001–0008, all 8 functions, the CSP/SEO frontend) is live. The tree on top of it holds the production-readiness changes in `CHANGELOG.md`. To ship them, follow [NETLIFY_DEPLOYMENT_CHECKLIST.md](NETLIFY_DEPLOYMENT_CHECKLIST.md) §5:
 
-1. `npx supabase db push --linked` → applies `0008_report_abuse.sql` (and `0007` if it is somehow pending).
-2. `npx supabase functions deploy --no-verify-jwt` (includes the temporary `ip-check`).
-3. `CRON_SECRET=… bash scripts/check-client-ip.sh`; if it reports FAIL, `npx supabase secrets set CLIENT_IP_HEADER=<header>`; then `npx supabase functions delete ip-check` and delete `supabase/functions/ip-check/` plus its `config.toml` entry.
-4. Commit and push; Netlify deploys the CSP, MapLibre 6, SEO tags, `robots.txt`, `sitemap.xml`, `og-default.png`.
-5. Add GitHub secrets `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_DB_URL`, `NETLIFY_BUILD_HOOK_URL` and run each workflow once by hand (Actions → Run workflow).
-6. Step 4 of this file.
+1. `npx supabase db push --linked` → applies `0009_launch_hygiene.sql` (unschedules the Phase 3 cron jobs, fixes the waterlogging share, clears stale outlier flags). Run `npm run test:db` first.
+2. `npx supabase functions deploy --no-verify-jwt` → all 8 functions (shared rate-limit and Turnstile changes).
+3. Commit, tag, push → Netlify deploys the frontend (map empty state, privacy copy, JSON-LD).
+4. §4 of this file, plus the client-IP check: `scripts/check-client-ip.sh` (the diagnostic now lives in `scripts/diagnostics/ip-check/`; copy it in, deploy, run, delete).

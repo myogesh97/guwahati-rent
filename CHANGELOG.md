@@ -1,5 +1,51 @@
 # Changelog
 
+## Unreleased (prepared 12 Nov 2026): production readiness
+
+**State:** on top of `b8181bd`. Migration 0009 applied and all 8 functions redeployed on 12 Nov 2026 (submit-pin v13). Frontend ships with this commit (`v0.4.0`). Client-IP probe: PASS (`cf-connecting-ip`). Ship it with [NETLIFY_DEPLOYMENT_CHECKLIST.md](NETLIFY_DEPLOYMENT_CHECKLIST.md) §5. Evidence: [PRODUCTION_TEST_RESULTS.md](PRODUCTION_TEST_RESULTS.md). Launch status: [PRODUCTION_READINESS_REPORT.md](PRODUCTION_READINESS_REPORT.md).
+Deploy order: **0009 → all 8 functions → frontend.**
+
+### Added
+- **Migration `0009_launch_hygiene.sql`:** unschedules the Phase 3 cron jobs (`send-digests`, `run-matching`); recomputes `public_stats_locality.pct_waterlog_severe` over rents that answered the monsoon question; `flag_outliers()` clears stale flags. No table or column changes; grants restated.
+- **Map empty state:** "No rents match these filters" + **Clear filters** when filters hide every rent (`index.html`, `src/main.ts`, `src/styles/main.css`).
+- **`WebSite` JSON-LD** on the home page (site description only).
+- **`npm run test:db`** (`tests/db/run.sh`): throwaway Postgres + PostGIS with Supabase's roles and default grants; applies every migration; 80 security and stats checks, with a verified negative control. A CI job `database` runs it on push.
+- **`npm run test:browser`** (`scripts/browser-smoke.mjs`): headless Chrome via the DevTools protocol, no new dependency. 6 viewports on the production build with the real CSP injected, plus every demo mode. Measures LCP, CLS, Event Timing and long tasks. Blocks all Supabase writes.
+- **`scripts/diagnostics/ip-check/`:** CRON_SECRET-protected client-IP diagnostic that returns booleans only. Kept outside `supabase/functions/` so it is never deployed by accident; its temporary copy location is gitignored.
+- 6 Deno tests (`_shared/turnstile_test.ts`; rate-limit keys in `_shared/shared_test.ts`).
+- Reports: `PRODUCTION_READINESS_REPORT.md`, `PRODUCTION_TEST_RESULTS.md`.
+
+### Modified
+- `scripts/check-client-ip.sh`: works with the new diagnostic; reports "IP unknown" and "IP forgeable" separately.
+- `.github/workflows/backup.yml`: validates `SUPABASE_DB_URL` (direct IPv6 host, transaction pooler, placeholder password, scheme, reachability) without printing it.
+- `src/ui/stats.ts`: waterlogging footnote matches 0009.
+- `NETLIFY_DEPLOYMENT_CHECKLIST.md`: rewritten as a reusable runbook (env vars, secrets, migrations, functions, smoke tests, rollback).
+- Docs synced to the deployed state: `CLAUDE.md`, `README.md`, `DEPLOY.md` (§0 adds `test:db` and `test:browser`; §6 is now this release), `SECURITY_AUDIT_REPORT.md` §11/12, `PROJECT_CONTEXT.md`.
+
+### Fixed
+- **Shared rate-limit bucket:** a request with no known client IP was counted under the literal key `sha256('unknown' + salt)`, so all such users shared one quota (one person's 5 pins/day could block everyone). An unknown IP now gets no IP counter (the browser counter still applies) and a count-only warning is logged. Known-IP keys are unchanged (`_shared/crypto.ts` `rateLimitKeys`, `_shared/ratelimit.ts`).
+- **Privacy page:** it said boards are deleted "sooner if three people report it gone". Since 0008 they are hidden and reviewed by an admin. It now also discloses the salted IP hash stored with reports.
+- Stale outlier flags and the understated waterlogging share (via 0009, applied 12 Nov).
+- Cron calling the non-existent `send-digests` function daily (via 0009, applied 12 Nov).
+
+### Security
+- Turnstile tokens must carry `action = submit` (empty is allowed for Cloudflare test keys; the hostname check still applies).
+- Rate-limit availability fix above.
+- No secrets found in `src/`, `dist/` or git history; no rotation needed.
+
+### Performance
+- No performance code changed. Measured locally (software GL, no throttling):
+  - LCP 72–752 ms, CLS ≤ 0.005, all interactions < 16 ms across 6 viewports.
+  - At 20,000 demo pins: filter ≤ 6.9 ms, list paint ≤ 31 ms.
+  - Main bundle +0.03 KB gz.
+- **Not field data:** Lighthouse and real-device tests are still pending.
+
+### UI/UX
+- Map empty state (above), styled with the existing floating-panel surface.
+
+### Removed
+- Nothing.
+
 ## 2026-11-12: security fixes, report-abuse migration, SEO/a11y, survey importer, CI
 
 **Range:** `a5909dc` ("number type input scroll fix", 5 Nov) → `91fde5d` (12 Nov), on `main`.

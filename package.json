@@ -13,7 +13,9 @@
     "format": "prettier --write .",
     "security-check": "bash scripts/security-check.sh",
     "test:deno": "cd supabase/functions && deno test --allow-env",
-    "import-survey": "tsx scripts/import-survey.ts"
+    "import-survey": "tsx scripts/import-survey.ts",
+    "test:db": "bash tests/db/run.sh",
+    "test:browser": "node scripts/browser-smoke.mjs"
   },
   "dependencies": {
     "@protomaps/basemaps": "^5.0.0",

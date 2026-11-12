@@ -390,6 +390,19 @@ main {
   text-align: center;
 }
 
+/* Filters hide every rent: say so over the map (the list view has its own message). */
+.map-empty {
+  display: grid;
+  gap: var(--s2);
+  justify-items: center;
+}
+.map-empty p {
+  margin: 0;
+}
+body.view-list .map-empty {
+  display: none;
+}
+
 /* Every floating panel on the map shares one surface: white, 12px corners, hairline + shadow. */
 .map-tools,
 .banner,

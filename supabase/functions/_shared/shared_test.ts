@@ -1,7 +1,7 @@
 // Deno unit tests for the Edge Function helpers that Node cannot import (they read Deno.env).
 // Run: npm run test:deno   (= deno test --allow-env supabase/functions)
 import { assert, assertEquals, assertNotEquals } from 'jsr:@std/assert@1';
-import { clientIp, ipHash, randomToken, safeEqual, saltedHash, sha256 } from './crypto.ts';
+import { clientIp, ipHash, randomToken, rateLimitKeys, safeEqual, saltedHash, sha256 } from './crypto.ts';
 import { nearestLocality, toWkt, toWkt4 } from './geo.ts';
 import { LOCALITIES } from './localities.ts';
 import { checkPin, PinFields, pinColumns } from './pin-fields.ts';
@@ -121,4 +121,22 @@ Deno.test('PinFields + checkPin: prunes, derives the waterlogging summary, rejec
 
   assert(!PinFields.safeParse({ ...base, kind: 'listing_whole' }).success, 'only rent pins for now');
   assert(!PinFields.safeParse({ ...base, one_liner: 'x'.repeat(151) }).success);
+});
+
+Deno.test('rateLimitKeys: IP + browser counters, same key format as before; unknown IP never shares a bucket', async () => {
+  Deno.env.set('HASH_SALT', 'test-salt');
+  try {
+    assertEquals(await rateLimitKeys('1.2.3.4', 'browser-1'), [
+      await sha256('1.2.3.4test-salt'),
+      await sha256('browser-1test-salt'),
+    ]);
+    // Two different users without a client IP must not end up in one shared 'unknown' counter.
+    const a = await rateLimitKeys('unknown', 'browser-a');
+    const b = await rateLimitKeys('unknown', 'browser-b');
+    assertEquals(a, [await sha256('browser-atest-salt')]);
+    assertEquals(b.length, 1);
+    assert(!a.includes(await sha256('unknowntest-salt')));
+  } finally {
+    Deno.env.delete('HASH_SALT');
+  }
 });

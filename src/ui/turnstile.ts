@@ -56,7 +56,7 @@ export class TurnstileWidget {
       sitekey: key,
       theme: 'light',
       size: 'flexible',
-      action: 'submit',
+      action: 'submit', // the server refuses tokens for any other action (_shared/turnstile.ts)
     });
   }
 

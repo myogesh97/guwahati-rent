@@ -19,6 +19,23 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           test -n "$SUPABASE_DB_URL" || { echo "SUPABASE_DB_URL secret is not set"; exit 1; }
+          # Diagnose the usual failures without printing the secret. GitHub runners have no IPv6,
+          # and the direct host db.<ref>.supabase.co is IPv6-only: use the Session pooler string
+          # (Dashboard → Connect → Session pooler: *.pooler.supabase.com:5432, user postgres.<ref>).
+          case "$SUPABASE_DB_URL" in
+            postgres://*|postgresql://*) ;;
+            *) echo "SUPABASE_DB_URL must start with postgresql:// (got another format)"; exit 1 ;;
+          esac
+          if grep -qE '@db\.[a-z0-9]+\.supabase\.co' <<<"$SUPABASE_DB_URL"; then
+            echo "SUPABASE_DB_URL uses the direct (IPv6-only) host. Use the Session pooler string."; exit 1
+          fi
+          if grep -qE 'pooler\.supabase\.com:6543' <<<"$SUPABASE_DB_URL"; then
+            echo "SUPABASE_DB_URL uses the Transaction pooler (6543); pg_dump needs the Session pooler (5432)."; exit 1
+          fi
+          if grep -q '\[YOUR-PASSWORD\]' <<<"$SUPABASE_DB_URL"; then
+            echo "SUPABASE_DB_URL still contains the [YOUR-PASSWORD] placeholder."; exit 1
+          fi
+          pg_isready -d "$SUPABASE_DB_URL" -t 15 || { echo "Database not reachable with SUPABASE_DB_URL (host/port/network)."; exit 1; }
           mkdir -p backups
           pg_dump "$SUPABASE_DB_URL" --no-owner --no-privileges --schema=public -Fc -f "backups/db-$(date +%F).dump"
           ls -la backups

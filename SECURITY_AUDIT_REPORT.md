@@ -190,7 +190,7 @@ No redirects, functions or debug endpoints are configured. `admin.html` is publi
 
 ---
 
-## 11. Fixes implemented (uncommitted, not deployed)
+## 11. Fixes implemented (committed in `c258588` and deployed 12 Nov 2026 as `v0.3.0`)
 
 | Finding | Files | Change |
 |---|---|---|
@@ -212,7 +212,7 @@ No RLS, grants, credentials, production environment variables, dashboard setting
 
 **MapLibre 6 caveat:** it needs WebGL2, which practically every phone from the last ~8 years supports. On a device without it, the map won't draw, but the list view and the forms still work.
 
-## 12. Deploy steps (yours to run, in this order)
+## 12. Deploy steps (done 12 Nov 2026; kept for the record. The M-2 probe now uses `scripts/diagnostics/ip-check/`)
 
 I didn't deploy. CLAUDE.md says migrations 0006/0007 (Phase 2) are built but not deployed, and 0008 depends on 0006. Pushing migrations therefore ships Phase 2 as well, and the updated `report-*` functions fail until 0008 is applied. That's a release decision for you.
 

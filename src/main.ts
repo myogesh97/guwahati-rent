@@ -2,7 +2,7 @@
 import { BACKEND_READY, SITE_URL } from './config';
 import { fetchBoards, fetchPins } from './api';
 import { loadLocalities, nearestLocality } from './localities';
-import { applyFilters, type Filters } from './filters';
+import { applyFilters, DEFAULT_FILTERS, type Filters } from './filters';
 import { readUrlState, writeUrlState } from './state';
 import { setupFiltersDialog } from './ui/filters-dialog';
 import { setupListView } from './ui/list-view';
@@ -68,6 +68,8 @@ function renderPins(): void {
       : `${n.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')} ${what}s shown`;
   list?.setPins(visible, n === total ? '' : ` (of ${total.toLocaleString('en-IN')}, filtered)`);
   filtersUi?.sync(n);
+  // Rents exist but the filters hide them all (not when rents are switched off on purpose).
+  $('map-empty').hidden = !(total > 0 && n === 0 && f.rents);
 }
 
 function setFilters(f: Filters): void {
@@ -284,6 +286,7 @@ async function boot(): Promise<void> {
   $('btn-view-map').addEventListener('click', () => setView('map'));
   $('btn-view-list').addEventListener('click', () => setView('list'));
   $('btn-water').addEventListener('click', () => setWater(!state.url.water));
+  $('map-empty-clear').addEventListener('click', () => setFilters({ ...DEFAULT_FILTERS }));
   setView(state.url.view);
   $('btn-water').setAttribute('aria-pressed', String(state.url.water));
   $('water-legend').hidden = !state.url.water;

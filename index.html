@@ -23,6 +23,17 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Guwahati Rent: a map of real rents in Guwahati" />
     <meta name="twitter:card" content="summary_large_image" />
+    <!-- Structured data: describes the site only (never individual rents). Not executed, so the CSP allows it. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Guwahati Rent",
+        "url": "%SITE_URL%/",
+        "description": "An anonymous map of real rents in Guwahati, shared by renters, with monsoon waterlogging, water supply and power reported for each home. No brokers, no login.",
+        "inLanguage": "en-IN"
+      }
+    </script>
     <meta name="twitter:title" content="Guwahati Rent — what people actually pay" />
     <meta
       name="twitter:description"
@@ -199,6 +210,12 @@
         ></div>
 
         <div id="map-status" class="map-status" role="status" aria-live="polite">Loading map…</div>
+        <div id="map-empty" class="map-status map-empty" role="status" aria-live="polite" hidden>
+          <p>No rents match these filters.</p>
+          <button type="button" class="btn btn-sm btn-ghost" id="map-empty-clear">
+            Clear filters
+          </button>
+        </div>
 
         <div id="readonly-banner" class="banner" hidden>
           Read-only preview: adding pins switches on once the database is connected.

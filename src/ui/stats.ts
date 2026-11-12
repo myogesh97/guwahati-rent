@@ -125,7 +125,7 @@ export function setupStats({
               plural(r.n),
             ]),
           ) +
-          '<p class="fine">* Share of rents in the group whose renter said water enters the property. Rents with no monsoon answer still count in the total.</p>'
+          '<p class="fine">* Of the rents in the group whose renter answered the monsoon question, the share who said water enters the property. — means nobody answered.</p>'
         : none('in any locality');
       done.locs = true;
     } catch (e) {

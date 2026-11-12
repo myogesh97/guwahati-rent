@@ -33,6 +33,20 @@ export function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/**
+ * Rate-limit counter keys: sha256(ip + salt) and sha256(browserId + salt) (SPEC §7.1 step 4).
+ * An `unknown` IP gets no IP key: hashing the literal 'unknown' would put every such caller in
+ * ONE shared bucket, so a single user's 5/day would lock out everyone. The browser counter
+ * still applies, and the caller logs that the IP was missing.
+ */
+export async function rateLimitKeys(ip: string, browserId: string): Promise<string[]> {
+  const salt = Deno.env.get('HASH_SALT');
+  if (!salt) throw new Error('HASH_SALT is not set');
+  const keys = [await sha256(browserId + salt)];
+  if (ip && ip !== 'unknown') keys.unshift(await sha256(ip + salt));
+  return keys;
+}
+
 /** sha256(value + HASH_SALT): how browser ids are stored (uploader / reporter hashes). */
 export async function saltedHash(value: string): Promise<string> {
   const salt = Deno.env.get('HASH_SALT');

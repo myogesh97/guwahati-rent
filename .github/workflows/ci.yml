@@ -24,3 +24,14 @@ jobs:
           ! grep -rl "demoPins\|__grMap" dist/
           ! grep -rlE "sb_secret_[A-Za-z0-9]{10,}|SUPABASE_SERVICE_ROLE_KEY=" dist/
           test -f dist/robots.txt && test -f dist/sitemap.xml
+
+  # Applies every migration to a throwaway Postgres 16 + PostGIS and checks the SPEC §5 security
+  # rules and the stats rules (tests/db/run.sh). Never touches the real project.
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostGIS for the preinstalled PostgreSQL 16
+        run: sudo apt-get update && sudo apt-get install -y postgresql-16-postgis-3
+      - name: Migrations + security/stats assertions
+        run: PATH="/usr/lib/postgresql/16/bin:$PATH" bash tests/db/run.sh

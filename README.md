@@ -2,7 +2,7 @@
 
 An anonymous, crowdsourced rent map for Guwahati. **Read [SPEC.md](SPEC.md) (v2) first**, starting with §0. It covers scope, security rules, schema and build order.
 
-**Status (12 Nov 2026):** Phases 0, 1, 2a and 2 are live on `guwahati-rent.netlify.app` (migrations 0001–0006 confirmed on the live database). Not yet deployed: the security release in this tree (migration 0008, hardened functions, enforced CSP, MapLibre 6) and the launch-readiness work from `PROJECT_GAP_ANALYSIS.md` (SEO tags, robots/sitemap, survey importer, CI and ops workflows). Deploy order and rollback: **[DEPLOY.md](DEPLOY.md)**. Phase 2b (survey import) is built (`scripts/import-survey.ts`) and waits on the Google Form.
+**Status (12 Nov 2026):** Phases 0, 1, 2a and 2 are live on `guwahati-rent.netlify.app`: migrations 0001–0008 and all 8 Edge Functions are on production (release `v0.3.0`). Migration `0009_launch_hygiene.sql` and the 12 Nov Edge Function changes are deployed; the frontend part of the changes at the top of [CHANGELOG.md](CHANGELOG.md) ships as `v0.4.0`. Launch status and blockers: **[PRODUCTION_READINESS_REPORT.md](PRODUCTION_READINESS_REPORT.md)**. Deploy order and rollback: **[DEPLOY.md](DEPLOY.md)** and [NETLIFY_DEPLOYMENT_CHECKLIST.md](NETLIFY_DEPLOYMENT_CHECKLIST.md). Phase 2b (survey import) is built (`scripts/import-survey.ts`) and waits on the Google Form. Note: the live project's database pooler is in `eu-central-1` (Frankfurt), not Mumbai as SPEC §2 assumes.
 
 ## Run it locally
 
@@ -19,7 +19,7 @@ To enable pinning, copy `.env.example` to `.env` and fill in `VITE_SUPABASE_URL`
 npm run typecheck && npm run lint && npm test && npm run test:deno && npm run build
 ```
 
-`npm test` runs the Node unit tests (shared rules, filters, image checks, survey import, locality sync, demo dataset). `npm run test:deno` runs the Edge Function helper tests with Deno. CI (`.github/workflows/ci.yml`) runs all of these on every push.
+`npm run test:db` applies every migration to a throwaway local Postgres + PostGIS (needs `initdb`/`pg_ctl`/`psql` and PostGIS; never touches the real project) and checks the SPEC §5 security rules and the stats rules. `npm run test:browser` (after `npm run build`) drives headless Chrome over all six target viewports and every demo mode, with production writes blocked; see `scripts/browser-smoke.mjs`. `npm test` runs the Node unit tests (shared rules, filters, image checks, survey import, locality sync, demo dataset). `npm run test:deno` runs the Edge Function helper tests with Deno. CI (`.github/workflows/ci.yml`) runs all of these on every push.
 
 ### Demo mode (development only)
 

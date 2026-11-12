@@ -2,7 +2,7 @@
 
 > A single, self-contained briefing on the **guwahati-rent** project: product, status, stack, architecture, data model, security rules, UI layout, colour palette, typography, components, copy and roadmap. Written so another AI assistant (or a new developer) can understand the whole project without access to the repo.
 >
-> Snapshot date: 30 Oct 2026. **Out of date in places** (status table, MapLibre version, admin/To-Let phase, button shapes). For the current state read `README.md`, `PROJECT_GAP_ANALYSIS.md` and `DEPLOY.md`; `SPEC.md` (v2) + `NEXT-PHASES.md` remain the source of truth for scope.
+> Snapshot date: 30 Oct 2026. **Out of date in places** (status table, MapLibre version, admin/To-Let phase, button shapes). Since this snapshot: MapLibre is 6, To-Let boards and `admin.html` moderation are live (Phase 2a), buttons use 8px radii (no pills), migrations 0001–0008 are on production and 0009 is prepared. For the current state read `README.md`, `PRODUCTION_READINESS_REPORT.md` and `DEPLOY.md`; `SPEC.md` (v2) + `NEXT-PHASES.md` remain the source of truth for scope.
 
 ---
 

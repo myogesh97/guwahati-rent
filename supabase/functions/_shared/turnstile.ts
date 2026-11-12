@@ -11,6 +11,9 @@ const allowedHosts = (Deno.env.get('ALLOWED_ORIGINS') ?? '')
   })
   .filter(Boolean);
 
+/** The `action` every widget on the site renders with (src/ui/turnstile.ts). */
+export const TURNSTILE_ACTION = 'submit';
+
 export async function verifyTurnstile(token: string, ip?: string): Promise<boolean> {
   const secret = Deno.env.get('TURNSTILE_SECRET_KEY');
   if (!secret) throw new Error('TURNSTILE_SECRET_KEY is not set');
@@ -26,6 +29,12 @@ export async function verifyTurnstile(token: string, ip?: string): Promise<boole
   // A token solved on some other site that uses our site key (or a lifted widget) is refused.
   if (allowedHosts.length && !allowedHosts.includes(String(data.hostname ?? ''))) {
     console.warn('turnstile: token from an unexpected hostname');
+    return false;
+  }
+  // A token from a widget rendered with another action (e.g. a different form or site) is refused.
+  // Empty or missing (Cloudflare's test keys) is allowed; the hostname check above still applies.
+  if (data.action && data.action !== TURNSTILE_ACTION) {
+    console.warn('turnstile: token for an unexpected action');
     return false;
   }
   return true;
