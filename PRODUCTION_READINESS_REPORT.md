@@ -75,7 +75,7 @@ Full list in [CHANGELOG.md](CHANGELOG.md). Nothing has been pushed, deployed or 
 
 | ID | Priority | Item | Status now | What is needed |
 |---|---|---|---|---|
-| P0-1 | P0 | DB backups | **DONE** (12 Nov): `weekly-backup` run #4 green; artifact restored into a throwaway DB with 12 tables, 5 views, 8 active pins and the same city median as live. | [H] Set `SUPABASE_DB_URL` to the **Session pooler** string (your project's pooler host is `aws-1-eu-central-1.pooler.supabase.com:5432`, user `postgres.<ref>`). Run `weekly-backup`. Restore once locally. |
+| P0-1 | P0 | DB backups | **DONE** (12 Nov): runs #4 and #7 (after the password rotation) green; artifact restored into a throwaway DB with 12 tables, 5 views, 8 active pins and the same city median as live. | [H] Set `SUPABASE_DB_URL` to the **Session pooler** string (your project's pooler host is `aws-1-eu-central-1.pooler.supabase.com:5432`, user `postgres.<ref>`). Run `weekly-backup`. Restore once locally. |
 | P0-2 | P0 | Production smoke test of every write path + full `npm run security-check` | **Open** | After deploying this release: the checklist in NETLIFY_DEPLOYMENT_CHECKLIST.md §7 on a real phone |
 | P0-3 | P0 | Client-IP header confirmed | **DONE** (12 Nov): live probe PASS. The platform sets `cf-connecting-ip`; forged `X-Forwarded-For`/`X-Real-IP`/`CF-Connecting-IP` were not used. `ip-check` deleted. `CLIENT_IP_HEADER` not needed. | — |
 | P0-4 | P0 | Cron jobs + Vault running | **Open** | [H] SQL editor: `select jobname, status, start_time from cron.job_run_details order by start_time desc limit 20;` |
@@ -85,9 +85,9 @@ Full list in [CHANGELOG.md](CHANGELOG.md). Nothing has been pushed, deployed or 
 | P0-8 | P0 | Lighthouse mobile + budget Android over 4G | **Open** (local LCP/CLS/INP-proxy measured, see §6) | [H] Lighthouse on the live URL; a real phone |
 | P1-1 | P1 | Docs reflect deployed state | **Done** (re-check after this release ships) | — |
 | P1-2 | P1 | Cookie-free analytics + error visibility | **Open** | [H] Choose a provider; then about 3–5 h including a CSP update |
-| P1-3 | P1 | Netlify-injected badge causes a CSP violation (reported by the earlier audit; the local test injects the CSP without Netlify's badge, so not re-verified) | **Open** | [H] Netlify site settings |
+| P1-3 | P1 | Netlify free-plan badge (`/.netlify/scripts/hud`) is blocked by the CSP, so it never renders and logs one console violation | **Decided 12 Nov: leave as is (option D)**. The badge can't be hidden on the free plan. Revisit with a paid plan, by allowing the badge, or by moving to Cloudflare Pages. | — |
 | P1-4 | P1 | Phase 3 cron jobs off | **DONE** (0009 applied 12 Nov) | — |
-| P1-5 | P1 | DB + function tests in CI | **Mostly done**: DB harness + CI job added (CI job **NOT VERIFIED**: it only runs on push). Function *handlers* still have no tests against a running stack. | Push to see the CI job run; later, handler tests via `supabase start` (needs Docker) |
+| P1-5 | P1 | DB + function tests in CI | **Mostly done**: the `database` job (Postgres 17 + PostGIS, 80 checks) is green on GitHub since `a842b27`. Function *handlers* still have no tests against a running stack. | Later: handler tests via `supabase start` (needs Docker) |
 | P1-6 | P1 | Browser E2E | **Partly done**: read-only smoke suite (207 checks). **Submitting a pin, edit, delete, report and upload are not automated**, because they need a backend that accepts writes. | A local Supabase stack (Docker) or a staging project |
 | P1-7 | P1 | Screen-reader pass | **Open** (keyboard focus in/out of dialogs verified automatically) | [H] VoiceOver/TalkBack on the list view and dialogs |
 | P1-8 | P1 | Custom domain | **Open** | [H] Decide; see the coupled settings in the checklist |
