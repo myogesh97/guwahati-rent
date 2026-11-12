@@ -1,7 +1,14 @@
 // Map / List (NEXT-PHASES §4.6): an accessible, sortable <table> of the same filtered rents.
 // Sorting is done with real <button>s in the headers; aria-sort says which column and direction.
-import { FURNISHING_LABEL, escapeHtml, homeLabel, relativeDate, rupees } from '../format';
-import type { PublicPin } from '../types';
+import {
+  FURNISHING_LABEL,
+  escapeHtml,
+  expiresIn,
+  homeLabel,
+  relativeDate,
+  rupees,
+} from '../format';
+import type { PublicBoard, PublicPin } from '../types';
 
 type Key = 'area' | 'home' | 'rent' | 'furnishing' | 'gated' | 'monsoon' | 'posted';
 const PAGE = 100;
@@ -23,16 +30,45 @@ const LABEL: Record<Key, string> = {
 
 interface Options {
   onOpen(pin: PublicPin, trigger: HTMLElement): void;
+  onOpenBoard(board: PublicBoard, trigger: HTMLElement): void;
   localityName(slug: string | null): string;
+  /** Nearest listed locality name for a board ('' if none within 3 km). */
+  placeName(lat: number, lng: number): string;
 }
 
-export function setupListView({ onOpen, localityName }: Options) {
+export function setupListView({ onOpen, onOpenBoard, localityName, placeName }: Options) {
   const section = document.getElementById('list-view') as HTMLElement;
   const body = document.getElementById('list-body') as HTMLTableSectionElement;
   const caption = document.getElementById('list-caption') as HTMLElement;
   const empty = document.getElementById('list-empty') as HTMLElement;
   const more = document.getElementById('list-more') as HTMLButtonElement;
   const heads = [...section.querySelectorAll<HTMLButtonElement>('th button[data-sort]')];
+  const boardBox = document.getElementById('board-list') as HTMLElement;
+  const boardItems = document.getElementById('board-items') as HTMLUListElement;
+  let boards: PublicBoard[] = [];
+
+  /** To-Let boards open from here too, so they don't depend on clicking the map (WCAG 2.1.1). */
+  function renderBoards(): void {
+    boardBox.hidden = boards.length === 0;
+    boardItems.replaceChildren(
+      ...[...boards]
+        .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+        .map((b) => {
+          const li = document.createElement('li');
+          const btn = document.createElement('button');
+          const place = placeName(b.lat, b.lng);
+          btn.type = 'button';
+          btn.className = 'link-btn';
+          btn.textContent = `To-Let board${place ? ` near ${place}` : ''}`;
+          const meta = document.createElement('span');
+          meta.className = 'muted';
+          meta.textContent = ` · Pinned ${relativeDate(b.created_at)} · ${expiresIn(b.expires_at)}`;
+          btn.addEventListener('click', () => onOpenBoard(b, btn));
+          li.append(btn, meta);
+          return li;
+        }),
+    );
+  }
 
   let pins: PublicPin[] = [];
   let note = '';
@@ -141,10 +177,15 @@ export function setupListView({ onOpen, localityName }: Options) {
       shown = PAGE;
       if (!section.hidden) render();
     },
+    setBoards(next: PublicBoard[]) {
+      boards = next;
+      if (!section.hidden) renderBoards();
+    },
     show(on: boolean) {
       section.hidden = !on;
       // Back to the list with the same pins: the rows are still right, keep them.
       if (on && stale) render();
+      if (on) renderBoards();
     },
   };
 }

@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { resolve } from 'path';
 
-/** Pages that search engines may index, for sitemap.xml. admin.html and unsubscribe.html are noindex. */
+/** Pages that search engines may index, for sitemap.xml. admin, unsubscribe and 404 are noindex. */
 const PUBLIC_PAGES = ['/', '/about.html', '/privacy.html', '/terms.html'];
 const FALLBACK_SITE_URL = 'https://guwahati-rent.netlify.app';
 
@@ -34,7 +34,6 @@ function site(siteUrl: string): Plugin {
       },
     },
     generateBundle() {
-      const today = new Date().toISOString().slice(0, 10);
       this.emitFile({
         type: 'asset',
         fileName: 'robots.txt',
@@ -45,10 +44,9 @@ function site(siteUrl: string): Plugin {
         fileName: 'sitemap.xml',
         source:
           `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-          PUBLIC_PAGES.map(
-            (p) =>
-              `  <url><loc>${siteUrl}${p}</loc><lastmod>${today}</lastmod><changefreq>${p === '/' ? 'daily' : 'monthly'}</changefreq></url>`,
-          ).join('\n') +
+          // No <lastmod>: the nightly rebuild would stamp every page "changed today", and search
+          // engines stop trusting a lastmod that is always new.
+          PUBLIC_PAGES.map((p) => `  <url><loc>${siteUrl}${p}</loc></url>`).join('\n') +
           `\n</urlset>\n`,
       });
     },
@@ -79,6 +77,8 @@ export default defineConfig(({ command, mode }) => {
           terms: resolve(__dirname, 'terms.html'),
           unsubscribe: resolve(__dirname, 'unsubscribe.html'),
           admin: resolve(__dirname, 'admin.html'),
+          // Netlify serves dist/404.html, with status 404, for any path that doesn't exist.
+          notFound: resolve(__dirname, '404.html'),
         },
       },
     },

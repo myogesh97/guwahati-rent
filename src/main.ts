@@ -1,7 +1,7 @@
 // Boot (SPEC §8). The page shell paints first; MapLibre is loaded afterwards via dynamic import.
 import { BACKEND_READY, SITE_URL } from './config';
 import { fetchBoards, fetchPins } from './api';
-import { loadLocalities, nearestLocality } from './localities';
+import { loadLocalities, nearestIn, nearestLocality } from './localities';
 import { applyFilters, DEFAULT_FILTERS, type Filters } from './filters';
 import { readUrlState, writeUrlState } from './state';
 import { setupFiltersDialog } from './ui/filters-dialog';
@@ -18,7 +18,7 @@ import { setupToletForm } from './forms/tolet';
 import { setupBoardCard } from './ui/board-card';
 import { inGuwahati } from '../supabase/functions/_shared/rules';
 import type { MapView } from './map';
-import type { PublicBoard, PublicPin } from './types';
+import type { Locality, PublicBoard, PublicPin } from './types';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -33,6 +33,7 @@ const state = {
   url: readUrlState(),
   /** Locality names by slug (public/localities.json), for the list view. */
   names: new Map<string, string>(),
+  localities: [] as Locality[],
   /** The last applyFilters() result, so nothing filters the same pins twice. */
   visible: [] as PublicPin[],
 };
@@ -67,6 +68,7 @@ function renderPins(): void {
       ? `${n.toLocaleString('en-IN')} ${what}${s(n)}${isDemo() ? '' : ' pinned'}`
       : `${n.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')} ${what}s shown`;
   list?.setPins(visible, n === total ? '' : ` (of ${total.toLocaleString('en-IN')}, filtered)`);
+  list?.setBoards(f.boards ? state.boards : []);
   filtersUi?.sync(n);
   // Rents exist but the filters hide them all (not when rents are switched off on purpose).
   $('map-empty').hidden = !(total > 0 && n === 0 && f.rents);
@@ -265,6 +267,7 @@ async function boot(): Promise<void> {
   // ---------- map tools: filters, list, stats, monsoon ----------
   void loadLocalities().then((ls) => {
     state.names = new Map(ls.map((l) => [l.slug, l.name]));
+    state.localities = ls;
     renderPins();
   });
   list = setupListView({
@@ -272,6 +275,11 @@ async function boot(): Promise<void> {
     onOpen(pin, trigger) {
       void pinCard.open(pin, trigger);
     },
+    onOpenBoard(board, trigger) {
+      state.map?.selectBoard(board.id);
+      boardCard.open(board, trigger);
+    },
+    placeName: (lat, lng) => nearestIn(state.localities, lat, lng)?.name ?? '',
   });
   filtersUi = setupFiltersDialog({
     get: () => state.url.filters,

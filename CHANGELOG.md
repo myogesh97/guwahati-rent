@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased (12 Nov 2026): SEO and accessibility audit fixes
+
+**State:** on top of `c78d677` (live `v0.4.0`). Frontend and `netlify.toml` only; no migration or function changes. Not deployed. Reports: [SEO_AUDIT_REPORT.md](SEO_AUDIT_REPORT.md), [ACCESSIBILITY_AUDIT_REPORT.md](ACCESSIBILITY_AUDIT_REPORT.md), [SEO_A11Y_TEST_RESULTS.md](SEO_A11Y_TEST_RESULTS.md), [WEBSITE_LAUNCH_GAP_ANALYSIS.md](WEBSITE_LAUNCH_GAP_ANALYSIS.md), [FINAL_LAUNCH_CHECKLIST.md](FINAL_LAUNCH_CHECKLIST.md).
+
+### Added
+- **To-Let boards in the list view** (WCAG 2.1.1): boards could only be opened by clicking the map. Each board is now a button ("To-Let board near Beltola · Pinned 3 days ago · Expires in 57 days") that opens the board dialog and returns focus on close (`index.html`, `src/ui/list-view.ts`, `src/main.ts`, `src/localities.ts` `nearestIn()`).
+- **`404.html`** (noindex, links back), served by Netlify for unknown paths (`vite.config.ts` input).
+- Footer navigation (Rent map · About · Privacy · Terms) on the static pages; a Privacy link on the rent form; a descriptive `<noscript>`.
+- Placement-mode keyboard hint, and `aria-describedby` on "Use this spot" so screen readers hear the instructions.
+- One-day `Cache-Control` for `/map-assets/*` (glyphs and sprites were `max-age=0`).
+
+### Fixed
+- **Toast announcements** (WCAG 4.1.3): the live region was `hidden` until a message arrived, so screen readers often missed it. It is now always rendered (empty = collapsed) and the text is written a tick later (`src/ui/toast.ts`).
+- **Focus ring in forced-colours / High Contrast mode** (WCAG 2.4.7): the box-shadow ring disappeared; an outline is added under `@media (forced-colors: active)` (`main.css`, `page.css`).
+- **Skip link** (WCAG 2.4.1) targeted `#main-actions`, which has no visible control on desktop; now "Skip to main content" → `main`.
+- **About page** described a placement flow the app doesn't use; it now matches the app and states the limits (self-reported, 18-month window, n ≥ 3 medians, conditions are one home's report).
+- **Sitemap** no longer stamps every page with the build date as `lastmod`.
+
 ## Unreleased (prepared 12 Nov 2026): production readiness
 
 **State:** on top of `b8181bd`. Migration 0009 applied and all 8 functions redeployed on 12 Nov 2026 (submit-pin v13). Frontend ships with this commit (`v0.4.0`). Client-IP probe: PASS (`cf-connecting-ip`). Ship it with [NETLIFY_DEPLOYMENT_CHECKLIST.md](NETLIFY_DEPLOYMENT_CHECKLIST.md) §5. Evidence: [PRODUCTION_TEST_RESULTS.md](PRODUCTION_TEST_RESULTS.md). Launch status: [PRODUCTION_READINESS_REPORT.md](PRODUCTION_READINESS_REPORT.md).

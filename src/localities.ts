@@ -17,7 +17,11 @@ export async function localityName(slug: string | null): Promise<string | null> 
 
 /** Nearest listed locality within 3 km, same rule as submit-pin's nearestLocality(). */
 export async function nearestLocality(lat: number, lng: number): Promise<Locality | null> {
-  const list = await loadLocalities();
+  return nearestIn(await loadLocalities(), lat, lng);
+}
+
+/** nearestLocality() for a list that is already loaded. */
+export function nearestIn(list: Locality[], lat: number, lng: number): Locality | null {
   let best: Locality | null = null;
   let bestD = Infinity;
   for (const l of list) {

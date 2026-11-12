@@ -106,3 +106,33 @@ small,
   box-shadow: var(--ring);
   border-radius: 6px;
 }
+/* Forced-colours mode drops box-shadow; keep a visible ring (WCAG 2.4.7). */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid CanvasText;
+    outline-offset: 2px;
+  }
+}
+/* Links between the static pages (About, Privacy, Terms). */
+.site-footer {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 20px 48px;
+  border-top: 1px solid var(--line);
+}
+.site-footer ul {
+  list-style: none;
+  padding: 16px 0 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+}
+.site-footer li + li {
+  margin-top: 0;
+}
+.site-footer a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}

@@ -28,6 +28,13 @@
     Cache-Control = "public, max-age=86400"
     Accept-Ranges = "bytes"
 
+# Map glyphs + sprites: unhashed but rarely changed, so the same one-day cache as the tiles
+# (they were max-age=0: every visit re-downloaded ~300 KB of fonts).
+[[headers]]
+  for = "/map-assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
 [[headers]]
   for = "/assets/*"
   [headers.values]

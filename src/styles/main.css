@@ -125,6 +125,15 @@ a {
 [tabindex='-1']:focus-visible {
   box-shadow: none;
 }
+/* High-contrast / forced-colours mode drops every box-shadow, which would hide the ring above
+   (WCAG 2.4.7). An outline in a system colour survives it. */
+@media (forced-colors: active) {
+  :focus-visible,
+  .seg label:has(input:focus-visible) {
+    outline: 2px solid CanvasText;
+    outline-offset: 2px;
+  }
+}
 [hidden] {
   display: none !important;
 }
@@ -573,7 +582,20 @@ body.is-placing .placement {
 }
 .placement p {
   margin: 0;
+}
+.placement-copy {
   flex: 1;
+}
+/* Keyboard hint (the button's description for screen readers); shown where a keyboard is likely. */
+.placement .placement-keys {
+  margin-top: var(--s1);
+  font-size: var(--t-13);
+  color: var(--muted);
+}
+@media not ((hover: hover) and (pointer: fine)) {
+  .placement-keys {
+    display: none;
+  }
 }
 .placement-actions {
   display: flex;
@@ -940,6 +962,20 @@ body.view-list .map-hint {
 .list-more-row {
   text-align: center;
   margin: var(--s4) 0 0;
+}
+.board-list {
+  padding: var(--s5) var(--s4) var(--s4);
+}
+.board-list-title {
+  margin: 0;
+  font-size: var(--t-16);
+  font-weight: 600;
+}
+.board-items {
+  list-style: none;
+  margin: var(--s2) 0 0;
+  padding: 0;
+  font-size: var(--t-14);
 }
 
 /* ============================== dialogs ============================== */
@@ -1779,10 +1815,23 @@ span.flatpickr-weekday {
 .toast[data-kind='error'] {
   background: var(--danger);
 }
+/* Idle: still in the accessibility tree (see ui/toast.ts), but takes no space and shows nothing. */
+.toast:empty {
+  padding: 0;
+  box-shadow: none;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
 .noscript {
   position: fixed;
   inset: 40% var(--s4) auto;
+  max-width: 560px;
+  margin: 0 auto;
   text-align: center;
+}
+.noscript p:first-child {
   font-weight: 600;
 }
 

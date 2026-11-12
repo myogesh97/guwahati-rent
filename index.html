@@ -44,7 +44,7 @@
     <link rel="stylesheet" href="/src/styles/main.css" />
   </head>
   <body>
-    <a class="skip-link" href="#main-actions">Skip to actions</a>
+    <a class="skip-link" href="#main">Skip to main content</a>
 
     <header class="topbar">
       <a class="brand" href="/" aria-label="Guwahati Rent home">
@@ -95,10 +95,9 @@
       </nav>
     </header>
 
-    <main id="main">
+    <main id="main" tabindex="-1">
       <h1 class="sr-only">Guwahati Rent: real rents, pinned by real renters</h1>
       <div class="map-area">
-        <!-- Map tools (NEXT-PHASES §4.3–4.6). Monsoon first: it's the Guwahati differentiator. -->
         <!-- Map tools (NEXT-PHASES §4.3–4.6): one toolbar panel. View first, then Monsoon (the
              Guwahati differentiator), Filters, Stats. -->
         <div class="map-tools" role="toolbar" aria-label="Map tools">
@@ -200,6 +199,14 @@
             <p class="list-more-row">
               <button type="button" class="btn btn-ghost" id="list-more" hidden>Show more</button>
             </p>
+            <!-- To-Let boards: the same boards as the map's square signs, reachable without it. -->
+            <div id="board-list" class="board-list" hidden>
+              <h2 id="board-list-title" class="board-list-title">To-Let boards</h2>
+              <p class="help">
+                Photos of To-Let boards people spotted. Call the number on the board.
+              </p>
+              <ul id="board-items" class="board-items" aria-labelledby="board-list-title"></ul>
+            </div>
           </div>
         </section>
         <div
@@ -222,13 +229,25 @@
         </div>
 
         <div id="placement-banner" class="placement" hidden>
-          <p id="placement-text">
-            <strong>Move the map until the pin is on your home.</strong> A nearby spot is fine. We
-            round it to about 100 m.
-          </p>
+          <div class="placement-copy">
+            <p id="placement-text">
+              <strong>Move the map until the pin is on your home.</strong> A nearby spot is fine. We
+              round it to about 100 m.
+            </p>
+            <p id="placement-keys" class="placement-keys">
+              With a keyboard: Shift+Tab to the map and move it with the arrow keys.
+            </p>
+          </div>
           <div class="placement-actions">
             <button type="button" class="btn btn-ghost" id="placement-cancel">Cancel</button>
-            <button type="button" class="btn btn-primary" id="placement-use">Use this spot</button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              id="placement-use"
+              aria-describedby="placement-text placement-keys"
+            >
+              Use this spot
+            </button>
           </div>
         </div>
 
@@ -297,7 +316,7 @@
           </button>
         </div>
 
-        <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+        <div id="toast" class="toast" role="status" aria-live="polite"></div>
       </div>
     </main>
 
@@ -839,6 +858,12 @@
             </div>
           </div>
           <div class="turnstile" id="rent-turnstile" role="group" aria-label="Spam check"></div>
+          <p class="fine">
+            Everything on this form is shown on the map, without your name.
+            <a href="/privacy.html" target="_blank" rel="noopener"
+              >Privacy Policy<span class="sr-only"> (opens in a new tab)</span></a
+            >
+          </p>
         </div>
         <div class="dlg-actions">
           <button type="button" class="btn btn-ghost" id="rent-move">Move pin</button>
@@ -863,7 +888,6 @@
       <div class="dlg-actions" id="pin-actions"></div>
     </dialog>
 
-    <!-- After submit: share ---------------------------------------------------->
     <!-- Report a pin (NEXT-PHASES §4.1). The message is private: moderators only. -->
     <dialog id="dlg-report" class="dlg" aria-labelledby="report-title">
       <form id="report-form" novalidate>
@@ -1126,6 +1150,7 @@
       </div>
     </dialog>
 
+    <!-- After submit: share ---------------------------------------------------->
     <dialog id="dlg-shared" class="dlg" aria-labelledby="shared-title">
       <div class="dlg-body">
         <h2 id="shared-title">Thanks, your rent is on the map</h2>
@@ -1147,7 +1172,15 @@
     </dialog>
 
     <noscript>
-      <p class="noscript">Guwahati Rent needs JavaScript to show the map.</p>
+      <div class="noscript">
+        <p>Guwahati Rent needs JavaScript to show the map.</p>
+        <p>
+          It is a free, anonymous map of the rents tenants in Guwahati actually pay, with water
+          supply, power and monsoon waterlogging reported for each home.
+          <a href="/about.html">About</a> · <a href="/privacy.html">Privacy</a> ·
+          <a href="/terms.html">Terms</a>
+        </p>
+      </div>
     </noscript>
 
     <script type="module" src="/src/main.ts"></script>
