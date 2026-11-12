@@ -1,4 +1,5 @@
-// admin-review: To-Let boards (NEXT-PHASES §2a.7: list / approve / reject) and reported pins
+// admin-review: To-Let boards (NEXT-PHASES §2a.7: list / approve / reject), boards reported gone
+// (migration 0008: list_gone / keep_board / remove_board) and reported pins
 // (§4.1: list_reports / keep_pin / remove_pin). Caller sends their Supabase Auth access token;
 // only users listed in `admins` get through. Every decision is written to moderation_log.
 import { z } from 'npm:zod@3';
@@ -13,7 +14,13 @@ const Body = z.discriminatedUnion('action', [
   z.object({ action: z.literal('list_reports') }),
   z.object({ action: z.literal('keep_pin'), pinId: z.string().uuid() }),
   z.object({ action: z.literal('remove_pin'), pinId: z.string().uuid() }),
+  z.object({ action: z.literal('list_gone') }),
+  z.object({ action: z.literal('keep_board'), boardId: z.string().uuid() }),
+  z.object({ action: z.literal('remove_board'), boardId: z.string().uuid() }),
 ]);
+
+/** Reports that hide a board from public_tolet (the view keeps gone_reports < 3). */
+const GONE_HIDES_AT = 3;
 
 /** Public-safe pin columns for the review card (never edit_token_hash or contacts). */
 const PIN_REVIEW_COLUMNS =
@@ -140,6 +147,43 @@ Deno.serve(async (req) => {
       }
       await log(me, keep ? 'keep' : 'remove', { pin_id: pin.id });
       return ok(req, { pinId: pin.id, status: keep ? 'active' : 'archived' });
+    }
+
+    if (body.action === 'list_gone') {
+      // Approved boards the public view hides because of "gone" reports. They are not deleted
+      // until an admin removes them (then tolet-maintenance deletes the files overnight).
+      const { data: rows, error } = await admin
+        .from('tolet_boards')
+        .select('id, public_photo_path, public_thumb_path, location, created_at, expires_at, gone_reports')
+        .eq('status', 'approved')
+        .gte('gone_reports', GONE_HIDES_AT)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: true })
+        .limit(50);
+      if (error) throw error;
+      const boards = (rows ?? []).map(({ location, ...r }) => ({ ...r, ...pointFromEwkb(location) }));
+      return ok(req, { boards });
+    }
+
+    if (body.action === 'keep_board' || body.action === 'remove_board') {
+      const { data: board, error } = await admin
+        .from('tolet_boards')
+        .select('id, status, gone_reports')
+        .eq('id', body.boardId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!board || board.status !== 'approved' || board.gone_reports < GONE_HIDES_AT) {
+        return fail(req, 409, 'This board is not waiting for a decision any more.');
+      }
+      const keep = body.action === 'keep_board';
+      // Keep: back on the map. Old report rows stay, so the same browsers/IPs can't report it again.
+      const { error: uErr } = await admin
+        .from('tolet_boards')
+        .update(keep ? { gone_reports: 0, reviewed_at: new Date().toISOString() } : { status: 'gone', reviewed_at: new Date().toISOString() })
+        .eq('id', board.id);
+      if (uErr) throw uErr;
+      await log(me, keep ? 'keep' : 'remove', { board_id: board.id });
+      return ok(req, { boardId: board.id, status: keep ? 'approved' : 'gone' });
     }
 
     const { data: board, error } = await admin

@@ -2,7 +2,7 @@
 
 An anonymous, crowdsourced rent map for Guwahati. **Read [SPEC.md](SPEC.md) (v2) first**, starting with §0. It covers scope, security rules, schema and build order.
 
-**Status:** Phases 0–1 live. Phase 2a (To-Let boards) committed. Phase 2 (trust, stats, filters, monsoon layer, list view) built and tested locally, not yet deployed. Phase 2b (survey import) is not built yet.
+**Status (12 Nov 2026):** Phases 0, 1, 2a and 2 are live on `guwahati-rent.netlify.app` (migrations 0001–0006 confirmed on the live database). Not yet deployed: the security release in this tree (migration 0008, hardened functions, enforced CSP, MapLibre 6) and the launch-readiness work from `PROJECT_GAP_ANALYSIS.md` (SEO tags, robots/sitemap, survey importer, CI and ops workflows). Deploy order and rollback: **[DEPLOY.md](DEPLOY.md)**. Phase 2b (survey import) is built (`scripts/import-survey.ts`) and waits on the Google Form.
 
 ## Run it locally
 
@@ -16,10 +16,10 @@ With no `.env` the map works in **read-only mode** (no pins, "Pin your rent" dis
 To enable pinning, copy `.env.example` to `.env` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (Supabase → Project Settings → API; the anon / publishable key, **never** the service role / secret key). In `npm run dev` without a Turnstile key, Cloudflare's always-pass test key is used automatically.
 
 ```bash
-npm run typecheck && npm run lint && npm test && npm run build
+npm run typecheck && npm run lint && npm test && npm run test:deno && npm run build
 ```
 
-`npm test` runs the unit tests (shared rules + the `full` demo dataset) with Node's built-in runner via `tsx`.
+`npm test` runs the Node unit tests (shared rules, filters, image checks, survey import, locality sync, demo dataset). `npm run test:deno` runs the Edge Function helper tests with Deno. CI (`.github/workflows/ci.yml`) runs all of these on every push.
 
 ### Demo mode (development only)
 
@@ -117,6 +117,21 @@ Deploy in this order:
 2. `npx supabase functions deploy report-pin --no-verify-jwt`, then redeploy `edit-pin`, `submit-pin` and `admin-review` (all `--no-verify-jwt`).
 3. Commit, push, Netlify redeploys.
 4. Re-run `npm run security-check` with the test rows **and** the test report from the script header.
+
+## Phase 2b: survey import
+
+Real renters fill a Google Form (questions in NEXT-PHASES §3.2). Download the responses as CSV, then:
+
+```bash
+npm run import-survey -- responses.csv --dry-run          # counts only, writes nothing
+SUPABASE_URL=https://<ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<secret> npm run import-survey -- responses.csv
+```
+
+Rows without consent, with "Other"/unknown localities or implausible rents are skipped and counted. Pins go to the locality centre plus a fixed ≤150 m offset (same row, same spot), rounded to 3 dp, marked `source='survey'` and `location_approx=true`; the pin card says "Approximate location" and "shared via our rent survey". Re-running the same CSV adds nothing. "Water comes in" is stored as `waterlog_where = ['inside_home']`, "Road only" as `['access_road']`. The key is read from the environment only; the script refuses publishable/anon keys.
+
+## Ops (GitHub Actions)
+
+`.github/workflows/`: `ci.yml` (every push), `backup.yml` (weekly `pg_dump`, 90-day artifact), `keepalive.yml` (every 2 days), `nightly-rebuild.yml`. Secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_DB_URL` (Session pooler string), `NETLIFY_BUILD_HOOK_URL`.
 
 ## Deploy (Netlify)
 

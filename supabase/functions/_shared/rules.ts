@@ -185,7 +185,45 @@ export const REPORT_REASONS = [
 export const REPORT_MESSAGE_MAX = 300;
 /** Report notes: control characters removed, whitespace collapsed, capped; empty becomes null. */
 export const cleanMessage = (s: string | undefined | null): string | null => {
-  // eslint-disable-next-line no-control-regex
   const t = (s ?? '').replace(/[\u0000-\u001f\u007f-\u009f]+/g, ' ').replace(/\s+/g, ' ').trim();
   return t ? t.slice(0, REPORT_MESSAGE_MAX) : null;
 };
+
+// ---------- public free text (SECURITY_AUDIT_REPORT.md M-3) ----------
+/** Free-text answers that appear on the public map. They must not carry contact details. */
+export const PUBLIC_TEXT_FIELDS = ['society_name', 'water_note', 'waterlog_note', 'one_liner'] as const;
+
+const EMAIL = /[^\s@]+@[^\s@]+\.[a-z]{2,}/i;
+// Digits with at most one space, dot, dash or bracket between them: "98640 12345", "+91-98640-12345".
+const DIGIT_RUN = /\d(?:[\s.\-()]?\d)+/g;
+
+function looksLikePhone(digits: string): boolean {
+  let d = digits;
+  if (d.length === 12 && d.startsWith('91')) d = d.slice(2); // +91 98640 12345
+  else if (d.length === 11 && d.startsWith('0')) return true; // 0361 2345678, 098640 12345
+  return d.length === 10 && /^[6-9]/.test(d); // Indian mobile
+}
+
+/** True when the text holds an email address or an Indian phone number. */
+export function hasContactInfo(s: string): boolean {
+  if (EMAIL.test(s)) return true;
+  for (const [run] of s.matchAll(DIGIT_RUN)) {
+    // The whole run ("98640 12345") and each unbroken block in it ("rent 9000 9864012345").
+    const parts = [run, ...run.split(/[\s.\-()]/)];
+    if (parts.some((x) => looksLikePhone(x.replace(/\D/g, '')))) return true;
+  }
+  return false;
+}
+
+export const CONTACT_INFO_MESSAGE =
+  'Please remove phone numbers and email addresses. Everything here is shown publicly.';
+
+/** One problem per public text field that holds contact details. */
+export function contactProblems(
+  answers: Partial<Record<(typeof PUBLIC_TEXT_FIELDS)[number], string | null>>,
+): { field: string; message: string }[] {
+  return PUBLIC_TEXT_FIELDS.filter((f) => {
+    const v = answers[f];
+    return typeof v === 'string' && hasContactInfo(v);
+  }).map((field) => ({ field, message: CONTACT_INFO_MESSAGE }));
+}

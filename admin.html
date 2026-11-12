@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>Review boards · Guwahati Rent</title>
+    <title>Moderation · Guwahati Rent</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/styles/page.css" />
     <link rel="stylesheet" href="/src/styles/admin.css" />
@@ -12,10 +12,13 @@
   <body>
     <header><a href="/">← Guwahati Rent</a></header>
     <main class="admin">
-      <h1>Review To-Let boards</h1>
+      <h1>Moderation</h1>
 
       <section id="signed-out" hidden>
-        <p>Sign in with the admin email. We send you a one-time login link.</p>
+        <p>
+          Review To-Let boards and reported pins. Sign in with the admin email; we send you a
+          one-time login link.
+        </p>
         <form id="login-form" class="admin-login">
           <label for="login-email">Email</label>
           <input id="login-email" type="email" autocomplete="email" required />
@@ -53,6 +56,12 @@
         <div role="tabpanel" id="panel-boards" aria-labelledby="tab-boards">
           <h2 id="pending-title">Waiting for review</h2>
           <ul id="boards" class="boards" aria-labelledby="pending-title"></ul>
+          <h2 id="gone-title">Reported gone</h2>
+          <p class="fine">
+            Hidden from the map after 3 "board is gone" reports. Keep: back on the map. Remove: off
+            the map, photos deleted overnight.
+          </p>
+          <ul id="gone" class="boards" aria-labelledby="gone-title"></ul>
         </div>
         <div role="tabpanel" id="panel-reports" aria-labelledby="tab-reports" hidden>
           <h2 id="reports-title">Reported pins</h2>

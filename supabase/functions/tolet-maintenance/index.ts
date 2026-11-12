@@ -1,6 +1,8 @@
 // NEXT-PHASES §2a.7 tolet-maintenance: nightly (pg_cron, migration 0005). Deletes boards that are
-// expired, rejected, gone, reported gone 3+ times, or stuck uploading for over 2 hours, together
+// expired, rejected, gone (incl. removed by an admin), or stuck uploading for over 2 hours, together
 // with their files in BOTH buckets. Files can't be deleted from SQL, hence this function.
+// Boards reported gone 3+ times are NOT deleted here: they stay hidden until an admin decides
+// (admin-review list_gone / keep_board / remove_board; SECURITY_AUDIT_REPORT.md M-1).
 import { admin } from '../_shared/supabase.ts';
 import { safeEqual } from '../_shared/crypto.ts';
 import { fail, ok, preflight } from '../_shared/http.ts';
@@ -30,7 +32,6 @@ Deno.serve(async (req) => {
           [
             `expires_at.lt.${now.toISOString()}`,
             'status.in.(rejected,gone)',
-            'gone_reports.gte.3',
             `and(status.eq.uploading,created_at.lt.${stuck})`,
           ].join(','),
         )

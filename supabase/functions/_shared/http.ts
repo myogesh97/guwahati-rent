@@ -20,9 +20,16 @@ export function preflight(req: Request): Response | null {
   return null;
 }
 
+/** Largest request body any function accepts. Real forms send ~2 KB; this caps parse/validate cost. */
+const MAX_BODY_BYTES = 32 * 1024;
+
+/** Parsed JSON body, or null if it is missing, malformed or larger than MAX_BODY_BYTES. */
 export async function readJson(req: Request): Promise<unknown> {
   try {
-    return await req.json();
+    if (Number(req.headers.get('content-length') ?? 0) > MAX_BODY_BYTES) return null;
+    const text = await req.text();
+    if (text.length > MAX_BODY_BYTES) return null;
+    return JSON.parse(text);
   } catch {
     return null;
   }

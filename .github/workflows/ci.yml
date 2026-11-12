@@ -1,0 +1,26 @@
+# Checks on every push and pull request. Mirrors what NEXT-PHASES §0.6 asks for before any report.
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: v2.x }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run test:deno
+      - run: npm run build
+      - name: Production bundle must not contain demo code or a secret key
+        run: |
+          ! grep -rl "demoPins\|__grMap" dist/
+          ! grep -rlE "sb_secret_[A-Za-z0-9]{10,}|SUPABASE_SERVICE_ROLE_KEY=" dist/
+          test -f dist/robots.txt && test -f dist/sitemap.xml

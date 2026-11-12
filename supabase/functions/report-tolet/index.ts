@@ -1,10 +1,10 @@
-// NEXT-PHASES §2a.7 report-tolet: "Board is gone". One report per browser per board; the
-// public_tolet view hides a board at 3 reports and tolet-maintenance deletes it overnight.
+// NEXT-PHASES §2a.7 report-tolet: "Board is gone". One report per browser and per IP per board; the
+// public_tolet view hides a board at 3 reports and an admin decides (admin-review, migration 0008).
 import { z } from 'npm:zod@3';
 import { admin } from '../_shared/supabase.ts';
 import { verifyTurnstile } from '../_shared/turnstile.ts';
 import { withinRateLimit } from '../_shared/ratelimit.ts';
-import { clientIp, saltedHash } from '../_shared/crypto.ts';
+import { clientIp, ipHash, saltedHash } from '../_shared/crypto.ts';
 import { fail, ok, preflight, readJson } from '../_shared/http.ts';
 
 const Body = z.object({
@@ -47,8 +47,8 @@ Deno.serve(async (req) => {
 
     const { error: insErr } = await admin
       .from('tolet_reports')
-      .insert({ board_id: boardId, reporter_hash: await saltedHash(browserId) });
-    // 23505 = this browser already reported this board. Counted once; answer ok anyway.
+      .insert({ board_id: boardId, reporter_hash: await saltedHash(browserId), ip_hash: await ipHash(req) });
+    // 23505 = this browser (or this IP, 0008) already reported this board. Counted once; answer ok anyway.
     if (insErr && insErr.code !== '23505') throw insErr;
 
     return ok(req);

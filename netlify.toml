@@ -11,6 +11,14 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(self), geolocation=(self), microphone=()"
+    Strict-Transport-Security = "max-age=31536000"
+    X-Frame-Options = "DENY"
+    # Enforced CSP, tested in headless Chrome against the production build (map + MapLibre worker,
+    # pins, stats, Turnstile, admin page: 0 violations). Origins: the Supabase project (API + public
+    # To-Let photos), challenges.cloudflare.com (Turnstile script + iframe), blob: (photo previews),
+    # data: (one CSS image), 'unsafe-inline' styles (style="" attributes in index.html).
+    # If the Supabase project URL changes, change it here too.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://apgdczuofczobxaggsfy.supabase.co; connect-src 'self' https://apgdczuofczobxaggsfy.supabase.co https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; child-src 'self' blob: https://challenges.cloudflare.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
 # Map tiles: binary, cacheable, must allow Range requests.
 [[headers]]
@@ -24,3 +32,9 @@
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# MapLibre 6 module worker. With nosniff, a non-JS Content-Type would stop the map from loading.
+[[headers]]
+  for = "/assets/*.mjs"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"

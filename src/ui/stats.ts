@@ -116,7 +116,7 @@ export function setupStats({
       locs.innerHTML = rows.length
         ? table(
             'Median rent by locality and bedrooms',
-            ['Locality', 'Home', 'Median rent', 'Water comes in', 'Based on'],
+            ['Locality', 'Home', 'Median rent', 'Water comes in*', 'Based on'],
             rows.map((r) => [
               escapeHtml(localityName(r.locality_slug)),
               bhkLabel(r.bhk),
@@ -124,7 +124,8 @@ export function setupStats({
               r.pct_waterlog_severe == null ? '—' : `${Math.round(Number(r.pct_waterlog_severe))}%`,
               plural(r.n),
             ]),
-          )
+          ) +
+          '<p class="fine">* Share of rents in the group whose renter said water enters the property. Rents with no monsoon answer still count in the total.</p>'
         : none('in any locality');
       done.locs = true;
     } catch (e) {

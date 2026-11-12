@@ -187,6 +187,7 @@ export function setupPinCard({ onDeleted, onEdit, onReport }: Options) {
       <p class="pin-rent">${rupees(pin.rent)}<span>/month</span></p>
       <p class="pin-home">${escapeHtml(homeLabel(pin))} · ${FURNISHING_LABEL[pin.furnishing]}</p>
       <p class="pin-meta">${[locality ? `Near ${escapeHtml(locality)}` : null, pin.gated ? 'Gated society' : 'Not gated', pin.society_name ? escapeHtml(pin.society_name) : null].filter(Boolean).join(' · ')}</p>
+      ${pin.location_approx ? '<p class="pin-meta"><strong>Approximate location</strong> (area centre, not the building).</p>' : ''}
       ${pin.kind === 'rent' ? '<p class="not-available"><strong>Not available.</strong> This is what a renter pays, shared to show real prices. The flat isn\'t being rented out.</p>' : ''}
       ${pin.is_outlier ? '<p class="note-warn">This rent is unusually far from others nearby. Treat it with caution.</p>' : ''}
       ${chips.length ? `<ul class="flags" aria-label="Reported conditions">${chips.map((c) => `<li class="flag${c.warn ? ' flag-warn' : ''}">${escapeHtml(c.text)}</li>`).join('')}</ul>` : ''}
@@ -217,7 +218,7 @@ export function setupPinCard({ onDeleted, onEdit, onReport }: Options) {
       }
       ${other ? `<h3 class="kvs-title">Other details</h3><dl class="kvs">${other}</dl>` : ''}
       ${pin.one_liner ? `<blockquote class="oneliner">“${escapeHtml(pin.one_liner)}”</blockquote>` : ''}
-      <p class="fine card-foot">${demo ? 'Fictional demo record for testing. No such rental exists.' : `Pinned ${relativeDate(pin.created_at)} by a renter. This is what they pay, not an ad. The flat may not be available.`}</p>
+      <p class="fine card-foot">${demo ? 'Fictional demo record for testing. No such rental exists.' : `Pinned ${relativeDate(pin.created_at)} by a renter${pin.source === 'survey' ? ', shared via our rent survey' : ''}. This is what they pay, not an ad. The flat may not be available.`}</p>
     `;
 
     actions.innerHTML = '';

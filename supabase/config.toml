@@ -30,3 +30,7 @@ verify_jwt = false
 # Phase 2: flag a pin (Turnstile + rate limits + one report per pin per browser).
 [functions.report-pin]
 verify_jwt = false
+
+# TEMPORARY (SECURITY_AUDIT_REPORT.md M-2): CRON_SECRET-protected; delete after the check.
+[functions.ip-check]
+verify_jwt = false

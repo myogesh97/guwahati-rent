@@ -2,7 +2,7 @@
 
 > A single, self-contained briefing on the **guwahati-rent** project: product, status, stack, architecture, data model, security rules, UI layout, colour palette, typography, components, copy and roadmap. Written so another AI assistant (or a new developer) can understand the whole project without access to the repo.
 >
-> Snapshot date: 30 Oct 2026. Source of truth in the repo is `SPEC.md` (v2); this file summarises it plus what is actually built.
+> Snapshot date: 30 Oct 2026. **Out of date in places** (status table, MapLibre version, admin/To-Let phase, button shapes). For the current state read `README.md`, `PROJECT_GAP_ANALYSIS.md` and `DEPLOY.md`; `SPEC.md` (v2) + `NEXT-PHASES.md` remain the source of truth for scope.
 
 ---
 

@@ -3,6 +3,7 @@
 import { z } from 'npm:zod@3';
 import {
   DRINKING_WATER,
+  contactProblems,
   FLOOR_LEVEL,
   FURNISHING,
   LIMITS,
@@ -101,7 +102,7 @@ export function checkPin<T extends PinInput>(
   input: T,
 ): { ok: true; p: T; bhk: number } | { ok: false; message: string; fields: string[] } {
   const p = pruneConditions(input);
-  const problems = conditionProblems(p);
+  const problems = [...contactProblems(p), ...conditionProblems(p)];
   if (problems.length) return { ok: false, message: problems[0].message, fields: problems.map((x) => x.field) };
   const bhk = NO_BHK_TYPES.includes(p.property_type) ? 0 : Math.max(1, p.bhk);
   const problem = rentProblem(p.property_type, bhk, p.rent);

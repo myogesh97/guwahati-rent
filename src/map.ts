@@ -1,5 +1,9 @@
 // MapLibre + PMTiles (SPEC §8.2). Loaded with dynamic import() so the page paints first.
-import maplibregl, { type GeoJSONSource, type MapGeoJSONFeature } from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
+import type { GeoJSONSource, MapGeoJSONFeature } from 'maplibre-gl';
+// MapLibre 6 loads its worker from a separate file next to its own chunk, which Vite doesn't copy.
+// `?url` makes Vite emit it (hashed, same origin, so CSP worker-src 'self' covers it).
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { PMTiles, Protocol } from 'pmtiles';
 import { layers, namedFlavor } from '@protomaps/basemaps';
@@ -49,6 +53,7 @@ export interface MapView {
 }
 
 export async function createMap(container: HTMLElement): Promise<MapView> {
+  maplibregl.setWorkerUrl(workerUrl);
   const protocol = new Protocol();
   maplibregl.addProtocol('pmtiles', protocol.tile);
   const source = new RangeOrWholeSource(new URL(TILES_URL, location.href).href);

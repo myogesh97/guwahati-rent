@@ -1,0 +1,16 @@
+# Nightly Netlify rebuild (SPEC §14.3), so pages generated at build time (sitemap today;
+# locality pages in Phase 4) pick up the latest data. Secret: NETLIFY_BUILD_HOOK_URL.
+name: nightly-rebuild
+on:
+  schedule: [{ cron: '0 22 * * *' }] # 03:30 IST, after the cron jobs
+  workflow_dispatch:
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger the Netlify build hook
+        env:
+          HOOK: ${{ secrets.NETLIFY_BUILD_HOOK_URL }}
+        run: |
+          test -n "$HOOK" || { echo "NETLIFY_BUILD_HOOK_URL secret is not set"; exit 1; }
+          curl -sf -X POST -d '{}' "$HOOK"

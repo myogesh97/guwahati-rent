@@ -5,7 +5,7 @@ import { z } from 'npm:zod@3';
 import { admin } from '../_shared/supabase.ts';
 import { verifyTurnstile } from '../_shared/turnstile.ts';
 import { withinRateLimit } from '../_shared/ratelimit.ts';
-import { clientIp, saltedHash } from '../_shared/crypto.ts';
+import { clientIp, ipHash, saltedHash } from '../_shared/crypto.ts';
 import { fail, ok, preflight, readJson } from '../_shared/http.ts';
 import { REPORT_MESSAGE_MAX, REPORT_REASONS, cleanMessage } from '../_shared/rules.ts';
 import { failedFields } from '../_shared/pin-fields.ts';
@@ -47,10 +47,11 @@ Deno.serve(async (req) => {
     const { error: insErr } = await admin.from('reports').insert({
       pin_id: b.pinId,
       reporter_hash: await saltedHash(b.browserId),
+      ip_hash: await ipHash(req), // unique per pin too (0008), so new browser ids don't add reports
       reason: b.reason,
       message: cleanMessage(b.message),
     });
-    // 23505: this browser already reported this pin. Counted once; tell them kindly.
+    // 23505: this browser (or this IP) already reported this pin. Counted once; tell them kindly.
     if (insErr?.code === '23505') return ok(req, { already: true });
     if (insErr) throw insErr;
 

@@ -6,8 +6,23 @@ export function randomToken(bytes = 32): string {
   const a = crypto.getRandomValues(new Uint8Array(bytes));
   return btoa(String.fromCharCode(...a)).replace(/[+/=]/g, c => ({ '+': '-', '/': '_', '=': '' }[c]!));
 }
+/**
+ * The caller's IP for rate limits and report de-duplication (SECURITY_AUDIT_REPORT.md M-2).
+ * The first X-Forwarded-For entry is whatever the client sent, so headers that the platform's
+ * proxy sets itself come first. Once `scripts/check-client-ip.sh` has shown which header the live
+ * project really provides, set the CLIENT_IP_HEADER secret to it to use only that header.
+ */
 export function clientIp(req: Request): string {
-  return (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'unknown';
+  const get = (name: string) => (req.headers.get(name) ?? '').split(',')[0].trim();
+  const pinned = Deno.env.get('CLIENT_IP_HEADER');
+  if (pinned) return get(pinned) || 'unknown';
+  return get('cf-connecting-ip') || get('x-real-ip') || get('x-forwarded-for') || 'unknown';
+}
+
+/** Salted hash of the caller's IP, or null when it isn't known (so unknowns never collide). */
+export async function ipHash(req: Request): Promise<string | null> {
+  const ip = clientIp(req);
+  return ip === 'unknown' ? null : saltedHash(`ip:${ip}`);
 }
 
 /** Constant-time string comparison, so secrets and hashes can't be guessed by timing. */

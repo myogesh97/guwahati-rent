@@ -11,6 +11,7 @@ import {
   NO_BHK_TYPES,
   WATER_SCHEDULED,
   conditionProblems,
+  contactProblems,
   rentProblem,
   type Conditions,
   type PropertyType,
@@ -221,6 +222,7 @@ export function setupRentForm({ onSubmitted, onUpdated, onMoveRequested }: Optio
       if (p) problems.push(p);
     }
 
+    problems.push(...contactProblems(body));
     problems.push(...conditionProblems(body as Conditions));
     return problems;
   }

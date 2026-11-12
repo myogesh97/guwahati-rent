@@ -4,6 +4,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   conditionProblems,
+  contactProblems,
+  hasContactInfo,
   inGuwahati,
   pruneConditions,
   rentProblem,
@@ -127,4 +129,34 @@ test('map price labels never round by more than ₹50', async () => {
   assert.equal(shortRupees(14000), '₹14k');
   assert.equal(shortRupees(8500), '₹8.5k');
   assert.equal(shortRupees(150000), '₹1.5L');
+});
+
+test('public free text rejects contact details (SECURITY_AUDIT_REPORT.md M-3)', () => {
+  for (const s of [
+    'call 9864012345',
+    'Owner: 98640 12345',
+    '+91-98640-12345',
+    '+91 98640 12345',
+    '098640 12345',
+    'landline 0361 2345678',
+    'rent 9000 9864012345 negotiable',
+    'mail me at someone@example.com',
+  ]) {
+    assert.equal(hasContactInfo(s), true, s);
+  }
+  for (const s of [
+    'Quiet lane, 5 min walk to Beltola bazaar',
+    'Rent went from 12000 to 14000 this year',
+    'Rent 12000-15000 for 2 BHK',
+    'Water 2 hrs daily, 500 L tank',
+    'Flat no. 3B, 2nd floor',
+    'Tower 2, Block C',
+    'built 2015',
+  ]) {
+    assert.equal(hasContactInfo(s), false, s);
+  }
+  assert.deepEqual(
+    contactProblems({ one_liner: 'ok place', water_note: 'tanker guy 9876543210' }).map((p) => p.field),
+    ['water_note'],
+  );
 });

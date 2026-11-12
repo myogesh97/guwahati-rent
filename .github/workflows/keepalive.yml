@@ -1,0 +1,19 @@
+# Free Supabase projects pause after ~7 idle days (SPEC §14.2). A read on a public view every
+# two days counts as activity. Only the `apikey` header: publishable keys must not be sent as Bearer.
+name: keepalive
+on:
+  schedule: [{ cron: '0 6 */2 * *' }]
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read public_stats_city with the anon key
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          test -n "$SUPABASE_URL" -a -n "$SUPABASE_ANON_KEY" || { echo "secrets missing"; exit 1; }
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$SUPABASE_URL/rest/v1/public_stats_city?select=n&limit=1" -H "apikey: $SUPABASE_ANON_KEY")
+          echo "HTTP $code"
+          test "$code" = "200"

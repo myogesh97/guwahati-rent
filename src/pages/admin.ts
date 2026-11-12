@@ -1,4 +1,5 @@
-// admin.html (NEXT-PHASES §2a.8): magic-link login + approve/reject pending To-Let boards.
+// admin.html (NEXT-PHASES §2a.8): magic-link login + approve/reject pending To-Let boards,
+// keep/remove boards reported gone (migration 0008) and keep/remove reported pins (§4.1).
 // supabase-js is used on this page ONLY (the public map uses plain fetch, see src/api.ts).
 // Everything privileged happens in the admin-review Edge Function, which checks `admins`.
 import { createClient, type Session } from '@supabase/supabase-js';
@@ -13,6 +14,7 @@ import {
 } from '../format';
 import type { PublicPin } from '../types';
 import { loadLocalities } from '../localities';
+import { boardImageUrl } from '../api';
 
 interface PendingBoard {
   id: string;
@@ -22,6 +24,17 @@ interface PendingBoard {
   lng?: number;
   thumbUrl: string | null;
   fullUrl: string | null;
+}
+
+interface GoneBoard {
+  id: string;
+  created_at: string;
+  expires_at: string;
+  gone_reports: number;
+  public_photo_path: string | null;
+  public_thumb_path: string | null;
+  lat?: number;
+  lng?: number;
 }
 
 interface ReportedPin {
@@ -142,6 +155,62 @@ if (!BACKEND_READY) {
     }
   }
 
+  function goneCard(b: GoneBoard): HTMLLIElement {
+    const li = document.createElement('li');
+    li.className = 'board';
+    const full = b.public_photo_path ? boardImageUrl(b.public_photo_path) : null;
+    const thumb = b.public_thumb_path ? boardImageUrl(b.public_thumb_path) : full;
+    const map =
+      b.lat != null && b.lng != null
+        ? `<a href="https://www.openstreetmap.org/?mlat=${b.lat}&mlon=${b.lng}#map=18/${b.lat}/${b.lng}" target="_blank" rel="noopener">Open on map</a>`
+        : 'No location';
+    li.innerHTML = `
+      ${full ? `<a href="${escapeHtml(full)}" target="_blank" rel="noopener">` : ''}
+        <img src="${escapeHtml(thumb ?? '')}" alt="Reported To-Let board photo" loading="lazy" />
+      ${full ? '</a>' : ''}
+      <div class="board-body">
+        <span>${b.gone_reports} “gone” reports · posted ${relativeDate(b.created_at)} · ${expiresIn(b.expires_at)}</span>
+        <span>${map}</span>
+      </div>
+      <div class="board-actions">
+        <button type="button" class="a-btn" data-act="keep_board">Keep</button>
+        <button type="button" class="a-btn a-btn-danger" data-act="remove_board">Remove</button>
+      </div>`;
+    for (const btn of li.querySelectorAll<HTMLButtonElement>('[data-act]')) {
+      btn.addEventListener('click', async () => {
+        const action = btn.dataset.act!;
+        if (action === 'remove_board' && !confirm('Remove this board and delete its photo?')) return;
+        li.querySelectorAll('button').forEach((x) => (x.disabled = true));
+        try {
+          await review({ action, boardId: b.id });
+          li.remove();
+          say(action === 'keep_board' ? 'Kept. The board is back on the map.' : 'Removed.');
+          updateGoneTitle();
+        } catch (e) {
+          say((e as Error).message);
+          li.querySelectorAll('button').forEach((x) => (x.disabled = false));
+        }
+      });
+    }
+    return li;
+  }
+
+  function updateGoneTitle(): void {
+    const n = $('gone').children.length;
+    $('gone-title').textContent = n ? `Reported gone (${n})` : 'No boards reported gone';
+  }
+
+  async function loadGone(): Promise<void> {
+    try {
+      const data = await review({ action: 'list_gone' });
+      $('gone').replaceChildren(...((data.boards as GoneBoard[]) ?? []).map(goneCard));
+      updateGoneTitle();
+    } catch (e) {
+      $('gone').replaceChildren();
+      say((e as Error).message);
+    }
+  }
+
   let names = new Map<string, string>();
   void loadLocalities().then((ls) => (names = new Map(ls.map((l) => [l.slug, l.name]))));
 
@@ -240,6 +309,7 @@ if (!BACKEND_READY) {
     if (s) {
       $('who').textContent = `Signed in as ${s.user.email ?? 'admin'}`;
       void load();
+      void loadGone();
       void loadReports();
     }
   }
@@ -257,6 +327,7 @@ if (!BACKEND_READY) {
   $('sign-out').addEventListener('click', () => void sb.auth.signOut());
   $('refresh').addEventListener('click', () => {
     void load();
+    void loadGone();
     void loadReports();
   });
 

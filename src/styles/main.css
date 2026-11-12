@@ -25,7 +25,7 @@
   --ink-2: #2b4652; /* secondary text (10:1) */
   --muted: #526b75; /* metadata, help (5.6:1) */
   --teal: #0b5566; /* brand, selected (8.4:1; white on it 8.4:1) */
-  --teal-2: #087f98; /* interactive text on white (4.7:1), outlines */
+  --teal-2: #077590; /* interactive text: 5.3:1 on white, 5.1:1 on --bg, 4.9:1 on --fill; outlines */
   --cyan: #06b6d4; /* decorative highlight only, never text */
   --tint: #eaf4f6; /* hover / soft-selected fill */
   --action: #d14400; /* primary button fill: white text 4.6:1 (AA). #EA580C is 3.6:1, so it is
@@ -456,13 +456,14 @@ main {
 .view-toggle {
   display: inline-flex;
   gap: 2px;
-  padding: 2px;
+  padding: 0;
   border-radius: var(--r-md);
   background: var(--fill);
 }
+/* The button is the touch target (44px on touch), not the track around it. */
 .view-toggle .tool {
-  min-height: calc(var(--h-tool) - 4px);
-  border-radius: var(--r-sm);
+  min-height: var(--h-tool);
+  border-radius: var(--r-md);
 }
 .view-toggle .tool[aria-pressed='true'] {
   background: var(--surface);
@@ -507,6 +508,7 @@ body.is-placing .map-tools {
   }
   .view-toggle .tool {
     padding: 0 9px;
+    min-width: var(--tap);
   }
   .view-toggle .btn-icon {
     display: none;
@@ -632,6 +634,14 @@ body.is-placing .placement {
   padding-left: var(--s3);
   box-shadow: inset 1px 0 0 var(--line);
 }
+/* Phones: the count gets its own line under the swatches, so no divider. */
+@media (max-width: 640px) {
+  .legend-count:not(:empty) {
+    flex-basis: 100%;
+    padding-left: 0;
+    box-shadow: none;
+  }
+}
 .swatch {
   width: 10px;
   height: 10px;
@@ -650,11 +660,6 @@ body.is-placing .placement {
   border-radius: 2px;
   background: #f59e0b;
   border: 1.5px solid var(--ink);
-}
-@media (max-width: 640px) {
-  .legend-count {
-    display: none; /* the count is in the list view caption on phones */
-  }
 }
 @media (min-width: 1280px) and (hover: hover) and (pointer: fine) {
   .legend {
@@ -761,12 +766,13 @@ body.is-placing .placement {
   box-shadow: var(--e2);
   overflow: hidden;
 }
-.maplibregl-ctrl-group button {
+/* `#map` so this beats maplibre-gl.css (29px), which is loaded after ours with the lazy chunk. */
+#map .maplibregl-ctrl-group button {
   width: var(--h);
   height: var(--h);
 }
 @media (pointer: coarse) {
-  .maplibregl-ctrl-group button {
+  #map .maplibregl-ctrl-group button {
     width: var(--tap);
     height: var(--tap);
   }
@@ -1239,6 +1245,18 @@ select {
 .seg-grid {
   display: grid;
   grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+}
+.cols-2 {
+  --cols: 2;
+}
+.cols-3 {
+  --cols: 3;
+}
+.cols-4 {
+  --cols: 4;
+}
+.cols-5 {
+  --cols: 5;
 }
 .seg-grid label {
   justify-content: center;

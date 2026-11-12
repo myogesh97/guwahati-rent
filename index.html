@@ -9,12 +9,26 @@
       content="See what people in Guwahati actually pay in rent, area by area. Anonymous, free, no login, no brokers. Pin your rent in 30 seconds."
     />
     <meta name="theme-color" content="#0b5566" />
+    <link rel="canonical" href="%SITE_URL%/" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Guwahati Rent" />
+    <meta property="og:url" content="%SITE_URL%/" />
     <meta property="og:title" content="Guwahati Rent — what people actually pay" />
     <meta
       property="og:description"
       content="An anonymous map of real rents in Guwahati, shared by renters. No brokers, no login."
     />
+    <meta property="og:image" content="%SITE_URL%/og-default.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Guwahati Rent: a map of real rents in Guwahati" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Guwahati Rent — what people actually pay" />
+    <meta
+      name="twitter:description"
+      content="An anonymous map of real rents in Guwahati, shared by renters. No brokers, no login."
+    />
+    <meta name="twitter:image" content="%SITE_URL%/og-default.png" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/styles/main.css" />
   </head>
@@ -71,6 +85,7 @@
     </header>
 
     <main id="main">
+      <h1 class="sr-only">Guwahati Rent: real rents, pinned by real renters</h1>
       <div class="map-area">
         <!-- Map tools (NEXT-PHASES §4.3–4.6). Monsoon first: it's the Guwahati differentiator. -->
         <!-- Map tools (NEXT-PHASES §4.3–4.6): one toolbar panel. View first, then Monsoon (the
@@ -312,7 +327,7 @@
             <h3 id="sec-home">The home</h3>
             <fieldset class="field">
               <legend>Type of home</legend>
-              <div class="seg seg-grid" style="--cols: 5" role="radiogroup">
+              <div class="seg seg-grid cols-5" role="radiogroup">
                 <label><input type="radio" name="property_type" value="flat" checked /> Flat</label>
                 <label><input type="radio" name="property_type" value="independent" /> House</label>
                 <label><input type="radio" name="property_type" value="1rk" /> 1RK</label>
@@ -322,7 +337,7 @@
             </fieldset>
             <fieldset class="field" id="bhk-field">
               <legend>Bedrooms</legend>
-              <div class="seg seg-grid" style="--cols: 5" role="radiogroup">
+              <div class="seg seg-grid cols-5" role="radiogroup">
                 <label><input type="radio" name="bhk" value="1" /> 1 BHK</label>
                 <label><input type="radio" name="bhk" value="2" checked /> 2 BHK</label>
                 <label><input type="radio" name="bhk" value="3" /> 3 BHK</label>
@@ -332,7 +347,7 @@
             </fieldset>
             <fieldset class="field">
               <legend>Furnishing</legend>
-              <div class="seg seg-grid" style="--cols: 3" role="radiogroup">
+              <div class="seg seg-grid cols-3" role="radiogroup">
                 <label
                   ><input type="radio" name="furnishing" value="unfurnished" checked />
                   Unfurnished</label
@@ -343,7 +358,7 @@
             </fieldset>
             <fieldset class="field">
               <legend>Gated society?</legend>
-              <div class="seg seg-grid" style="--cols: 2" role="radiogroup">
+              <div class="seg seg-grid cols-2" role="radiogroup">
                 <label><input type="radio" name="gated" value="true" /> Yes, gated</label>
                 <label><input type="radio" name="gated" value="false" checked /> No</label>
               </div>
@@ -548,7 +563,7 @@
             <h3 id="sec-monsoon">Monsoon <span class="opt">Optional</span></h3>
             <fieldset class="field">
               <legend>Does water collect here after heavy rain?</legend>
-              <div class="seg seg-grid" style="--cols: 3" role="radiogroup">
+              <div class="seg seg-grid cols-3" role="radiogroup">
                 <label><input type="radio" name="waterlog_answer" value="no" /> No</label>
                 <label><input type="radio" name="waterlog_answer" value="yes" /> Yes</label>
                 <label
@@ -651,7 +666,7 @@
             </fieldset>
             <fieldset class="field">
               <legend>Which floor is the home on?</legend>
-              <div class="seg seg-grid" style="--cols: 3" role="radiogroup">
+              <div class="seg seg-grid cols-3" role="radiogroup">
                 <label><input type="radio" name="floor_level" value="ground" /> Ground floor</label>
                 <label><input type="radio" name="floor_level" value="upper" /> Upper floor</label>
                 <label
@@ -821,7 +836,13 @@
         <h2 id="pin-title">Rent details</h2>
         <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
       </div>
-      <div class="dlg-body" id="pin-body"></div>
+      <div
+        class="dlg-body"
+        id="pin-body"
+        tabindex="0"
+        role="region"
+        aria-label="Rent details"
+      ></div>
       <div class="dlg-actions" id="pin-actions"></div>
     </dialog>
 
@@ -839,12 +860,7 @@
           </p>
           <fieldset class="field" id="report-reason">
             <legend>What's wrong?</legend>
-            <div
-              class="seg seg-grid"
-              style="--cols: 2"
-              role="radiogroup"
-              aria-describedby="err-reason"
-            >
+            <div class="seg seg-grid cols-2" role="radiogroup" aria-describedby="err-reason">
               <label><input type="radio" name="reason" value="fake_rent" /> Rent looks fake</label>
               <label><input type="radio" name="reason" value="broker" /> Broker / advert</label>
               <label
@@ -894,14 +910,14 @@
         <div class="dlg-body">
           <fieldset class="field">
             <legend>Show on the map</legend>
-            <div class="seg seg-grid" style="--cols: 2">
+            <div class="seg seg-grid cols-2">
               <label><input type="checkbox" name="show" value="rents" /> Rents</label>
               <label><input type="checkbox" name="show" value="boards" /> To-Let boards</label>
             </div>
           </fieldset>
           <fieldset class="field">
             <legend>Posted within</legend>
-            <div class="seg seg-grid" style="--cols: 4" role="radiogroup">
+            <div class="seg seg-grid cols-4" role="radiogroup">
               <label><input type="radio" name="since" value="30d" /> 30 days</label>
               <label><input type="radio" name="since" value="6m" /> 6 months</label>
               <label><input type="radio" name="since" value="18m" /> 18 months</label>
@@ -911,7 +927,7 @@
           </fieldset>
           <fieldset class="field">
             <legend>Bedrooms</legend>
-            <div class="seg seg-grid" style="--cols: 5">
+            <div class="seg seg-grid cols-5">
               <label><input type="checkbox" name="bhk" value="0" /> Room/1RK</label>
               <label><input type="checkbox" name="bhk" value="1" /> 1</label>
               <label><input type="checkbox" name="bhk" value="2" /> 2</label>
@@ -950,7 +966,7 @@
           </fieldset>
           <fieldset class="field">
             <legend>Type of home</legend>
-            <div class="seg seg-grid" style="--cols: 3">
+            <div class="seg seg-grid cols-3">
               <label><input type="checkbox" name="type" value="flat" /> Flat</label>
               <label><input type="checkbox" name="type" value="independent" /> House</label>
               <label><input type="checkbox" name="type" value="room" /> Room</label>
@@ -961,7 +977,7 @@
           </fieldset>
           <fieldset class="field">
             <legend>Furnishing</legend>
-            <div class="seg seg-grid" style="--cols: 3">
+            <div class="seg seg-grid cols-3">
               <label><input type="checkbox" name="furn" value="unfurnished" /> Unfurnished</label>
               <label><input type="checkbox" name="furn" value="semi" /> Semi</label>
               <label><input type="checkbox" name="furn" value="furnished" /> Furnished</label>
@@ -969,7 +985,7 @@
           </fieldset>
           <fieldset class="field">
             <legend>Gated society</legend>
-            <div class="seg seg-grid" style="--cols: 3" role="radiogroup">
+            <div class="seg seg-grid cols-3" role="radiogroup">
               <label><input type="radio" name="gated" value="any" /> Any</label>
               <label><input type="radio" name="gated" value="yes" /> Gated</label>
               <label><input type="radio" name="gated" value="no" /> Not gated</label>

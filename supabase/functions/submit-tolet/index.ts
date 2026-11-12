@@ -6,6 +6,7 @@ import { withinRateLimit } from '../_shared/ratelimit.ts';
 import { clientIp, safeEqual, saltedHash } from '../_shared/crypto.ts';
 import { fail, ok, preflight, readJson } from '../_shared/http.ts';
 import { PRIVATE_BUCKET } from '../_shared/tolet.ts';
+import { inspectImage } from '../_shared/image-check.ts';
 import { TOLET_MAX_BYTES, TOLET_MIME } from '../_shared/rules.ts';
 
 const Body = z.object({
@@ -60,6 +61,22 @@ Deno.serve(async (req) => {
       if (!f || !(size > 0) || size > TOLET_MAX_BYTES || !ALLOWED_MIME.includes(mime)) {
         return fail(req, 400, 'The photo did not finish uploading. Please try again.', {
           fields: [name === String(board.photo_path).split('/').pop() ? 'full' : 'thumb'],
+        });
+      }
+    }
+
+    // The bytes must really be the declared image type and carry no GPS/XMP metadata (the browser
+    // strips it; this catches a client that didn't). A rejected board stays 'uploading' and
+    // tolet-maintenance deletes it and its files after 2 hours.
+    for (const path of [board.photo_path, board.thumb_path]) {
+      const { data: blob, error: dlErr } = await admin.storage.from(PRIVATE_BUCKET).download(path);
+      if (dlErr || !blob) throw dlErr ?? new Error('download returned nothing');
+      const ext = String(path).endsWith('.webp') ? 'webp' : 'jpg';
+      const verdict = inspectImage(new Uint8Array(await blob.arrayBuffer()), ext);
+      if (verdict !== 'ok') {
+        console.warn(`submit-tolet: rejected upload (${verdict})`);
+        return fail(req, 400, 'This photo could not be accepted. Please take or choose it again.', {
+          fields: [path === board.photo_path ? 'full' : 'thumb'],
         });
       }
     }
