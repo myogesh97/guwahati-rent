@@ -25,13 +25,18 @@ jobs:
           ! grep -rlE "sb_secret_[A-Za-z0-9]{10,}|SUPABASE_SERVICE_ROLE_KEY=" dist/
           test -f dist/robots.txt && test -f dist/sitemap.xml
 
-  # Applies every migration to a throwaway Postgres 16 + PostGIS and checks the SPEC §5 security
-  # rules and the stats rules (tests/db/run.sh). Never touches the real project.
+  # Applies every migration to a throwaway Postgres 17 + PostGIS (Supabase's major version) and
+  # checks the SPEC §5 security rules and the stats rules (tests/db/run.sh). Never touches the real
+  # project. Packages come from apt.postgresql.org, as in backup.yml, so they don't depend on which
+  # PostgreSQL the runner image happens to preinstall.
   database:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install PostGIS for the preinstalled PostgreSQL 16
-        run: sudo apt-get update && sudo apt-get install -y postgresql-16-postgis-3
+      - name: Install PostgreSQL 17 + PostGIS
+        run: |
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-17 postgresql-17-postgis-3
       - name: Migrations + security/stats assertions
-        run: PATH="/usr/lib/postgresql/16/bin:$PATH" bash tests/db/run.sh
+        run: PATH="/usr/lib/postgresql/17/bin:$PATH" bash tests/db/run.sh
