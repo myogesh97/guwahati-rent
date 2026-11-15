@@ -119,6 +119,7 @@ test('every option in the form is used somewhere', () => {
     ['maintenance_incl', [true, false]],
     ['pg_meals', [true, false]],
     ['pg_gender', ['boys', 'girls', 'mixed']],
+    ['sqft_band', ['lt500', '500_800', '800_1200', '1200_plus']],
   ];
   for (const [key, options] of expect) {
     const s = seen(key);
@@ -132,9 +133,7 @@ test('every option in the form is used somewhere', () => {
     'waterlog_note',
     'maintenance_amount',
     'conditions_as_of',
-    'sqft',
     'deposit_months',
-    'society_name',
     'one_liner',
   ] as const) {
     assert.ok(
@@ -142,6 +141,8 @@ test('every option in the form is used somewhere', () => {
       `${key} never filled`,
     );
   }
+  // Like public_pins since migration 0010: no exact size, no society name on a lone pin.
+  assert.ok(generated.every((p) => p.sqft == null && p.society_name == null));
 });
 
 test('the scenarios people asked about are all present', () => {

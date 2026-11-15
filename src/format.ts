@@ -33,6 +33,14 @@ export function homeLabel(p: Pick<PublicPin, 'property_type' | 'bhk'>): string {
   return TYPE_LABEL[p.property_type];
 }
 
+/** public_pins.sqft_band (migration 0010): sizes are only ever shown as a range. */
+export const SQFT_BAND_LABEL: Record<NonNullable<PublicPin['sqft_band']>, string> = {
+  lt500: 'Under 500 sq ft',
+  '500_800': '500–800 sq ft',
+  '800_1200': '800–1,200 sq ft',
+  '1200_plus': '1,200 sq ft or more',
+};
+
 export const FURNISHING_LABEL: Record<PublicPin['furnishing'], string> = {
   furnished: 'Furnished',
   semi: 'Semi-furnished',

@@ -136,3 +136,46 @@ small,
   align-items: center;
   min-height: 44px;
 }
+/* About: live counts from the database (hidden below the minimum) and the WhatsApp share. */
+.live-counts {
+  color: var(--ink-2);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+.btn-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 8px;
+  background: #128c4b;
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+.btn-whatsapp:hover {
+  background: #0e7a40;
+}
+.btn-whatsapp:active {
+  background: #0b6634;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+/* FAQ on About: questions as small headings, answers as plain paragraphs. */
+.faq h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 1.5em 0 0.25em;
+}
+.faq p {
+  margin: 0;
+}

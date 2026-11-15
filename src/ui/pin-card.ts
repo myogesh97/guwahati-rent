@@ -1,5 +1,5 @@
 import { ApiError, deletePin, fetchPinDetails, leanPins } from '../api';
-import { SITE_URL } from '../config';
+import { POLICY, SITE_URL } from '../config';
 import {
   DRINKING_LABEL,
   DURATION_LABEL,
@@ -9,6 +9,7 @@ import {
   POWER_LABEL,
   ROAD_LABEL,
   SEVERITY_LABEL,
+  SQFT_BAND_LABEL,
   WATER_AVAILABILITY_LABEL,
   WATER_EXTRA_LABEL,
   WATER_LABEL,
@@ -34,6 +35,8 @@ interface Options {
   onEdit(pin: PublicPin, editToken: string): void;
   /** Someone else's pin: open the report dialog. */
   onReport(pin: PublicPin, trigger: HTMLElement): void;
+  /** "See To-Let boards nearby": switch the board layer on and zoom to this pin. */
+  onShowBoards(pin: PublicPin): void;
 }
 
 const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -95,7 +98,7 @@ function flags(p: PublicPin): { text: string; warn: boolean }[] {
   return out;
 }
 
-export function setupPinCard({ onDeleted, onEdit, onReport }: Options) {
+export function setupPinCard({ onDeleted, onEdit, onReport, onShowBoards }: Options) {
   const dlg = $dialog('dlg-pin');
   const body = document.getElementById('pin-body') as HTMLElement;
   const actions = document.getElementById('pin-actions') as HTMLElement;
@@ -134,7 +137,9 @@ export function setupPinCard({ onDeleted, onEdit, onReport }: Options) {
           ? `${pin.deposit_months} month${pin.deposit_months === 1 ? '' : 's'}`
           : null,
       ),
-      row('Size', pin.sqft ? `${pin.sqft} sq ft` : null),
+      // public_pins gives a society name only once enough pins nearby share it, and a size only
+      // as a range (migration 0010, PHASE-2C §2c.2-B).
+      row('Size', pin.sqft_band ? SQFT_BAND_LABEL[pin.sqft_band] : null),
       row(
         'Parking',
         pin.parking_cars > 0 ? `${pin.parking_cars} car${pin.parking_cars > 1 ? 's' : ''}` : null,
@@ -188,8 +193,8 @@ export function setupPinCard({ onDeleted, onEdit, onReport }: Options) {
       <p class="pin-home">${escapeHtml(homeLabel(pin))} · ${FURNISHING_LABEL[pin.furnishing]}</p>
       <p class="pin-meta">${[locality ? `Near ${escapeHtml(locality)}` : null, pin.gated ? 'Gated society' : 'Not gated', pin.society_name ? escapeHtml(pin.society_name) : null].filter(Boolean).join(' · ')}</p>
       ${pin.location_approx ? '<p class="pin-meta"><strong>Approximate location</strong> (area centre, not the building).</p>' : ''}
-      ${pin.kind === 'rent' ? '<p class="not-available"><strong>Not available.</strong> This is what a renter pays, shared to show real prices. The flat isn\'t being rented out.</p>' : ''}
-      ${pin.is_outlier ? '<p class="note-warn">This rent is unusually far from others nearby. Treat it with caution.</p>' : ''}
+      ${pin.kind === 'rent' ? `<p class="not-available"><strong>This is what a tenant pays. It is not a listing.</strong>${demo ? '' : '<button type="button" class="link-btn" id="pin-boards">See To-Let boards nearby</button>'}</p>` : ''}
+      ${pin.is_outlier ? '<p class="note-warn">Unusual compared with nearby rents. Not counted in medians.</p>' : ''}
       ${chips.length ? `<ul class="flags" aria-label="Reported conditions">${chips.map((c) => `<li class="flag${c.warn ? ' flag-warn' : ''}">${escapeHtml(c.text)}</li>`).join('')}</ul>` : ''}
       ${
         hasConditions
@@ -220,6 +225,11 @@ export function setupPinCard({ onDeleted, onEdit, onReport }: Options) {
       ${pin.one_liner ? `<blockquote class="oneliner">“${escapeHtml(pin.one_liner)}”</blockquote>` : ''}
       <p class="fine card-foot">${demo ? 'Fictional demo record for testing. No such rental exists.' : `Pinned ${relativeDate(pin.created_at)} by a renter${pin.source === 'survey' ? ', shared via our rent survey' : ''}. This is what they pay, not an ad. The flat may not be available.`}</p>
     `;
+
+    body.querySelector('#pin-boards')?.addEventListener('click', () => {
+      closeDialog(dlg);
+      onShowBoards(pin);
+    });
 
     actions.innerHTML = '';
     const share = document.createElement('button');
@@ -300,7 +310,7 @@ export function setupPinCard({ onDeleted, onEdit, onReport }: Options) {
     const locality = await localityName(sorted[0].locality_slug);
     if (mine !== ticket) return;
     title.textContent = `${sorted.length} rents at this spot`;
-    body.innerHTML = `<p class="hint">${locality ? `Near ${escapeHtml(locality)}. ` : ''}Pins are rounded to about 100 m, so homes in the same building share a spot.</p><ul class="pick-list"></ul>`;
+    body.innerHTML = `<p class="hint">${locality ? `Near ${escapeHtml(locality)}. ` : ''}Pins are rounded to about ${POLICY.pinRoundingM} m, so homes in the same building share a spot.</p><ul class="pick-list"></ul>`;
     const list = body.querySelector('ul') as HTMLUListElement;
     for (const p of sorted) {
       const li = document.createElement('li');

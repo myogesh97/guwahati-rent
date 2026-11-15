@@ -100,7 +100,7 @@ expect_eq "RLS is enabled on every public table" \
 expect_eq "no RLS policies exist (service role only; never using (true))" \
   "select count(*) from pg_policies where schemaname = 'public'" "0"
 expect_eq "public_pins exposes no private column" \
-  "select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'public_pins' and column_name in ('edit_token_hash','status','report_count','import_ref','location','email','phone','reviewed_at')" "0"
+  "select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'public_pins' and column_name in ('edit_token_hash','status','report_count','import_ref','location','email','phone','reviewed_at','society_key','consented_at')" "0"
 expect_eq "public_tolet exposes no private column" \
   "select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'public_tolet' and column_name in ('photo_path','thumb_path','uploader_hash','status','location','gone_reports')" "0"
 q "create table public.later_table (secret text); alter table public.later_table enable row level security;" >/dev/null
@@ -148,6 +148,15 @@ expect_eq "flag_outliers flags a rent > 3x the median when the group has 5+" \
   "select count(*) from public.pins where locality_slug = 'dispur' and is_outlier" "1"
 expect_eq "outliers are left out of the stats" \
   "select n from public.public_stats_locality where locality_slug = 'dispur'" "4"
+expect_eq "2c.1: outliers are left out of city stats too" \
+  "select n from public.public_stats_city where bhk = 3" "4"
+expect_eq "2c.1: outliers are left out of area_stats()" \
+  "set role anon; select n from public.area_stats(91.785, 26.14, 91.795, 26.146) where bhk = 3" "4"
+# Every public_stats_* view (found in the catalog, so a future one is covered) and area_stats()
+# return nothing when every pin is an outlier: "Not counted in medians" on the pin card is true.
+STATS_VIEWS=$(q "select string_agg(format('(select count(*) from public.%I)', viewname), ' + ') from pg_views where schemaname = 'public' and viewname like 'public_stats_%'")
+expect_eq "2c.1: no public_stats_* view or area_stats() counts an is_outlier pin" \
+  "begin; update public.pins set is_outlier = true; select $STATS_VIEWS + (select count(*) from public.area_stats(91.5, 26.0, 92.0, 26.3)); rollback;" "0"
 q "update public.pins set status = 'archived' where locality_slug = 'dispur' and rent = 20000; select public.flag_outliers()" >/dev/null
 expect_eq "0009: flag_outliers clears the flag once the group drops below 5" \
   "select count(*) from public.pins where locality_slug = 'dispur' and is_outlier" "0"
@@ -177,6 +186,54 @@ insert into public.tolet_boards (photo_path, status, location, expires_at, gone_
 SQL
 expect_eq "public_tolet shows only approved, unexpired boards with < 3 gone reports" \
   "set role anon; select count(*) from public.public_tolet" "1"
+
+# ---- 0010: k-anonymity for society names, sqft bands, consent (PHASE-2C §2c.2-B/C) ---------------
+"${PSQL[@]}" <<'SQL' >/dev/null || { echo "ABORT: 0010 seed failed"; exit 1; }
+insert into public.pins (kind, bhk, rent, furnishing, locality_slug, location, edit_token_hash, society_name, sqft) values
+  -- 2 pins, same society (spelling differs), 100 m apart: too few
+  ('rent', 2, 11000, 'semi', 'kanon', 'SRID=4326;POINT(91.700 26.170)', 'h', 'Hill View Residency', 650),
+  ('rent', 2, 11500, 'semi', 'kanon', 'SRID=4326;POINT(91.701 26.170)', 'h', 'hill-view', 1500),
+  -- 3 pins within 300 m, three spellings of one name: shown
+  ('rent', 2, 12000, 'semi', 'kanon', 'SRID=4326;POINT(91.710 26.170)', 'h', 'Green Valley Apartments', 450),
+  ('rent', 2, 12500, 'semi', 'kanon', 'SRID=4326;POINT(91.711 26.170)', 'h', 'GREEN VALLEY', 800),
+  ('rent', 2, 13000, 'semi', 'kanon', 'SRID=4326;POINT(91.710 26.171)', 'h', 'Green-Valley Enclave', null),
+  -- 3 pins, same name, ~1 km apart: hidden
+  ('rent', 2, 12000, 'semi', 'kanon', 'SRID=4326;POINT(91.720 26.180)', 'h', 'Far Apart Towers', null),
+  ('rent', 2, 12000, 'semi', 'kanon', 'SRID=4326;POINT(91.730 26.180)', 'h', 'Far Apart Towers', null),
+  ('rent', 2, 12000, 'semi', 'kanon', 'SRID=4326;POINT(91.740 26.180)', 'h', 'Far Apart Towers', null),
+  -- 3 pins together, but one is an outlier: only 2 count
+  ('rent', 2, 12000, 'semi', 'kanon', 'SRID=4326;POINT(91.750 26.190)', 'h', 'Outlier Court', null),
+  ('rent', 2, 12000, 'semi', 'kanon', 'SRID=4326;POINT(91.751 26.190)', 'h', 'Outlier Court', null),
+  ('rent', 2, 90000, 'semi', 'kanon', 'SRID=4326;POINT(91.750 26.191)', 'h', 'Outlier Court', null);
+update public.pins set is_outlier = true where society_name = 'Outlier Court' and rent = 90000;
+SQL
+expect_eq "0010: society_key normalises case, punctuation and apartment/residency/enclave" \
+  "select string_agg(distinct society_key, '|') from public.pins where locality_slug = 'kanon' and society_name ilike any (array['green%', 'hill%'])" \
+  "green valley|hill view"
+expect_eq "0010: 2 pins with the same society -> name hidden" \
+  "set role anon; select count(*) from public.public_pins where locality_slug = 'kanon' and society_name ilike 'hill%'" "0"
+expect_eq "0010: 3 pins within 300 m -> name shown (each its own spelling)" \
+  "set role anon; select string_agg(society_name, '|' order by rent) from public.public_pins where locality_slug = 'kanon' and society_name ilike 'green%'" \
+  "Green Valley Apartments|GREEN VALLEY|Green-Valley Enclave"
+expect_eq "0010: 3 pins but ~1 km apart -> name hidden" \
+  "set role anon; select count(*) from public.public_pins where society_name = 'Far Apart Towers'" "0"
+expect_eq "0010: an outlier does not count towards the 3" \
+  "set role anon; select count(*) from public.public_pins where society_name = 'Outlier Court'" "0"
+expect_eq "0010: anon never sees an exact sqft" \
+  "set role anon; select count(*) from public.public_pins where sqft is not null" "0"
+expect_eq "0010: sqft comes back bucketed (650, 1500, 450, 800, none)" \
+  "set role anon; select string_agg(coalesce(sqft_band, '-'), ',' order by rent) from public.public_pins where locality_slug = 'kanon' and rent between 11000 and 13000 and society_name is distinct from 'Far Apart Towers' and coalesce(society_name, '') <> 'Outlier Court' and (society_name is not null or rent < 12000)" \
+  "500_800,1200_plus,lt500,800_1200,-"
+expect_eq "0010: the base table keeps the exact sqft" \
+  "select sqft from public.pins where society_name = 'hill-view'" "1500"
+expect_eq "0010: public_pins keeps its column order; sqft_band is appended last" \
+  "select string_agg(column_name::text, ',' order by ordinal_position) from (select column_name, ordinal_position from information_schema.columns where table_schema = 'public' and table_name = 'public_pins' order by ordinal_position desc limit 3) c" \
+  "source,location_approx,sqft_band"
+expect_eq "0010: consented_at on pins, reports, tolet_boards, tolet_reports" \
+  "select count(*) from information_schema.columns where table_schema = 'public' and column_name = 'consented_at' and table_name in ('pins','reports','tolet_boards','tolet_reports')" "4"
+expect_eq "0010: grants unchanged (anon/authenticated: SELECT only on public_pins)" \
+  "select string_agg(distinct grantee || ':' || privilege_type, ',' order by grantee || ':' || privilege_type) from information_schema.role_table_grants where table_schema = 'public' and table_name = 'public_pins' and grantee in ('anon','authenticated')" \
+  "anon:SELECT,authenticated:SELECT"
 
 # ---- rate limits, cleanup, cron ------------------------------------------------------------------
 expect_eq "hit_rate_limit allows up to the limit, then refuses" \

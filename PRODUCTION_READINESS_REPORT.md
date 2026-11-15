@@ -119,7 +119,7 @@ Full list in [CHANGELOG.md](CHANGELOG.md). Nothing has been pushed, deployed or 
 | Dependencies | Low | `npm audit --omit=dev`: 0. 7 moderate in lint tooling only. zod 3 in functions (mitigated by the 32 KB body cap). |
 | Error messages | — | PASS: functions return generic 500s and field *names* (never values) on 400 |
 
-Note: the live project's database pooler is in **eu-central-1 (Frankfurt)**, while SPEC and README assumed Mumbai. This isn't a security issue, but it adds latency for Indian users. Moving regions means a new project and a data migration, so it's not worth doing before launch.
+Note: the live project is `ngssgjuagrlyhsvtiwhk` in **South Asia (Mumbai)**, as SPEC and README assume. It moved there on 15 Nov 2026 (MIGRATE-REGION.md); the data copy was skipped because the old project held only dummy data.
 
 ## 6. Performance findings
 

@@ -1,7 +1,7 @@
 # Guwahati Rent — Next Phases (2a, 2b, 2)
 
 > Read this together with `SPEC.md` (v2) and `README.md`. Where this file and SPEC.md disagree, **this file wins** (it is newer).
-> Written 30 Oct 2026. Phase 0 and Phase 1 are **done and live**: `https://guwahati-rent.netlify.app`, Supabase project `apgdczuofczobxaggsfy` (Mumbai).
+> Written 30 Oct 2026. Phase 0 and Phase 1 are **done and live**: `https://guwahati-rent.netlify.app`, Supabase project `ngssgjuagrlyhsvtiwhk` (South Asia (Mumbai); moved 15 Nov 2026, see MIGRATE-REGION.md).
 > The SQL and code below were written carefully but **not executed**. Expect small fixes. The security gate catches the ones that matter.
 
 ---
@@ -180,7 +180,7 @@ Files can't be deleted from SQL, so a daily Edge Function does it. Protect it wi
 
 ```sql
 -- [HUMAN] first: create Vault secrets in the SQL editor (never in a migration file):
---   select vault.create_secret('https://apgdczuofczobxaggsfy.supabase.co', 'project_url');
+--   select vault.create_secret('https://ngssgjuagrlyhsvtiwhk.supabase.co', 'project_url');
 --   select vault.create_secret('<same value as CRON_SECRET>', 'cron_secret');
 select cron.schedule('tolet-maintenance', '45 21 * * *', $$   -- 03:15 IST
   select net.http_post(

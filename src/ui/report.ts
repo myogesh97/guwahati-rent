@@ -1,4 +1,5 @@
-// #dlg-report (NEXT-PHASES §4.1): reason (required) + optional private note + spam check.
+// #dlg-report (NEXT-PHASES §4.1): reason (required) + optional private note + spam check +
+// explicit consent (PHASE-2C §2c.1-C: "Report" stays disabled until it is ticked).
 import { ApiError, reportPin, type ReportReason } from '../api';
 import { browserId } from '../tokens';
 import { $dialog, closeDialog, keepFocus, openDialog } from './dialog';
@@ -13,9 +14,12 @@ export function setupReport() {
   const err = document.getElementById('err-reason') as HTMLElement;
   const formErr = document.getElementById('report-error') as HTMLElement;
   const submit = document.getElementById('report-submit') as HTMLButtonElement;
+  const consent = document.getElementById('report-consent') as HTMLInputElement;
   const turnstile = new TurnstileWidget(document.getElementById('report-turnstile')!);
   let pinId: string | null = null;
   let busy = false;
+  const syncSubmit = () => (submit.disabled = busy || !consent.checked);
+  consent.addEventListener('change', syncSubmit);
 
   const radios = () => [...form.querySelectorAll<HTMLInputElement>('input[name="reason"]')];
   const showError = (t: string | null) => {
@@ -38,7 +42,7 @@ export function setupReport() {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (busy || !pinId) return;
+    if (busy || !pinId || !consent.checked) return;
     const reason = radios().find((r) => r.checked)?.value as ReportReason | undefined;
     if (!reason) {
       reasonError('Choose what is wrong with this pin.');
@@ -59,6 +63,7 @@ export function setupReport() {
         message: msg.value.trim() || undefined,
         browserId: browserId(),
         turnstileToken: token,
+        consent: true,
       });
       closeDialog(dlg);
       toast(r.already ? "You've already reported this." : "Thanks, we'll review it.");
@@ -67,7 +72,7 @@ export function setupReport() {
       turnstile.reset();
     } finally {
       busy = false;
-      submit.disabled = false;
+      syncSubmit();
       submit.textContent = 'Report';
       refocus();
     }
@@ -77,6 +82,7 @@ export function setupReport() {
     open(id: string, trigger?: HTMLElement | null): void {
       pinId = id;
       form.reset();
+      syncSubmit();
       msg.dispatchEvent(new Event('input'));
       reasonError(null);
       showError(null);

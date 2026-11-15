@@ -4,6 +4,7 @@ import type {
   POWER_CUTS,
   PropertyType,
   ROAD_IN_RAIN,
+  SqftBand,
   WATER_AVAILABILITY,
   WATER_EXTRA_COST,
   WATER_SOURCES,
@@ -62,6 +63,9 @@ export interface PublicPin {
   // Migration 0004 (survey imports, Phase 2b).
   source?: 'user' | 'survey';
   location_approx?: boolean;
+  // Migration 0010: sqft is always null in public_pins; this bucket replaces it. society_name is
+  // null unless enough pins nearby share it (k-anonymity).
+  sqft_band?: SqftBand | null;
 }
 
 /** public_stats_city (medians only, 3+ pins, last 18 months since migration 0007). */

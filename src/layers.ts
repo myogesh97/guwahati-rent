@@ -29,6 +29,13 @@ export type TagName = keyof typeof TAGS;
 
 const FONT = ['Noto Sans Medium'];
 
+/**
+ * Clustering for the rent source. Bubbles show only how many rents they hold: no cluster
+ * properties, so no rent sum, so no mean can ever be drawn (SPEC §5.10, PHASE-2C F1). Medians
+ * with their sample size live in Stats. tests/medians.test.ts guards this.
+ */
+export const PIN_CLUSTER = { cluster: true, clusterRadius: 40, clusterMaxZoom: 15 } as const;
+
 const isPoint: ['!', ['has', string]] = ['!', ['has', 'point_count']];
 
 // Monsoon waterlogging (NEXT-PHASES §4.5): a heatmap of renters' reports, under the pins and
@@ -105,38 +112,6 @@ export const pinLayers: LayerSpecification[] = [
       'text-allow-overlap': true,
     },
     paint: { 'text-color': COLOR.white },
-  },
-  // Rough average under each bubble (visual hint only; real stats use medians, SPEC §5.10).
-  {
-    id: 'cluster-avg',
-    type: 'symbol',
-    source: PIN_SOURCE,
-    filter: ['has', 'point_count'],
-    layout: {
-      'text-field': [
-        'concat',
-        '~₹',
-        ['to-string', ['round', ['/', ['/', ['get', 'rentSum'], ['get', 'point_count']], 1000]]],
-        'k',
-      ],
-      'text-font': FONT,
-      'text-size': 11,
-      'text-offset': [
-        'step',
-        ['get', 'point_count'],
-        ['literal', [0, 1.9]],
-        50,
-        ['literal', [0, 2.4]],
-        200,
-        ['literal', [0, 2.8]],
-      ],
-      'text-allow-overlap': true,
-    },
-    paint: {
-      'text-color': COLOR.ink,
-      'text-halo-color': COLOR.white,
-      'text-halo-width': 1.5,
-    },
   },
   {
     id: 'pin-dot',

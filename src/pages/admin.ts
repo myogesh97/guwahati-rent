@@ -148,6 +148,11 @@ if (!BACKEND_READY) {
       const boards = (data.boards as PendingBoard[]) ?? [];
       $('boards').replaceChildren(...boards.map(card));
       updateTitle();
+      const soon = Number(data.expiringSoon ?? 0);
+      $('expiring').textContent =
+        soon === 1
+          ? '1 board on the map expires in the next 7 days.'
+          : `${soon} boards on the map expire in the next 7 days.`;
       say(boards.length ? 'Photo links work for 10 minutes. Refresh if they stop loading.' : '');
     } catch (e) {
       $('boards').replaceChildren();

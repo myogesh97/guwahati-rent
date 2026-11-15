@@ -1,3 +1,5 @@
+> Completed 15 Nov 2026; data copy skipped (dummy data).
+
 # Move Supabase from Frankfurt to Mumbai
 
 **Why:** the project `apgdczuofczobxaggsfy` was created in **eu-central-1 (Frankfurt)**. Every request from India travels to Europe and back. The new project goes in **ap-south-1 (Mumbai)**.

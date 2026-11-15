@@ -61,7 +61,7 @@
 - *What:* a lawyer reviews both pages. Points to raise:
   - **retention** not stated for rent pins (kept until deleted), for rate-limit hashes (2 days, `cleanup()`), and for report IP hashes;
   - **backups**: weekly `pg_dump` artifacts in GitHub contain the same data;
-  - the **Frankfurt (eu-central-1)** database region (cross-border transfer);
+  - the **South Asia (Mumbai)** database region (project `ngssgjuagrlyhsvtiwhk`; no cross-border transfer for the database since 15 Nov 2026);
   - a grievance contact;
   - Terms: governing law, liability, and a takedown procedure for user content and photos.
 - *Why:* SPEC §13 marks this [HUMAN] before launch; users submit data publicly.
@@ -170,7 +170,7 @@
 | P2-6 | Copy-link fallback disappears after 8 s (WCAG 2.2.1) | `pin-card.ts`, `main.ts` show the URL in a timed toast when the clipboard fails | 1 h | The fallback stays until dismissed |
 | P2-7 | Announce the filter result count; map empty-state panel (WCAG 4.1.3) | The count updates silently while filtering | 2 h | A polite, debounced "N rents shown" announcement, tested with a screen reader |
 | P2-8 | Turnstile interactive challenge with assistive tech | Can't run on localhost | 0.5 h [H] | Checked during P0-9 |
-| P2-9 | Database region (Frankfurt vs the Mumbai the spec assumed) | Latency for Indian users; legal relevance in P0-5 | Migration project | Your decision recorded |
+| P2-9 | Database region (now South Asia (Mumbai), project `ngssgjuagrlyhsvtiwhk`, as the spec assumed) | Latency for Indian users; legal relevance in P0-5 | Done 15 Nov 2026 (MIGRATE-REGION.md) | Closed |
 
 ## P3: optional
 

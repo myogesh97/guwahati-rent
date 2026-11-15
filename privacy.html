@@ -26,7 +26,7 @@
     <header><a href="/">← Guwahati Rent</a></header>
     <main>
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated: 12 November 2026</p>
+      <p class="updated">Last updated: 15 November 2026</p>
       <p class="note">
         Plain-language summary of what this site collects today. This policy will be updated before
         listing and matching features launch.
@@ -35,10 +35,20 @@
       <ul>
         <li>
           <strong>Public:</strong> the rent, type of home, bedrooms, furnishing, whether it is
-          gated, parking, the optional details you fill in (building name, floor, water supply and
-          cost, monsoon waterlogging, power, deposit, maintenance, size, the date you last saw these
-          conditions, and short notes), and an approximate location rounded to about 100 metres.
+          gated, parking, the optional details you fill in (floor, water supply and cost, monsoon
+          waterlogging, power, deposit, maintenance, the date you last saw these conditions, and
+          short notes), and an approximate location rounded to about %POLICY.pinRoundingM% metres.
           These are shown as reported by a renter, not verified by us.
+        </li>
+        <li>
+          <strong>Shown only in a group:</strong> the building or society name, if you type one,
+          appears on the map only once at least %POLICY.societyMinPins% rents within
+          %POLICY.societyRadiusM% metres give the same name. On its own, together with the other
+          details, it could point to one flat. Flat and house numbers are not accepted.
+        </li>
+        <li>
+          <strong>Shown as a range:</strong> the size of the home (for example 500–800 sq ft), never
+          the exact number.
         </li>
         <li>
           <strong>Not collected:</strong> your name, email, phone number or exact address. Please do
@@ -49,9 +59,9 @@
       <ul>
         <li>
           <strong>What we keep:</strong> a smaller copy of your photo, made in your browser, and the
-          board's location to about 11 metres (a board is public signage, so it needs to be
-          findable). The copy is re-drawn from the pixels, so the camera's hidden details (including
-          GPS position, phone model and time) are never uploaded.
+          board's location to about %POLICY.boardRoundingM% metres (a board is public signage, so it
+          needs to be findable). The copy is re-drawn from the pixels, so the camera's hidden
+          details (including GPS position, phone model and time) are never uploaded.
         </li>
         <li>
           <strong>Checked first:</strong> every photo is reviewed by us before anyone else can see
@@ -60,8 +70,9 @@
         </li>
         <li>
           <strong>Deleted automatically:</strong> rejected photos straight away, and every board
-          after 60 days. If three people report a board gone, it is hidden from the map at once and
-          we review it; removed boards and their photos are deleted within a day.
+          after %POLICY.boardExpiryDays% days. If %POLICY.reportThreshold% people report a board
+          gone, it is hidden from the map at once and we review it; removed boards and their photos
+          are deleted within a day.
         </li>
         <li>
           <strong>Not collected:</strong> your name, email or phone number. We never read or store
@@ -72,9 +83,10 @@
       <p>
         When you report a pin we keep the reason and your optional note. For every report (pins and
         "board is gone") we also keep salted hashes of a random ID from your browser and of your IP
-        address, so one person counts once. The note is seen only by our moderators, never shown
-        publicly, and deleted 90 days after the report is resolved. Please don't put names or phone
-        numbers in it.
+        address, so one person counts once. A pin reported by %POLICY.reportThreshold% people is
+        hidden from the map until we review it. The note is seen only by our moderators, never shown
+        publicly, and deleted %POLICY.reportNoteRetentionDays% days after the report is resolved.
+        Please don't put names or phone numbers in it.
       </p>
       <h2>Spam prevention</h2>
       <p>
@@ -82,6 +94,12 @@
         your browser. A hash cannot be turned back into your IP. We use Cloudflare Turnstile to
         check that a real person is submitting. Cloudflare processes your request for that check
         under its own privacy policy.
+      </p>
+      <h2>Your consent</h2>
+      <p>
+        Every form (adding a rent, a To-Let photo, or a report) has a box you tick to agree to this
+        policy and the Terms before you send it. It is never ticked for you, and we do not treat
+        browsing the map as agreement. You can withdraw by deleting your pin (below).
       </p>
       <h2>Deleting your pin</h2>
       <p>

@@ -1,4 +1,5 @@
-// SPEC §7.3 submit-pin. Phase 1: rent pins only. Listing path (email/phone/consent) arrives in Phase 3.
+// SPEC §7.3 submit-pin. Phase 1: rent pins only. Listing path (email/phone) arrives in Phase 3.
+// Needs `consent: true` (PHASE-2C §2c.2-C); the society name passes the PII filter (pii.ts).
 import { z } from 'npm:zod@3';
 import { admin } from '../_shared/supabase.ts';
 import { verifyTurnstile } from '../_shared/turnstile.ts';
@@ -8,6 +9,8 @@ import { inGuwahati, nearestLocality, round3, toWkt } from '../_shared/geo.ts';
 import { LOCALITIES } from '../_shared/localities.ts';
 import { PinFields, checkPin, failedFields, pinColumns } from '../_shared/pin-fields.ts';
 import { fail, ok, preflight, readJson } from '../_shared/http.ts';
+import { requireConsent } from '../_shared/consent.ts';
+import { sqftBand } from '../_shared/rules.ts';
 
 const RentPin = PinFields.extend({
   lat: z.number(),
@@ -21,7 +24,10 @@ Deno.serve(async (req) => {
   if (early) return early;
 
   try {
-    const parsed = RentPin.safeParse(await readJson(req));
+    const body = await readJson(req);
+    const noConsent = requireConsent(req, body);
+    if (noConsent) return noConsent;
+    const parsed = RentPin.safeParse(body);
     if (!parsed.success) {
       // Name the fields (never their values) so problems can be diagnosed from the browser.
       const fields = failedFields(parsed.error);
@@ -58,17 +64,29 @@ Deno.serve(async (req) => {
       locality_slug: nearestLocality(lat, lng, LOCALITIES),
       location: toWkt(lat, lng),
       edit_token_hash: await sha256(editToken),
+      consented_at: new Date().toISOString(),
     };
 
     const { data, error } = await admin.from('pins').insert(row).select('id, created_at').single();
     if (error || !data) throw error ?? new Error('insert returned no row');
 
-    // Public shape only (mirrors public_pins). Never echo edit_token_hash.
-    const { edit_token_hash: _omit, location: _loc, ...pub } = row;
+    // Public shape only (mirrors public_pins, migration 0010): no edit_token_hash, no exact size,
+    // and no society name (the view shows it only once 3 pins nearby share it).
+    const { edit_token_hash: _omit, location: _loc, consented_at: _c, ...pub } = row;
     return ok(req, {
       id: data.id,
       editToken,
-      pin: { ...pub, id: data.id, created_at: data.created_at, is_outlier: false, lat, lng },
+      pin: {
+        ...pub,
+        society_name: null,
+        sqft: null,
+        sqft_band: sqftBand(row.sqft),
+        id: data.id,
+        created_at: data.created_at,
+        is_outlier: false,
+        lat,
+        lng,
+      },
     });
   } catch (e) {
     console.error('submit-pin failed:', e instanceof Error ? e.message : 'unknown');

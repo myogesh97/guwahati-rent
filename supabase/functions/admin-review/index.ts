@@ -88,7 +88,17 @@ Deno.serve(async (req) => {
         thumbUrl: (r.thumb_path && urls.get(r.thumb_path)) ?? null,
         fullUrl: urls.get(r.photo_path) ?? null,
       }));
-      return ok(req, { boards });
+      // Live boards that leave the map within a week (PHASE-2C §2c.2-D). A count only: no emails
+      // until Phase 3.
+      const now = Date.now();
+      const { count: expiringSoon, error: cErr } = await admin
+        .from('tolet_boards')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'approved')
+        .gt('expires_at', new Date(now).toISOString())
+        .lte('expires_at', new Date(now + 7 * 86_400_000).toISOString());
+      if (cErr) throw cErr;
+      return ok(req, { boards, expiringSoon: expiringSoon ?? 0 });
     }
 
     if (body.action === 'list_reports') {

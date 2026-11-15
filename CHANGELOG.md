@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased (15 Nov 2026): Phase 2c launch hardening ([PHASE-2C.md](PHASE-2C.md))
+
+**State:** on top of `9000a5e`. Not deployed. 2c.2 needs migration `0010_privacy_k_anon.sql` pushed and six Edge Functions redeployed BEFORE the frontend ships (DEPLOY.md order: db, functions, frontend).
+
+### 2c.1: frontend, copy and SEO
+- **Medians only:** the `cluster-avg` layer (a mean, `~₹Xk`) and the `rentSum` cluster property are gone; clusters show a count. Every median shows its sample size and the window (`src/layers.ts`, `src/map.ts`, `src/ui/stats.ts`, rent double-check). Guarded by `tests/medians.test.ts`.
+- **Explicit consent:** the welcome screen no longer says "By continuing you agree"; it can be closed with ✕/Esc and is skipped for shared pin links. Rent pin, report, To-Let and "Board is gone" each have an unticked, required consent checkbox (links tied by `aria-describedby`); their submit buttons stay disabled until it is ticked, and the client sends `consent: true`.
+- **Pin card:** "This is what a tenant pays. It is not a listing." + "See To-Let boards nearby"; outlier note "Unusual compared with nearby rents. Not counted in medians." (proved by a new `test:db` check over every `public_stats_*` view and `area_stats()`).
+- **WhatsApp share** text per PHASE-2C, also on About (plain `wa.me` link; no CSP change).
+- **Live counts** ("N rents · M localities · updated <date>") on the welcome screen and About, from `public_pins` at run time; hidden below 50 rents (`src/live-counts.ts`, `src/pages/about.ts`).
+- **About FAQ** (visible + FAQPage JSON-LD), same facts and words as privacy.html.
+- **One source for policy numbers:** `POLICY` in `src/config.ts`; HTML uses `%POLICY.<key>%` placeholders (`src/html-vars.ts`); `tests/policy.test.ts` fails on drift from the server code, the migrations or between pages. Rounding copy now says ~110 m (3 dp).
+- Terms no longer say "continuing to use the site means you accept".
+- Docs: project ref/region updated to `ngssgjuagrlyhsvtiwhk` / South Asia (Mumbai).
+
+### 2c.2: migration 0010 and Edge Functions
+- **k-anonymity for society names:** `public_pins.society_name` is NULL unless 3+ active, non-outlier pins with the same normalised name (`pins.society_key`) lie within 300 m. **Sizes** only as `sqft_band` (`sqft` is always NULL in the view).
+- **PII filter** `supabase/functions/_shared/pii.ts` (phones incl. masked, emails, links; flat/house/door numbers in the society name), shared by the browser and the functions.
+- **Server-side consent:** `submit-pin`, `report-pin`, `report-tolet`, `submit-tolet` return 400 `{ field: 'consent' }` without `consent: true`, and store `consented_at`.
+- `edit-pin` `load`: the token holder gets the hidden society name / exact size back, so editing never erases them.
+- To-Let: "Spotted 45+ days ago, may be gone" badge; admin shows boards expiring in the next 7 days.
+- `scripts/security-check.sh`: 2c checks (no exact sqft, no lone society name, consent and PII refusals).
+
 ## Unreleased (15 Nov 2026): focus indicator, keyboard and interaction-state audit
 
 **State:** on top of `acb1eff`. Frontend only (CSS + UI scripts); no migration, function, API or data changes. Not deployed. Details: [ACCESSIBILITY_AUDIT_REPORT.md](ACCESSIBILITY_AUDIT_REPORT.md) §10.

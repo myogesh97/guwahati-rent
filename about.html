@@ -19,6 +19,64 @@
     />
     <meta property="og:image" content="%SITE_URL%/og-default.png" />
     <meta name="twitter:card" content="summary_large_image" />
+    <!-- FAQ structured data: the same questions and answers as the visible "Questions" section
+         (tests/policy.test.ts checks they match, and that the numbers match privacy.html). -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How does Guwahati Rent work?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Renters pin the rent they pay on a map of Guwahati and answer a short form about the home. No login, no name, no phone number. Locations are rounded to about %POLICY.pinRoundingM% metres. Under Stats you see median rents for each area."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is it anonymous?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. We never ask for your name, email or phone number, and locations are rounded to about %POLICY.pinRoundingM% metres. The building or society name you type is shown only once at least %POLICY.societyMinPins% rents within %POLICY.societyRadiusM% metres give the same name. To stop abuse we store a salted hash of your IP address and of a random ID kept in your browser. A hash cannot be turned back into your IP."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is it free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Pinning a rent and looking at the map are free. We do not sell data, show ads, or work with brokers."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How are unusual rents handled?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Rents that are far from others of the same size nearby are marked as unusual and not counted in medians. Medians use only rents from the last %POLICY.statsWindowMonths% months, and only groups with at least %POLICY.minSample% rents. A pin reported by %POLICY.reportThreshold% people is hidden from the map until we review it."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I delete my pin?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "From the same browser you used to add it: tap the pin and choose Delete my pin. If you cleared your browser data, contact us and we will remove it."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Who runs Guwahati Rent?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "It is run independently of brokers and listing sites. We do not sell data, show ads, or work with brokers. Contact details are on the Privacy page."
+            }
+          }
+        ]
+      }
+    </script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/styles/page.css" />
   </head>
@@ -32,6 +90,8 @@
         really pay. Here, renters pin their own rent, so the next person flat-hunting can see real
         numbers for each area.
       </p>
+      <!-- Filled from the database at run time; stays hidden below %POLICY.liveCountsMin% rents. -->
+      <p class="live-counts" id="about-counts" hidden></p>
       <p>
         It is for anyone renting, or about to rent, in Guwahati: students looking for a PG or a
         room, people moving to the city, and families comparing areas.
@@ -40,8 +100,8 @@
       <p>
         Tap <strong>Pin your rent</strong>, move the map until the pin is on your home (on a
         computer you can also click the spot), and fill in a short form. No login, no name, no phone
-        number. Locations are rounded to about 100 metres. Flats, houses, 1RKs, rooms and PGs can
-        all be pinned.
+        number. Locations are rounded to about %POLICY.pinRoundingM% metres. Flats, houses, 1RKs,
+        rooms and PGs can all be pinned.
       </p>
       <p>
         Only the basics about the home and the rent are needed. The form also asks, optionally,
@@ -57,7 +117,8 @@
       <p>
         Spotted a To-Let board? Tap <strong>Spot a To-Let</strong>, take a photo, and it goes on the
         map once we have checked it. The phone number stays on the board itself; we never type it in
-        or read it out. Boards are removed after 60 days, or sooner if people report them gone.
+        or read it out. Boards are removed after %POLICY.boardExpiryDays% days, or sooner if people
+        report them gone.
       </p>
       <h2>Coming next</h2>
       <p>Owners listing flats directly (no broker) and flat-seekers getting matched by email.</p>
@@ -68,11 +129,58 @@
         guide, and always see a flat in person before paying anything.
       </p>
       <p>
-        Rents can also be out of date. The map hides rents older than 18 months by default, and the
-        medians under <strong>Stats</strong> use only the last 18 months and only groups with at
-        least 3 rents. Water, power and monsoon details describe one home as its renter saw it, not
-        the whole area, and are not official data.
+        Rents can also be out of date. The map hides rents older than %POLICY.statsWindowMonths%
+        months by default, and the medians under
+        <strong>Stats</strong> use only the last %POLICY.statsWindowMonths% months and only groups
+        with at least %POLICY.minSample% rents. Water, power and monsoon details describe one home
+        as its renter saw it, not the whole area, and are not official data.
       </p>
+      <h2>Tell a friend</h2>
+      <p>The map gets more useful with every rent. Share it with people who rent in Guwahati.</p>
+      <p>
+        <a class="btn-whatsapp" href="%WHATSAPP_ABOUT_URL%" target="_blank" rel="noopener"
+          >Share on WhatsApp<span class="sr-only"> (opens in a new tab)</span></a
+        >
+      </p>
+      <h2 id="faq">Questions</h2>
+      <div class="faq">
+        <h3>How does Guwahati Rent work?</h3>
+        <p>
+          Renters pin the rent they pay on a map of Guwahati and answer a short form about the home.
+          No login, no name, no phone number. Locations are rounded to about %POLICY.pinRoundingM%
+          metres. Under Stats you see median rents for each area.
+        </p>
+        <h3>Is it anonymous?</h3>
+        <p>
+          Yes. We never ask for your name, email or phone number, and locations are rounded to about
+          %POLICY.pinRoundingM% metres. The building or society name you type is shown only once at
+          least %POLICY.societyMinPins% rents within %POLICY.societyRadiusM% metres give the same
+          name. To stop abuse we store a salted hash of your IP address and of a random ID kept in
+          your browser. A hash cannot be turned back into your IP.
+        </p>
+        <h3>Is it free?</h3>
+        <p>
+          Yes. Pinning a rent and looking at the map are free. We do not sell data, show ads, or
+          work with brokers.
+        </p>
+        <h3>How are unusual rents handled?</h3>
+        <p>
+          Rents that are far from others of the same size nearby are marked as unusual and not
+          counted in medians. Medians use only rents from the last %POLICY.statsWindowMonths%
+          months, and only groups with at least %POLICY.minSample% rents. A pin reported by
+          %POLICY.reportThreshold% people is hidden from the map until we review it.
+        </p>
+        <h3>How do I delete my pin?</h3>
+        <p>
+          From the same browser you used to add it: tap the pin and choose Delete my pin. If you
+          cleared your browser data, contact us and we will remove it.
+        </p>
+        <h3>Who runs Guwahati Rent?</h3>
+        <p>
+          It is run independently of brokers and listing sites. We do not sell data, show ads, or
+          work with brokers. Contact details are on the Privacy page.
+        </p>
+      </div>
       <p class="updated">Map data © OpenStreetMap contributors, rendered with Protomaps.</p>
     </main>
     <footer class="site-footer">
@@ -85,5 +193,6 @@
         </ul>
       </nav>
     </footer>
+    <script type="module" src="/src/pages/about.ts"></script>
   </body>
 </html>

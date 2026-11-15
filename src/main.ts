@@ -1,5 +1,7 @@
 // Boot (SPEC §8). The page shell paints first; MapLibre is loaded afterwards via dynamic import.
-import { BACKEND_READY, SITE_URL } from './config';
+import { BACKEND_READY, POLICY, SITE_URL } from './config';
+import { pinShareText, whatsappUrl } from './html-vars';
+import { liveCounts, renderLiveCounts } from './live-counts';
 import { fetchBoards, fetchPins } from './api';
 import { loadLocalities, nearestIn, nearestLocality } from './localities';
 import { applyFilters, DEFAULT_FILTERS, type Filters } from './filters';
@@ -8,7 +10,7 @@ import { setupFiltersDialog } from './ui/filters-dialog';
 import { setupListView } from './ui/list-view';
 import { setupStats } from './ui/stats';
 import { setupReport } from './ui/report';
-import { hasConsented, recordConsent, saveEditToken } from './tokens';
+import { hasSeenWelcome, markWelcomeSeen, saveEditToken } from './tokens';
 import { $dialog, closeDialog, openDialog, wireDialogs } from './ui/dialog';
 import { toast } from './ui/toast';
 import { guardNumberInputsFromWheel } from './ui/number-inputs';
@@ -114,7 +116,7 @@ function syncAddUi(): void {
 }
 
 const PLACEMENT_TEXT = {
-  rent: '<strong>Move the map until the pin is on your home.</strong> A nearby spot is fine. We round it to about 100 m.',
+  rent: `<strong>Move the map until the pin is on your home.</strong> A nearby spot is fine. We round it to about ${POLICY.pinRoundingM} m.`,
   tolet: '<strong>Move the map until the pin is on the board.</strong> Then press "Use this spot".',
 };
 
@@ -147,10 +149,6 @@ function stopPlacement(): void {
   syncAddUi();
 }
 
-function shareText(): string {
-  return `What do people in Guwahati actually pay in rent? I just added mine, anonymously. See your area and add yours: ${SITE_URL}/`;
-}
-
 async function boot(): Promise<void> {
   wireDialogs();
   guardNumberInputsFromWheel();
@@ -179,7 +177,7 @@ async function boot(): Promise<void> {
       renderPins();
       state.map?.select(result.id);
       const wa = $<HTMLAnchorElement>('share-whatsapp');
-      wa.href = `https://wa.me/?text=${encodeURIComponent(shareText())}`;
+      wa.href = whatsappUrl(pinShareText(SITE_URL));
       openDialog($dialog('dlg-shared'));
     },
     onUpdated(pin) {
@@ -217,6 +215,16 @@ async function boot(): Promise<void> {
       state.pins = state.pins.filter((p) => p.id !== id);
       state.map?.select(null);
       renderPins();
+    },
+    onShowBoards(pin) {
+      if (state.url.view === 'list') setView('map');
+      if (!state.url.filters.boards) setFilters({ ...state.url.filters, boards: true });
+      state.map?.focus(pin.lat, pin.lng, 15);
+      // About 1 km around the pin: say so when there is no board there yet.
+      const near = state.boards.some(
+        (b) => Math.abs(b.lat - pin.lat) < 0.01 && Math.abs(b.lng - pin.lng) < 0.01,
+      );
+      if (!near) toast('No To-Let boards spotted near here yet. Spotted one? Add it.');
     },
   });
 
@@ -300,11 +308,12 @@ async function boot(): Promise<void> {
   $('water-legend').hidden = !state.url.water;
 
   // ---------- welcome ----------
-  if (!hasConsented()) openDialog($dialog('dlg-welcome'));
-  $('welcome-ok').addEventListener('click', () => {
-    recordConsent();
-    closeDialog($dialog('dlg-welcome'));
-  });
+  // An introduction only: it asks for no agreement, closes with the button, ✕, Esc or a tap
+  // outside, and is skipped when a shared link points at a pin (PHASE-2C §2c.1-C).
+  const welcome = $dialog('dlg-welcome');
+  welcome.addEventListener('close', markWelcomeSeen);
+  if (!hasSeenWelcome() && !new URLSearchParams(location.search).has('pin')) openDialog(welcome);
+  $('welcome-ok').addEventListener('click', () => closeDialog(welcome));
 
   // ---------- data + map in parallel ----------
   // Demo mode (?demo=normal|dense|stress) exists only in `npm run dev`: in production builds
@@ -340,6 +349,7 @@ async function boot(): Promise<void> {
   }
 
   state.pins = await pinsPromise;
+  if (!demo) renderLiveCounts($('welcome-counts'), liveCounts(state.pins));
   state.map.showWater(state.url.water);
   renderPins();
   // Boards are a separate layer; if they fail (e.g. before migration 0004) rents still show.
@@ -391,7 +401,7 @@ async function boot(): Promise<void> {
     if (pin) {
       state.map.focus(pin.lat, pin.lng, 15);
       state.map.select(pin.id);
-      if (hasConsented()) void pinCard.open(pin);
+      void pinCard.open(pin);
     }
   } else if (area) {
     const loc = (await loadLocalities()).find((l) => l.slug === area);

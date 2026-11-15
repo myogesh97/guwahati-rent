@@ -9,6 +9,7 @@ import { clientIp, ipHash, saltedHash } from '../_shared/crypto.ts';
 import { fail, ok, preflight, readJson } from '../_shared/http.ts';
 import { REPORT_MESSAGE_MAX, REPORT_REASONS, cleanMessage } from '../_shared/rules.ts';
 import { failedFields } from '../_shared/pin-fields.ts';
+import { requireConsent } from '../_shared/consent.ts';
 
 const Body = z.object({
   pinId: z.string().uuid(),
@@ -23,7 +24,10 @@ Deno.serve(async (req) => {
   if (early) return early;
 
   try {
-    const parsed = Body.safeParse(await readJson(req));
+    const raw = await readJson(req);
+    const noConsent = requireConsent(req, raw); // PHASE-2C §2c.2-C
+    if (noConsent) return noConsent;
+    const parsed = Body.safeParse(raw);
     if (!parsed.success) {
       const fields = failedFields(parsed.error);
       console.warn('report-pin validation failed:', fields.join(', '));
@@ -50,6 +54,7 @@ Deno.serve(async (req) => {
       ip_hash: await ipHash(req), // unique per pin too (0008), so new browser ids don't add reports
       reason: b.reason,
       message: cleanMessage(b.message),
+      consented_at: new Date().toISOString(),
     });
     // 23505: this browser (or this IP) already reported this pin. Counted once; tell them kindly.
     if (insErr?.code === '23505') return ok(req, { already: true });
