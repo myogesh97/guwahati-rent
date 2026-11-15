@@ -1,14 +1,19 @@
-/* About / Privacy / Terms / Admin. Same tokens, type and focus ring as the map (main.css). */
+/* About / Privacy / Terms / Admin. Same tokens, type and focus indicator as the map (main.css). */
 :root {
   --ink: #102a35;
   --ink-2: #2b4652;
   --muted: #526b75;
   --line: #d7e1e5;
   --teal: #0b5566;
-  --teal-2: #087f98;
   --brand: #d14400;
+  --brand-hover: #b23a00;
+  --brand-press: #923000;
   --fill: #f2f5f7;
-  --ring: 0 0 0 2px #fff, 0 0 0 4px #0891b2;
+  --fill-press: #e2e9ed;
+  --field: #7c8fa0;
+  --focus: var(--teal); /* same indicator as main.css */
+  --focus-w: 2px;
+  --focus-gap: 2px;
   font-family:
     system-ui,
     -apple-system,
@@ -48,6 +53,9 @@ header a {
 }
 header a:hover {
   background: var(--fill);
+}
+header a:active {
+  background: var(--fill-press);
 }
 main {
   max-width: 680px;
@@ -99,19 +107,11 @@ small,
   color: var(--muted);
   font-size: 0.875rem;
 }
-:focus {
-  outline: none;
-}
+/* The one keyboard focus indicator (see main.css "focus"): an outline, so it never changes
+   layout and survives forced-colours mode. */
 :focus-visible {
-  box-shadow: var(--ring);
-  border-radius: 6px;
-}
-/* Forced-colours mode drops box-shadow; keep a visible ring (WCAG 2.4.7). */
-@media (forced-colors: active) {
-  :focus-visible {
-    outline: 2px solid CanvasText;
-    outline-offset: 2px;
-  }
+  outline: var(--focus-w) dashed var(--focus);
+  outline-offset: var(--focus-gap);
 }
 /* Links between the static pages (About, Privacy, Terms). */
 .site-footer {

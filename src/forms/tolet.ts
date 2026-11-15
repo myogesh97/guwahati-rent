@@ -2,7 +2,7 @@
 // No form fields. The phone number is on the board itself; we never ask for or read it.
 import { ApiError, requestToletUpload, submitTolet, uploadToSignedUrl } from '../api';
 import { browserId } from '../tokens';
-import { $dialog, closeDialog, openDialog } from '../ui/dialog';
+import { $dialog, closeDialog, keepFocus, openDialog } from '../ui/dialog';
 import {
   ImageError,
   checkPhoto,
@@ -196,6 +196,7 @@ export function setupToletForm({ pickOnMap, onUploaded }: Options) {
 
   submit.addEventListener('click', async () => {
     if (!photo || !spot || busy) return;
+    const refocus = keepFocus(submit);
     busy = true;
     showError(null);
     sync();
@@ -234,6 +235,7 @@ export function setupToletForm({ pickOnMap, onUploaded }: Options) {
       turnstile.reset(); // tokens are single-use
       showSpot();
       sync();
+      refocus();
     }
   });
 

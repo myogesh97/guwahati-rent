@@ -3,7 +3,7 @@ import { ApiError, boardImageUrl, reportTolet } from '../api';
 import { expiresIn, relativeDate } from '../format';
 import { browserId } from '../tokens';
 import type { PublicBoard } from '../types';
-import { $dialog, openDialog } from './dialog';
+import { $dialog, keepFocus, openDialog } from './dialog';
 import { TurnstileWidget } from './turnstile';
 
 export function setupBoardCard() {
@@ -20,18 +20,21 @@ export function setupBoardCard() {
   const reported = new Set<string>();
   let current: PublicBoard | null = null;
 
+  // Once the full photo is showing (or failed), the button has nothing more to do. aria-disabled,
+  // not disabled: it was just pressed, and disabling a focused button drops keyboard focus.
+  const photoDone = () => photoBtn.setAttribute('aria-disabled', 'true');
   img.addEventListener('error', () => {
     if (!img.getAttribute('src')) return;
     hint.textContent = 'The photo could not load. Check your connection.';
     hint.hidden = false;
-    photoBtn.disabled = true;
+    photoDone();
   });
 
   photoBtn.addEventListener('click', () => {
-    if (!current?.public_photo_path) return;
+    if (!current?.public_photo_path || photoBtn.getAttribute('aria-disabled') === 'true') return;
     img.src = boardImageUrl(current.public_photo_path);
     hint.hidden = true;
-    photoBtn.disabled = true;
+    photoDone();
   });
 
   gone.addEventListener('click', async () => {
@@ -42,6 +45,7 @@ export function setupBoardCard() {
       turnstile.mount().catch((e: Error) => (status.textContent = e.message));
       return;
     }
+    const refocus = keepFocus(gone);
     gone.disabled = true;
     status.textContent = 'Sending…';
     try {
@@ -51,8 +55,12 @@ export function setupBoardCard() {
       reported.add(current.id);
       report.hidden = true;
       status.textContent = 'Thanks. Boards reported gone by 3 people are taken off the map.';
+      // The button stays disabled (reported); the next step is closing.
+      if (document.activeElement === document.body)
+        dlg.querySelector<HTMLElement>('.dlg-actions [data-close]')?.focus();
     } catch (e) {
       gone.disabled = false;
+      refocus();
       status.textContent = e instanceof ApiError ? e.message : 'Could not send. Please try again.';
       turnstile.reset();
     }
@@ -68,6 +76,7 @@ export function setupBoardCard() {
       hint.textContent = 'Tap to see the full photo';
       hint.hidden = !board.public_photo_path || !board.public_thumb_path;
       photoBtn.disabled = hint.hidden;
+      photoBtn.removeAttribute('aria-disabled');
       meta.textContent = `Pinned ${relativeDate(board.created_at)} · ${expiresIn(board.expires_at)}`;
       report.hidden = true;
       gone.textContent = 'Board is gone';

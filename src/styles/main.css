@@ -15,7 +15,9 @@
  *            The basemap is never tinted or filtered.
  * Depth      One edge for everything that floats: a 1px hairline ring + a soft shadow (--e2).
  *            No stacked borders, no cards inside cards.
- * Focus      One visible keyboard ring everywhere (:focus-visible).
+ * Focus      One keyboard indicator everywhere: a dashed --focus outline, 2px outside the
+ *            control (:focus-visible; see "focus" below). States: hover = tint, pressed = a
+ *            shade darker, disabled = faded + not-allowed cursor, busy = the label says so.
  */
 
 /* ============================== tokens ============================== */
@@ -28,6 +30,8 @@
   --teal-2: #077590; /* interactive text: 5.3:1 on white, 5.1:1 on --bg, 4.9:1 on --fill; outlines */
   --cyan: #06b6d4; /* decorative highlight only, never text */
   --tint: #eaf4f6; /* hover / soft-selected fill */
+  --tint-press: #d3e7ec; /* pressed, on tinted controls */
+  --fill-press: #e2e9ed; /* pressed, on quiet controls */
   --action: #d14400; /* primary button fill: white text 4.6:1 (AA). #EA580C is 3.6:1, so it is
                         used only as a mark (selected / new pin), never behind text. */
   --action-hover: #b23a00;
@@ -80,7 +84,14 @@
   --e1: 0 1px 2px rgba(16, 42, 53, 0.06);
   --e2: 0 0 0 1px rgba(16, 42, 53, 0.08), 0 2px 6px rgba(16, 42, 53, 0.1);
   --e3: 0 0 0 1px rgba(16, 42, 53, 0.06), 0 18px 48px rgba(16, 42, 53, 0.24);
-  --ring: 0 0 0 2px var(--surface), 0 0 0 4px #0891b2; /* 3.7:1 on white */
+
+  /* focus: one indicator for every control (WCAG 2.4.7, 1.4.11). Teal, 8.4:1 on white, 7.6:1 on
+     --bg/--fill/--tint, 5:1+ on the basemap's parks and water. 2px, not 1px: a 1px dashed line
+     is too thin to find reliably, and the dashes halve its area. */
+  --focus: var(--teal);
+  --focus-w: 2px;
+  --focus-gap: 2px; /* outside the control */
+  --focus-inset: -4px; /* inside, where an ancestor clips (map, control groups, scroll panels) */
 
   --topbar-h: 56px;
   --edge: var(--s3); /* gap between map edge and floating UI */
@@ -116,23 +127,51 @@ a {
   color: var(--teal-2);
   text-underline-offset: 2px;
 }
-:focus {
+
+/* ============================== focus ============================== */
+/* The one keyboard focus indicator. An outline, not a box-shadow: components draw their edges
+   and depth with box-shadow, which used to replace the ring (secondary buttons, the pressed view
+   toggle and invalid fields had none). An outline never changes layout, is not touched by
+   hover/active backgrounds, and survives forced-colours mode (the browser recolours it).
+   Keyboard focus only (:focus-visible); text fields also show it on click, as browsers do. */
+:focus-visible {
+  outline: var(--focus-w) dashed var(--focus);
+  outline-offset: var(--focus-gap);
+}
+/* Radio/checkbox chips: the input is invisible, so its label shows the focus. */
+.seg label:has(input:focus-visible) {
+  outline: var(--focus-w) dashed var(--focus);
+  outline-offset: var(--focus-gap);
+}
+/* Focus moved here by script so a screen reader starts reading (dialog titles, <main> after the
+   skip link, the form's error summary). They are not controls, so no indicator. */
+:is(h2, main, .form-error)[tabindex='-1']:focus-visible {
   outline: none;
 }
-:focus-visible {
-  box-shadow: var(--ring);
+/* Where an ancestor clips (the map, MapLibre's control groups, scrolling dialog bodies), the
+   indicator goes inside the control instead of being cut off. */
+#map .maplibregl-canvas:focus-visible,
+#map .maplibregl-ctrl-group button:focus-visible,
+.dlg-body:focus-visible {
+  outline-offset: var(--focus-inset);
 }
-[tabindex='-1']:focus-visible {
+/* Libraries: MapLibre and flatpickr remove outlines and add their own glow/fill. Their CSS loads
+   after this file (lazy chunks), hence the extra specificity. */
+#map .maplibregl-ctrl-group button:focus,
+#map .maplibregl-ctrl-attrib-button:focus {
   box-shadow: none;
 }
-/* High-contrast / forced-colours mode drops every box-shadow, which would hide the ring above
-   (WCAG 2.4.7). An outline in a system colour survives it. */
-@media (forced-colors: active) {
-  :focus-visible,
-  .seg label:has(input:focus-visible) {
-    outline: 2px solid CanvasText;
-    outline-offset: 2px;
-  }
+#map .maplibregl-ctrl-group button:focus-visible,
+#map .maplibregl-ctrl-attrib-button:focus-visible,
+:root .flatpickr-calendar .flatpickr-day:focus-visible,
+:root .flatpickr-current-month input.cur-year:focus-visible {
+  outline: var(--focus-w) dashed var(--focus);
+}
+:root .flatpickr-calendar .flatpickr-day:focus-visible {
+  outline-offset: var(--focus-inset); /* the day grid clips */
+}
+:root .flatpickr-calendar .flatpickr-day.selected:focus-visible {
+  outline-color: #fff; /* on the solid teal day */
 }
 [hidden] {
   display: none !important;
@@ -221,6 +260,10 @@ a {
 .btn-ghost:hover:not(:disabled) {
   background: var(--tint);
 }
+.btn-secondary:active:not(:disabled),
+.btn-ghost:active:not(:disabled) {
+  background: var(--tint-press);
+}
 .btn-danger {
   background: var(--danger-tint);
   color: var(--danger);
@@ -228,12 +271,18 @@ a {
 .btn-danger:hover:not(:disabled) {
   background: #f9d9d6;
 }
+.btn-danger:active:not(:disabled) {
+  background: #f4c5c0;
+}
 .btn-whatsapp {
   background: var(--wa);
   color: #fff;
 }
 .btn-whatsapp:hover {
   background: #0e7a40;
+}
+.btn-whatsapp:active {
+  background: #0b6634;
 }
 .btn-sm {
   min-height: 36px;
@@ -262,6 +311,9 @@ a {
 .icon-btn:hover {
   background: var(--fill);
   color: var(--ink);
+}
+.icon-btn:active {
+  background: var(--fill-press);
 }
 .link-btn {
   appearance: none;
@@ -351,6 +403,9 @@ a {
 .topbar-link:hover {
   background: var(--fill);
   color: var(--ink);
+}
+.topbar-link:active {
+  background: var(--fill-press);
 }
 @media (max-width: 900px) {
   .tagline {
@@ -467,6 +522,9 @@ body.view-list .map-empty {
 .tool:hover {
   background: var(--fill);
   color: var(--ink);
+}
+.tool:active {
+  background: var(--fill-press);
 }
 .tools-sep {
   width: 1px;
@@ -818,8 +876,8 @@ body.is-placing .placement {
 .maplibregl-ctrl-group button:hover:not(:disabled) {
   background-color: var(--fill);
 }
-.maplibregl-ctrl button:focus-visible {
-  box-shadow: inset 0 0 0 2px #0891b2;
+#map .maplibregl-ctrl-group button:active:not(:disabled) {
+  background-color: var(--fill-press);
 }
 .maplibregl-ctrl-attrib.maplibregl-compact {
   border-radius: var(--r-md);
@@ -851,6 +909,8 @@ body.view-list .map-hint {
   height: 100%;
   overflow: auto;
   padding: 0 var(--edge) var(--s6);
+  /* Focus scrolls a row clear of the sticky header, with room for its focus outline. */
+  scroll-padding: calc(44px + var(--s2)) var(--s3) var(--s3);
 }
 .rent-table {
   width: 100%;
@@ -919,7 +979,7 @@ body.view-list .map-hint {
   margin-left: 6px;
   vertical-align: 2px;
   border: 4px solid transparent;
-  border-top-color: var(--line);
+  border-top-color: var(--field); /* "sortable", findable without hover (3.3:1) */
   border-bottom-width: 0;
 }
 .rent-table th[aria-sort='descending'] button,
@@ -941,12 +1001,12 @@ body.view-list .map-hint {
   font-weight: 600;
 }
 .rent-table .link-btn {
-  min-height: 0;
+  min-height: 32px; /* in a 44px row */
   font-size: inherit;
   font-weight: 500;
   text-align: left;
   color: var(--ink);
-  text-decoration-color: var(--line);
+  text-decoration-color: var(--field); /* the underline says "opens", without hover */
 }
 .rent-table .link-btn:hover {
   color: var(--teal-2);
@@ -1042,6 +1102,7 @@ body.view-list .map-hint {
   padding: var(--s2) var(--s6) var(--s6);
   overflow-y: auto;
   overscroll-behavior: contain;
+  scroll-padding-block: var(--s3); /* a focused field scrolls in with its focus outline */
   flex: 1;
   min-height: 0;
 }
@@ -1222,20 +1283,10 @@ textarea:hover,
 select:hover {
   border-color: var(--ink-2);
 }
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  border-color: var(--teal);
-}
 input[aria-invalid='true'],
 select[aria-invalid='true'] {
   border-color: var(--danger);
   box-shadow: inset 0 0 0 1px var(--danger);
-}
-input[aria-invalid='true']:focus-visible {
-  box-shadow:
-    inset 0 0 0 1px var(--danger),
-    var(--ring);
 }
 select {
   appearance: none;
@@ -1291,6 +1342,9 @@ select {
 .seg label:hover {
   background: var(--tint);
 }
+.seg label:active:not(:has(input:checked)) {
+  background: var(--tint-press);
+}
 .seg-grid {
   display: grid;
   grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
@@ -1335,9 +1389,6 @@ select {
   border-bottom: 2px solid currentColor;
   transform: rotate(-45deg);
   flex-shrink: 0;
-}
-.seg label:has(input:focus-visible) {
-  box-shadow: var(--ring);
 }
 .seg label:has(input[aria-invalid='true']) {
   box-shadow: inset 0 0 0 1.5px var(--danger);
@@ -1524,6 +1575,13 @@ span.flatpickr-weekday {
 .flatpickr-calendar .flatpickr-day.today {
   border-color: var(--mark);
 }
+/* flatpickr's own today-focused style is white on grey (2.6:1). */
+.flatpickr-calendar .flatpickr-day.today:hover,
+.flatpickr-calendar .flatpickr-day.today:focus {
+  background: var(--tint);
+  border-color: var(--mark);
+  color: var(--ink);
+}
 .flatpickr-calendar .flatpickr-day.selected,
 .flatpickr-calendar .flatpickr-day.selected:hover,
 .flatpickr-calendar .flatpickr-day.selected:focus {
@@ -1687,6 +1745,9 @@ span.flatpickr-weekday {
 .pick:hover {
   background: var(--fill);
 }
+.pick:active {
+  background: var(--fill-press);
+}
 .pick-rent {
   font-weight: 600;
   min-width: 84px;
@@ -1769,7 +1830,8 @@ span.flatpickr-weekday {
   background: var(--fill);
   cursor: zoom-in;
 }
-.board-photo:disabled {
+.board-photo:disabled,
+.board-photo[aria-disabled='true'] {
   cursor: default;
 }
 .board-photo img {

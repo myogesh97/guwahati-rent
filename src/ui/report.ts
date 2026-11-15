@@ -1,7 +1,7 @@
 // #dlg-report (NEXT-PHASES §4.1): reason (required) + optional private note + spam check.
 import { ApiError, reportPin, type ReportReason } from '../api';
 import { browserId } from '../tokens';
-import { $dialog, closeDialog, openDialog } from './dialog';
+import { $dialog, closeDialog, keepFocus, openDialog } from './dialog';
 import { toast } from './toast';
 import { TurnstileWidget } from './turnstile';
 
@@ -46,6 +46,7 @@ export function setupReport() {
       return;
     }
     busy = true;
+    const refocus = keepFocus(submit);
     submit.disabled = true;
     submit.textContent = 'Sending…';
     showError(null);
@@ -68,6 +69,7 @@ export function setupReport() {
       busy = false;
       submit.disabled = false;
       submit.textContent = 'Report';
+      refocus();
     }
   });
 

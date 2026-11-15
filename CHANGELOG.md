@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased (15 Nov 2026): focus indicator, keyboard and interaction-state audit
+
+**State:** on top of `acb1eff`. Frontend only (CSS + UI scripts); no migration, function, API or data changes. Not deployed. Details: [ACCESSIBILITY_AUDIT_REPORT.md](ACCESSIBILITY_AUDIT_REPORT.md) §10.
+
+### Fixed
+- **Focus indicator missing on secondary/ghost buttons and the pressed Map/List toggle** (WCAG 2.4.7). The ring was a `box-shadow`, and components that draw their edge with `box-shadow` (`.btn-secondary`, `.btn-ghost`, pressed `.view-toggle .tool`) replaced it: "Spot a To-Let", Cancel, Copy link, Done, Clear all, Move pin had no visible focus. Replaced by one outline-based indicator for the whole site (`--focus`, 2px dashed teal, 2px offset; drawn inside where an ancestor clips). Also replaces MapLibre's blue glow on the map controls and flatpickr's removed outlines (`main.css`, `page.css`).
+- **Date picker not usable from the keyboard** (WCAG 2.1.1): Enter in the date field submitted the whole form. Enter/Space/Down now move into the calendar on the chosen day or today (`src/ui/datepicker.ts`). flatpickr's "today" focus style (white on grey, 2.6:1) restyled.
+- **Focus lost when a busy button disables itself** (WCAG 2.4.3): Chrome drops focus to `<body>`. New `keepFocus()` (`src/ui/dialog.ts`) restores it after Report / Delete my pin / Board is gone / Put it on the map fail; "Tap to see the full photo" uses `aria-disabled` instead of `disabled`.
+- **Filter result count announced** (WCAG 4.1.3): `#filters-live` status region in the Filters dialog.
+- **Focus outlines cut off** at the edge of scrolling dialogs and the list (`scroll-padding`), and list headers half off-screen on phones (`src/ui/list-view.ts`).
+
+### Changed
+- Pressed (`:active`) states for secondary, ghost, danger, WhatsApp, icon, tool, top-bar, chip, pick and map-control buttons; hover/pressed states for admin buttons and tabs; Home/End on the admin tabs.
+- List view: row links underlined in `--field` (was near-invisible `--line`), sortable-column arrow in `--field`, row links 32px tall.
+
 ## Unreleased (12 Nov 2026): SEO and accessibility audit fixes
 
 **State:** on top of `c78d677` (live `v0.4.0`). Frontend and `netlify.toml` only; no migration or function changes. Not deployed. Reports: [SEO_AUDIT_REPORT.md](SEO_AUDIT_REPORT.md), [ACCESSIBILITY_AUDIT_REPORT.md](ACCESSIBILITY_AUDIT_REPORT.md), [SEO_A11Y_TEST_RESULTS.md](SEO_A11Y_TEST_RESULTS.md), [WEBSITE_LAUNCH_GAP_ANALYSIS.md](WEBSITE_LAUNCH_GAP_ANALYSIS.md), [FINAL_LAUNCH_CHECKLIST.md](FINAL_LAUNCH_CHECKLIST.md).

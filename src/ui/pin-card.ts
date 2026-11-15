@@ -25,7 +25,7 @@ import { PREMISES_PLACES, WATERLOG_PLACES } from '../../supabase/functions/_shar
 import { localityName } from '../localities';
 import { browserId, forgetEditToken, getEditToken } from '../tokens';
 import type { PublicPin } from '../types';
-import { $dialog, closeDialog, openDialog } from './dialog';
+import { $dialog, closeDialog, keepFocus, openDialog } from './dialog';
 import { toast } from './toast';
 
 interface Options {
@@ -270,6 +270,7 @@ export function setupPinCard({ onDeleted, onEdit, onReport }: Options) {
           del.textContent = 'Tap again to delete';
           return;
         }
+        const refocus = keepFocus(del);
         del.disabled = true;
         del.textContent = 'Deleting…';
         try {
@@ -283,6 +284,7 @@ export function setupPinCard({ onDeleted, onEdit, onReport }: Options) {
           del.disabled = false;
           del.textContent = 'Delete my pin';
           armed = false;
+          refocus();
         }
       });
       actions.append(del);

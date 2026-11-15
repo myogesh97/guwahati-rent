@@ -11,9 +11,13 @@ main.admin {
   min-height: 44px;
   padding: 8px 12px;
   font: inherit;
-  border: 1px solid #7c8fa0;
+  border: 1px solid var(--field);
   border-radius: 8px;
 }
+.admin-login input:hover {
+  border-color: var(--ink-2);
+}
+/* Buttons: same states as the map's (main.css): hover tint, pressed shade, faded when disabled. */
 .a-btn {
   min-height: 44px;
   padding: 8px 16px;
@@ -22,10 +26,15 @@ main.admin {
   border-radius: 8px;
   border: 0;
   background: #fff;
-  color: var(--teal);
-  box-shadow: inset 0 0 0 1px #7c8fa0;
+  box-shadow: inset 0 0 0 1px var(--field);
   color: var(--ink);
   cursor: pointer;
+}
+.a-btn:hover:not(:disabled) {
+  background: var(--fill);
+}
+.a-btn:active:not(:disabled) {
+  background: var(--fill-press);
 }
 .a-btn:disabled {
   opacity: 0.5;
@@ -36,10 +45,22 @@ main.admin {
   color: #fff;
   box-shadow: none;
 }
+.a-btn-primary:hover:not(:disabled) {
+  background: var(--brand-hover);
+}
+.a-btn-primary:active:not(:disabled) {
+  background: var(--brand-press);
+}
 .a-btn-danger {
   background: #fdeceb;
   color: #b42318;
   box-shadow: none;
+}
+.a-btn-danger:hover:not(:disabled) {
+  background: #f9d9d6;
+}
+.a-btn-danger:active:not(:disabled) {
+  background: #f4c5c0;
 }
 .admin-bar {
   display: flex;
@@ -112,6 +133,9 @@ main.admin {
   font-weight: 650;
   color: var(--muted);
   cursor: pointer;
+}
+.tabs [role='tab']:hover {
+  color: var(--ink);
 }
 .tabs [role='tab'][aria-selected='true'] {
   color: var(--teal);

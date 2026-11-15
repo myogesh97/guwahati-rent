@@ -64,7 +64,7 @@ Statuses are **after** the fixes in this change. "Was" notes where they differ f
 | 2.4.4 | Link Purpose (In Context) (A) | **PASS** | All links descriptive. The new Privacy link on the form says "(opens in a new tab)" to screen readers. |
 | 2.4.5 | Multiple Ways (AA) | **PASS** (was **PARTIAL**) | **Fixed:** footer navigation on the static pages; the header links About; the form links Privacy. |
 | 2.4.6 | Headings and Labels (AA) | **PASS** | Descriptive dialog titles, section headings and field labels. |
-| 2.4.7 | Focus Visible (AA) | **PASS** (was **FAIL** in forced colours) | Normal mode: a ring on every one of 40 Tab stops (K). **Was:** the ring is a `box-shadow`, which forced-colours mode removes; computed `outline: none` (K, emulated `forced-colors: active`). **Fixed:** `@media (forced-colors: active)` adds a `CanvasText` outline (main + static pages). Verified: `outline: 2px solid`. |
+| 2.4.7 | Focus Visible (AA) | **PASS** (corrected 15 Nov, see §10) | **Correction:** the 12 Nov "ring on every one of 40 Tab stops" was wrong. The check only looked for *a* box-shadow; secondary/ghost buttons and the pressed view toggle had their own edge shadow and no ring. Now one outline indicator on every stop, normal and forced-colours mode (K: computed `outline` at each stop; screenshots). |
 | 2.4.11 | Focus Not Obscured (Minimum) (AA) | **PASS** (desktop) | No focused element covered by the header, toolbar or toasts (K, `elementFromPoint` at each stop, 1366×768). **Not tested:** keyboard on a phone-size viewport with the bottom sheet open. |
 | 2.5.1 | Pointer Gestures (A) | **PASS** | Pinch zoom has ± buttons; nothing needs a multipoint or path gesture. |
 | 2.5.2 | Pointer Cancellation (A) | **PASS** | Native buttons fire on release; a backdrop click closes a dialog only if the press also started on the backdrop (C). |
@@ -179,3 +179,19 @@ No VoiceOver, TalkBack or NVDA session was possible here. I inspected the Chrome
 | Turnstile interactive challenge with assistive tech | 3.3.8 / 2.1.1 | P2 (verify on production) |
 | Unify "Spot a To-Let" / "To-Let board" labels | 3.2.4 | P3 |
 | Keyboard pass on a phone-size viewport with the bottom sheet | 2.4.11 | P3 |
+
+---
+
+## 10. Addendum (15 Nov 2026): focus indicator, keyboard and interaction-state audit
+
+**Baseline:** `acb1eff`. **Evidence:** scripted keyboard walk (trusted CDP key events, headless Chrome, dev server, every Supabase write blocked) at 1366×768 (mouse) and 390×844 (touch), recording the computed outline, clipping and covering element at every stop, plus close-up screenshots; axe-core 4.10.3 in 22 states; forced-colours emulation. **Not done:** screen readers, real phones, Firefox/Safari.
+
+**Design:** one indicator: `outline: 2px dashed var(--focus)` (teal `#0b5566`), `outline-offset: 2px`, on `:focus-visible`. 2px rather than the 1px first proposed, because a 1px dashed line has half the area of a 1px solid one and is hard to find. Contrast: 8.4:1 on white, 7.6:1 on the light fills, 5:1+ on the basemap. Inside (-4px) only where an ancestor clips: map canvas, MapLibre control groups, scrolling dialog bodies, calendar days. White on the selected (teal) calendar day. Forced-colours: the browser recolours the outline (verified).
+
+**Found and fixed:** no indicator on secondary/ghost buttons and the pressed toggle (2.4.7); MapLibre's own blue glow on map controls (inconsistent, partly clipped); date picker could not be opened from the keyboard (Enter submitted the form) (2.1.1); flatpickr today-focus text 2.6:1 (1.4.3); focus dropped to `<body>` when busy buttons disabled themselves (2.4.3); filter counts not announced (4.1.3, closes gap P2-7 except the map's own empty-state panel); outlines clipped at scroll edges; list headers half off-screen on phones.
+
+**Still open:**
+- Escape pressed while focus is inside the Turnstile iframe does not close the dialog (third-party frame; Tab out first). Turnstile is usually invisible in production.
+- flatpickr's month arrows are not focusable; keyboard users change month with the arrow keys from a day (or Ctrl+arrows). The calendar has no dialog/grid semantics (days are labelled "November 15, 2026").
+- Disabled buttons are shown by fading (opacity) and a not-allowed cursor only. WCAG has no requirement for this, but it is a colour/luminance-only cue.
+- The earlier gaps in §9 other than P2-7 (screen-reader pass, board phone number, copy-link timeout).

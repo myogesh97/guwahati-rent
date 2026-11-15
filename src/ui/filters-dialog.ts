@@ -14,6 +14,7 @@ export function setupFiltersDialog({ get, set }: Options) {
   const done = document.getElementById('filters-done') as HTMLButtonElement;
   const badge = document.getElementById('filters-count') as HTMLElement;
   const trigger = document.getElementById('btn-filters') as HTMLButtonElement;
+  const live = document.getElementById('filters-live') as HTMLElement;
 
   const checked = (name: string) =>
     [...form.querySelectorAll<HTMLInputElement>(`input[name="${name}"]:checked`)].map(
@@ -59,6 +60,20 @@ export function setupFiltersDialog({ get, set }: Options) {
       f.max === null ? '' : String(f.max);
   }
 
+  /** Screen readers hear the new count once the changes settle (WCAG 4.1.3). */
+  let announceTimer = 0;
+  function announce(f: Filters, c: number): void {
+    clearTimeout(announceTimer);
+    if (!dlg.open) return;
+    announceTimer = window.setTimeout(() => {
+      live.textContent = !f.rents
+        ? 'Rents are hidden.'
+        : c === 0
+          ? 'No rents match these filters.'
+          : `${c.toLocaleString('en-IN')} rent${c === 1 ? '' : 's'} match.`;
+    }, 700);
+  }
+
   let shown = 0;
   function sync(f: Filters, c = shown): void {
     shown = c;
@@ -81,11 +96,17 @@ export function setupFiltersDialog({ get, set }: Options) {
     set(DEFAULT_FILTERS);
   });
   trigger.addEventListener('click', () => {
+    live.textContent = '';
     fill(get());
     sync(get());
     openDialog(dlg, trigger);
   });
 
   /** `n`: how many rents the current filters show (for the "Show N rents" button). */
-  return { sync: (n: number) => sync(get(), n) };
+  return {
+    sync: (n: number) => {
+      sync(get(), n);
+      announce(get(), n);
+    },
+  };
 }

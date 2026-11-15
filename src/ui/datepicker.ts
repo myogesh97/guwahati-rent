@@ -29,5 +29,26 @@ export function attachDatePicker(input: HTMLInputElement, onChange: () => void):
   if (describedBy) alt.setAttribute('aria-describedby', describedBy);
   alt.placeholder = 'Pick a date';
   alt.readOnly = true;
+  // Keyboard: the calendar opens when the field gets focus; Enter, Space or Down then moves into
+  // it on the chosen day (or today), so the arrow keys work at once. flatpickr's own Enter also
+  // submitted the whole form, and its Down jumped a week ahead. Capture phase, so this runs
+  // before flatpickr's handler on the same field. Inside the calendar flatpickr does the rest:
+  // arrows move, Enter picks, Escape closes back to this field.
+  alt.addEventListener(
+    'keydown',
+    (e) => {
+      if (!['Enter', ' ', 'ArrowDown'].includes(e.key)) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      fp.open();
+      const day = (sel: string) => fp.calendarContainer.querySelector<HTMLElement>(sel);
+      (
+        day('.flatpickr-day.selected') ??
+        day('.flatpickr-day.today') ??
+        day('.flatpickr-day:not(.flatpickr-disabled):not(.prevMonthDay)')
+      )?.focus();
+    },
+    { capture: true },
+  );
   return fp;
 }

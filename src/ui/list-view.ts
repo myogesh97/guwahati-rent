@@ -161,6 +161,18 @@ export function setupListView({ onOpen, onOpenBoard, localityName, placeName }: 
       render();
     });
   }
+  // On phones the table scrolls sideways. Browsers don't scroll a focused control that is already
+  // partly visible, so a header or row could sit half off the edge with its focus outline cut.
+  const scroller = section.querySelector<HTMLElement>('.list-scroll')!;
+  section.addEventListener('focusin', (e) => {
+    const r = (e.target as HTMLElement).getBoundingClientRect();
+    const box = scroller.getBoundingClientRect();
+    const pad = 12; // room for the focus outline
+    if (r.left < box.left + pad) scroller.scrollLeft -= box.left + pad - r.left;
+    else if (r.right > box.right - pad)
+      scroller.scrollLeft += Math.min(r.right - (box.right - pad), r.left - (box.left + pad));
+  });
+
   more.addEventListener('click', () => {
     const firstNew = body.rows.length;
     shown += PAGE;

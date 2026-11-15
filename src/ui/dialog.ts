@@ -21,6 +21,19 @@ export function openDialog(dlg: HTMLDialogElement, trigger?: HTMLElement | null)
   target?.focus();
 }
 
+/**
+ * Call just before disabling a busy button. Chrome moves focus to <body> when a focused button
+ * is disabled, so keyboard and screen-reader users lose their place; the returned function puts
+ * focus back on the button once it is usable again (unless focus has moved on meanwhile).
+ */
+export function keepFocus(btn: HTMLButtonElement): () => void {
+  const had = document.activeElement === btn;
+  return () => {
+    const a = document.activeElement;
+    if (had && (!a || a === document.body) && btn.isConnected && !btn.disabled) btn.focus();
+  };
+}
+
 export function closeDialog(dlg: HTMLDialogElement): void {
   if (dlg.open) dlg.close();
 }

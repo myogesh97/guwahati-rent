@@ -179,7 +179,8 @@ if (!BACKEND_READY) {
     for (const btn of li.querySelectorAll<HTMLButtonElement>('[data-act]')) {
       btn.addEventListener('click', async () => {
         const action = btn.dataset.act!;
-        if (action === 'remove_board' && !confirm('Remove this board and delete its photo?')) return;
+        if (action === 'remove_board' && !confirm('Remove this board and delete its photo?'))
+          return;
         li.querySelectorAll('button').forEach((x) => (x.disabled = true));
         try {
           await review({ action, boardId: b.id });
@@ -277,7 +278,7 @@ if (!BACKEND_READY) {
     }
   }
 
-  // Tabs (WAI-ARIA tabs pattern: arrow keys move between tabs).
+  // Tabs (WAI-ARIA tabs pattern: arrow keys move between tabs, Home/End to the first/last).
   const tabs = [$<HTMLButtonElement>('tab-boards'), $<HTMLButtonElement>('tab-reports')];
   function selectTab(t: HTMLButtonElement, focus = false): void {
     for (const x of tabs) {
@@ -291,9 +292,16 @@ if (!BACKEND_READY) {
   for (const t of tabs) {
     t.addEventListener('click', () => selectTab(t));
     t.addEventListener('keydown', (e) => {
-      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
       const i = tabs.indexOf(t);
-      selectTab(tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length], true);
+      const to: Record<string, number> = {
+        ArrowRight: i + 1,
+        ArrowLeft: i + tabs.length - 1,
+        Home: 0,
+        End: tabs.length - 1,
+      };
+      if (!(e.key in to)) return;
+      e.preventDefault();
+      selectTab(tabs[to[e.key] % tabs.length], true);
     });
   }
 
