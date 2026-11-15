@@ -18,7 +18,7 @@
     # To-Let photos), challenges.cloudflare.com (Turnstile script + iframe), blob: (photo previews),
     # data: (one CSS image), 'unsafe-inline' styles (style="" attributes in index.html).
     # If the Supabase project URL changes, change it here too.
-    Content-Security-Policy = "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://apgdczuofczobxaggsfy.supabase.co; connect-src 'self' https://apgdczuofczobxaggsfy.supabase.co https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; child-src 'self' blob: https://challenges.cloudflare.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://ngssgjuagrlyhsvtiwhk.supabase.co; connect-src 'self' https://ngssgjuagrlyhsvtiwhk.supabase.co https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; child-src 'self' blob: https://challenges.cloudflare.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
 # Map tiles: binary, cacheable, must allow Range requests.
 [[headers]]
