@@ -45,6 +45,18 @@ export async function fetchPins(): Promise<PublicPin[]> {
   return pins;
 }
 
+/** Just enough of every public pin to count rents, localities and the newest date (About page). */
+export async function fetchCountRows(): Promise<
+  { locality_slug: string | null; created_at: string }[]
+> {
+  if (!BACKEND_READY) return [];
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/public_pins?select=locality_slug,created_at`, {
+    headers: headers(),
+  });
+  if (!res.ok) throw new ApiError('Could not load counts.', res.status);
+  return (await res.json()) as { locality_slug: string | null; created_at: string }[];
+}
+
 /** Every public column for one pin. `select=*` because public_pins is the security boundary. */
 export async function fetchPinDetails(id: string): Promise<PublicPin> {
   const res = await fetch(
@@ -101,6 +113,18 @@ export const submitPin = (body: Record<string, unknown>) =>
 export const deletePin = (id: string, editToken: string, browserId: string) =>
   callFunction<{ ok: true }>('edit-pin', { id, editToken, action: 'delete', browserId });
 
+/**
+ * Your own pin's answers that public_pins hides (migration 0010): the society name and exact size.
+ * The edit form needs them, or saving would erase them. Only the edit token's holder gets them.
+ */
+export const loadPinPrivate = (id: string, editToken: string, browserId: string) =>
+  callFunction<{ private: { society_name: string | null; sqft: number | null } }>('edit-pin', {
+    id,
+    editToken,
+    browserId,
+    action: 'load',
+  }).then((r) => r.private);
+
 /** Same answers and validation as submitPin; the location stays as pinned (NEXT-PHASES §4.7). */
 export const updatePin = (
   id: string,
@@ -125,6 +149,8 @@ export const reportPin = (body: {
   message?: string;
   browserId: string;
   turnstileToken: string;
+  /** The ticked consent box (PHASE-2C §2c.1-C); the function checks it from 2c.2. */
+  consent: true;
 }) => callFunction<{ already: boolean }>('report-pin', body);
 
 // ---------- Stats (medians only; the views drop buckets under 3 pins) ----------
@@ -204,6 +230,7 @@ export const requestToletUpload = (body: {
   lat: number;
   lng: number;
   ext: ToletExt;
+  consent: true;
 }) => callFunction<ToletUpload>('tolet-upload-url', body);
 
 /**
@@ -232,8 +259,9 @@ export async function uploadToSignedUrl(url: string, blob: Blob): Promise<void> 
   }
 }
 
+// Only called after the consent box was ticked, so both send consent: true.
 export const submitTolet = (boardId: string, browserId: string) =>
-  callFunction<{ boardId: string }>('submit-tolet', { boardId, browserId });
+  callFunction<{ boardId: string }>('submit-tolet', { boardId, browserId, consent: true });
 
 export const reportTolet = (boardId: string, browserId: string, turnstileToken: string) =>
-  callFunction<{ ok: true }>('report-tolet', { boardId, browserId, turnstileToken });
+  callFunction<{ ok: true }>('report-tolet', { boardId, browserId, turnstileToken, consent: true });

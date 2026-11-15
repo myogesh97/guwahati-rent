@@ -1176,7 +1176,40 @@ body.view-list .map-hint {
   font-size: var(--t-14);
 }
 
+/* Live counts from the database (PHASE-2C §2c.1-E); hidden below the minimum. */
+.live-counts {
+  margin: var(--s3) 0 0;
+  font-size: var(--t-14);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ============================== forms ============================== */
+/* Explicit consent (PHASE-2C §2c.1-C): a real, unticked checkbox; the whole line is the tap
+   target. The policy links sit outside the label and are tied to the box by aria-describedby. */
+.consent {
+  margin: var(--s4) 0 0;
+}
+.consent-label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s2);
+  min-height: var(--tap);
+  font-size: var(--t-14);
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+}
+.consent-label input {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--teal);
+}
+.consent .help {
+  margin: 0 0 0 28px;
+}
 /* Sections are separated by space and a heading, never by boxes. */
 .form-section {
   margin-top: var(--s7);
@@ -1672,6 +1705,9 @@ span.flatpickr-weekday {
 .not-available strong {
   color: var(--ink);
   font-weight: 600;
+}
+.not-available .link-btn {
+  display: block;
 }
 .note-warn {
   background: var(--warn-tint);

@@ -32,7 +32,7 @@ Status on 12 Nov 2026: ☐ open · ☑ done and verified · ◐ done in code, no
 ## 3. Legal, privacy and trust
 
 - ☐ Contact email added to the Privacy page and monitored (GAP P0-4).
-- ☐ Privacy and Terms reviewed under the DPDP Act 2023. Retention, backups, the Frankfurt region, the grievance contact and takedown all need wording (GAP P0-5).
+- ☐ Privacy and Terms reviewed under the DPDP Act 2023. Retention, backups, the South Asia (Mumbai) region, the grievance contact and takedown all need wording (GAP P0-5).
 - ☐ Moderation routine written down: who reviews To-Let photos and reported pins, and how often (GAP P1-5).
 - ☑ Privacy page reachable from every page and from the rent form (footer + form link, in this change).
 - ☑ Disclaimers in place: rents unverified, conditions are one renter's report, waterlogging is not official flood data, "never pay before seeing the flat".

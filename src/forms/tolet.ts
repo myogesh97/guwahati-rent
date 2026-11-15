@@ -40,6 +40,8 @@ export function setupToletForm({ pickOnMap, onUploaded }: Options) {
   const error = $('tolet-error');
   const submit = $<HTMLButtonElement>('tolet-submit');
   const turnstile = new TurnstileWidget($('tolet-turnstile'));
+  // Explicit consent (PHASE-2C §2c.1-C): the submit button needs a photo, a spot and this box.
+  const consent = $<HTMLInputElement>('tolet-consent');
 
   /** The upload copies; null until compression (after the preview) has finished. */
   let photo: Compressed | null = null;
@@ -53,7 +55,7 @@ export function setupToletForm({ pickOnMap, onUploaded }: Options) {
   let locMsg = '';
 
   const sync = () => {
-    submit.disabled = busy || !photo || !spot;
+    submit.disabled = busy || !photo || !spot || !consent.checked;
     pick.disabled = busy;
     clear.hidden = !shown || busy;
     pickLabel.textContent = shown ? 'Take it again' : 'Take a photo';
@@ -91,6 +93,7 @@ export function setupToletForm({ pickOnMap, onUploaded }: Options) {
   }
 
   function reset(): void {
+    consent.checked = false;
     removePhoto();
     spot = null;
     busy = false;
@@ -187,6 +190,7 @@ export function setupToletForm({ pickOnMap, onUploaded }: Options) {
     pick.focus(); // the Remove button has just disappeared
   });
 
+  consent.addEventListener('change', sync);
   pick.addEventListener('click', () => file.click());
   tap.addEventListener('click', () => {
     locating++;
@@ -195,7 +199,7 @@ export function setupToletForm({ pickOnMap, onUploaded }: Options) {
   });
 
   submit.addEventListener('click', async () => {
-    if (!photo || !spot || busy) return;
+    if (!photo || !spot || busy || !consent.checked) return;
     const refocus = keepFocus(submit);
     busy = true;
     showError(null);
@@ -212,6 +216,7 @@ export function setupToletForm({ pickOnMap, onUploaded }: Options) {
         lat: spot.lat,
         lng: spot.lng,
         ext: photo.ext,
+        consent: true,
       });
       say('Uploading the photo…');
       await Promise.all([

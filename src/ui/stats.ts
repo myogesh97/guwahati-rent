@@ -1,6 +1,8 @@
 // #dlg-stats (NEXT-PHASES §4.4). Medians only; the views/function already drop groups with
-// fewer than 3 rents and (migration 0007) anything older than 18 months.
+// fewer than POLICY.minSample rents and (migration 0007) anything older than the stats window.
+// Every median is shown with its sample size and the window (PHASE-2C §2c.1-A).
 import { ApiError, fetchAreaStats, fetchCityStats, fetchLocalityStats } from '../api';
+import { POLICY } from '../config';
 import { escapeHtml, homeLabel, rupees } from '../format';
 import type { CityStat, PublicPin } from '../types';
 import { $dialog, openDialog } from './dialog';
@@ -20,8 +22,10 @@ const table = (caption: string, head: string[], rows: string[][]) =>
         `<tr>${r.map((c, i) => (i ? `<td class="num">${c}</td>` : `<th scope="row">${c}</th>`)).join('')}</tr>`,
     )
     .join('')}</tbody></table></div>`;
+const WINDOW = `last ${POLICY.statsWindowMonths} months`;
+const BASED_ON = `Based on (${WINDOW})`;
 const none = (what: string) =>
-  `<p class="fine">Not enough rents ${what} yet. A group needs at least 3 rents from the last 18 months.</p>`;
+  `<p class="fine">Not enough rents ${what} yet. A group needs at least ${POLICY.minSample} rents from the ${WINDOW}.</p>`;
 const failed = (e: unknown) =>
   `<p class="fine">${escapeHtml(e instanceof ApiError ? e.message : 'Could not load these numbers.')}</p>`;
 
@@ -62,7 +66,7 @@ export function setupStats({
       area.innerHTML = rows.length
         ? table(
             'Median rent by bedrooms in the area on screen',
-            ['Home', 'Median rent', 'Based on'],
+            ['Home', 'Median rent', BASED_ON],
             rows.map((r) => [bhkLabel(r.bhk), rupees(r.median_rent), plural(r.n)]),
           )
         : none('in this area');
@@ -84,7 +88,7 @@ export function setupStats({
       city.innerHTML = rows.length
         ? table(
             'Median rent across Guwahati by type of home and gated society',
-            ['Home', 'Gated', 'Median rent', 'Based on'],
+            ['Home', 'Gated', 'Median rent', BASED_ON],
             rows.map((r) => [
               escapeHtml(
                 homeLabel({
@@ -116,7 +120,7 @@ export function setupStats({
       locs.innerHTML = rows.length
         ? table(
             'Median rent by locality and bedrooms',
-            ['Locality', 'Home', 'Median rent', 'Water comes in*', 'Based on'],
+            ['Locality', 'Home', 'Median rent', 'Water comes in*', BASED_ON],
             rows.map((r) => [
               escapeHtml(localityName(r.locality_slug)),
               bhkLabel(r.bhk),

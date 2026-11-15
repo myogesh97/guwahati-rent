@@ -3,7 +3,8 @@
 
 const TOKENS_KEY = 'gr.editTokens';
 const BROWSER_KEY = 'gr.browserId';
-const CONSENT_KEY = 'gr.consent.v1';
+// Old name kept so returning visitors don't see the welcome again.
+const WELCOME_KEY = 'gr.consent.v1';
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -50,5 +51,6 @@ export function forgetEditToken(pinId: string): void {
   write(TOKENS_KEY, all);
 }
 
-export const hasConsented = (): boolean => read<boolean>(CONSENT_KEY, false);
-export const recordConsent = (): void => write(CONSENT_KEY, true);
+/** The welcome was shown and closed once. It is not consent: each form asks for that. */
+export const hasSeenWelcome = (): boolean => read<boolean>(WELCOME_KEY, false);
+export const markWelcomeSeen = (): void => write(WELCOME_KEY, true);

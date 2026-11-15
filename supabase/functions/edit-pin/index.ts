@@ -1,5 +1,7 @@
 // SPEC §7.3 edit-pin: the browser holding a pin's edit token can delete it, or (NEXT-PHASES §4.7)
 // update its answers with exactly the same validation as submit-pin. Location stays as pinned.
+// `load` gives the token holder back the two answers public_pins hides since migration 0010
+// (society name, exact size), so the edit form can show them and saving doesn't erase them.
 // mark_rented / renew arrive with listings in Phase 3.
 import { z } from 'npm:zod@3';
 import { admin } from '../_shared/supabase.ts';
@@ -15,6 +17,7 @@ const Auth = {
 };
 const Body = z.discriminatedUnion('action', [
   z.object({ ...Auth, action: z.literal('delete') }),
+  z.object({ ...Auth, action: z.literal('load') }),
   PinFields.extend({ ...Auth, action: z.literal('update') }),
 ]);
 
@@ -44,7 +47,7 @@ Deno.serve(async (req) => {
 
     const { data: pin, error } = await admin
       .from('pins')
-      .select('id, edit_token_hash, status, kind')
+      .select('id, edit_token_hash, status, kind, society_name, sqft')
       .eq('id', body.id)
       .maybeSingle();
     if (error) throw error;
@@ -52,6 +55,10 @@ Deno.serve(async (req) => {
     // Same message for "not found" and "wrong token" so ids can't be probed.
     if (!pin || pin.status === 'archived' || !safeEqual(pin.edit_token_hash, await sha256(body.editToken))) {
       return fail(req, 403, 'You can only change pins added from this device.');
+    }
+
+    if (body.action === 'load') {
+      return ok(req, { private: { society_name: pin.society_name, sqft: pin.sqft } });
     }
 
     if (body.action === 'delete') {

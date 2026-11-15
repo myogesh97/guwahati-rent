@@ -144,12 +144,15 @@ class Page {
       });
   }
   async key(key) {
+    const codes = { Escape: ['Escape', 27], Tab: ['Tab', 9], ' ': ['Space', 32] };
+    const [code, vk] = codes[key] ?? [key, 0];
     for (const type of ['keyDown', 'keyUp'])
       await this.send('Input.dispatchKeyEvent', {
         type,
         key,
-        code: key,
-        windowsVirtualKeyCode: key === 'Escape' ? 27 : 0,
+        code,
+        windowsVirtualKeyCode: vk,
+        ...(type === 'keyDown' && key === ' ' ? { text: ' ' } : {}),
       });
   }
   async close() {
@@ -307,7 +310,15 @@ async function prodViewport([width, height]) {
   await p.send('Page.navigate', { url: `${PREVIEW}/` });
   const welcome = await p.waitFor(`document.getElementById('dlg-welcome')?.open`, 15000);
   record(g, 'welcome dialog on first visit', welcome ? 'PASS' : 'FAIL');
-  if (welcome) await p.click('#welcome-ok');
+  const asks = await p.eval(`/agree/i.test(document.getElementById('dlg-welcome').textContent)`);
+  record(g, 'welcome asks for no agreement (PHASE-2C 2c.1-C)', asks ? 'FAIL' : 'PASS');
+  if (welcome) {
+    // Esc dismisses it like any dialog: nothing to accept, the map is never gated.
+    await p.key('Escape');
+    const gone = await p.waitFor(`!document.getElementById('dlg-welcome').open`, 3000);
+    record(g, 'Esc dismisses the welcome', gone ? 'PASS' : 'FAIL');
+    if (!gone) await p.click('#welcome-ok');
+  }
   const ready = await p.waitFor(MAP_READY, 40000);
   record(
     g,
@@ -374,6 +385,15 @@ async function prodViewport([width, height]) {
       g,
       'list row opens the pin card; focus moves into it',
       card && focusIn ? 'PASS' : 'FAIL',
+    );
+    const card2 = await p.eval(`(() => { const t = document.getElementById('pin-body').textContent;
+      return { tenant: /This is what a tenant pays\. It is not a listing\./.test(t),
+        boards: !!document.getElementById('pin-boards') }; })()`);
+    record(
+      g,
+      'pin card: "what a tenant pays" line + To-Let link (2c.1-B)',
+      card2.tenant && card2.boards ? 'PASS' : 'FAIL',
+      JSON.stringify(card2),
     );
     await p.key('Escape');
     const closed = await p.waitFor(`!document.getElementById('dlg-pin').open`, 3000);
@@ -463,6 +483,8 @@ async function prodViewport([width, height]) {
     await p.key('Escape');
   }
 
+  if (width === 390 || width === 1366) await consentKeyboard(p, g, touch);
+
   const perf = await p.eval(`window.__perf`);
   record(
     g,
@@ -512,6 +534,69 @@ async function prodViewport([width, height]) {
     writes.join('; '),
   );
   await p.close();
+}
+
+/**
+ * Explicit consent (PHASE-2C 2c.1-C), keyboard only: on the rent form the submit button is
+ * disabled; Tab from the control before the box lands on it, Space ticks it, the button enables.
+ * The box is labelled and described by the policy links. Nothing is submitted.
+ */
+async function consentKeyboard(p, g, touch) {
+  const add = touch ? '#btn-add' : '#btn-add-top';
+  if (!(await p.eval(`!document.querySelector('${add}').hidden`))) {
+    record(g, 'consent (keyboard)', 'NOT RUN', 'adding pins is off (no backend in .env)');
+    return;
+  }
+  await p.click(add);
+  await p.waitFor(`!document.getElementById('placement-banner').hidden`, 3000);
+  await p.click('#placement-use');
+  const open = await p.waitFor(`document.getElementById('dlg-rent-pin').open`, 5000);
+  const before = await p.eval(`(() => {
+    const box = document.getElementById('rent-consent');
+    const els = [...document.querySelectorAll('#rent-form :is(input, button, a[href], select, textarea, summary)')]
+      .filter((e) => !e.disabled && e.checkVisibility());
+    const prev = els[els.indexOf(box) - 1];
+    prev.focus();
+    const desc = (box.getAttribute('aria-describedby') || '').split(' ').map((id) => document.getElementById(id)?.textContent ?? '').join(' ');
+    return { prev: prev?.outerHTML.slice(0, 80), checked: box.checked, disabled: document.getElementById('rent-submit').disabled,
+      label: box.labels[0]?.textContent.replace(/\\s+/g, ' ').trim(), desc: desc.replace(/\\s+/g, ' ').trim() };
+  })()`);
+  await p.key('Tab');
+  const onBox = await p.eval(`document.activeElement?.id === 'rent-consent'`);
+  await p.key(' ');
+  const after = await p.eval(
+    `({ checked: document.getElementById('rent-consent').checked, disabled: document.getElementById('rent-submit').disabled })`,
+  );
+  record(
+    g,
+    'consent: unticked, submit disabled; Tab reaches the box, Space ticks it, submit enables',
+    open && !before.checked && before.disabled && onBox && after.checked && !after.disabled
+      ? 'PASS'
+      : 'FAIL',
+    JSON.stringify({
+      open,
+      before: { ...before, label: undefined, desc: undefined },
+      onBox,
+      after,
+    }),
+  );
+  record(
+    g,
+    'consent: labelled; aria-describedby names the Privacy Policy and Terms links',
+    /^I agree to the Privacy Policy and Terms\. My rent is shared anonymously\.$/.test(
+      before.label,
+    ) &&
+      /Privacy Policy/.test(before.desc) &&
+      /Terms/.test(before.desc)
+      ? 'PASS'
+      : 'FAIL',
+    `${before.label} | ${before.desc}`,
+  );
+  await p.key(' ');
+  const unticked = await p.eval(`document.getElementById('rent-submit').disabled`);
+  record(g, 'consent: unticking disables submit again', unticked ? 'PASS' : 'FAIL');
+  await p.key('Escape');
+  await p.waitFor(`!document.getElementById('dlg-rent-pin').open`, 3000);
 }
 
 // ---------- dev server: demo modes ----------
@@ -564,6 +649,30 @@ async function demo(scenario, [width, height]) {
     filterMs < 50 && list.ms < 100 && list.rows > 0 ? 'PASS' : 'FAIL',
     `filter ${filterMs.toFixed(1)} ms, list ${list.sync.toFixed(1)} ms to render, ${list.ms.toFixed(1)} ms to paint ${list.rows} rows; ${list.count}; ${list.url}`,
   );
+  // Pin cards (PHASE-2C 2c.1-B), on fictional pins since production may hold none yet: the
+  // tenant line, and never a society name (demo flats often have "Demo Apartments N").
+  if (scenario === 'normal') {
+    const cards = await p.eval(`(async () => {
+      const out = { opened: 0, tenant: 0, society: 0 };
+      const rows = [...document.querySelectorAll('#list-body .row-open')].slice(0, 12);
+      for (const b of rows) {
+        b.click();
+        for (let i = 0; i < 50 && !/₹/.test(document.getElementById('pin-body').textContent); i++)
+          await new Promise((r) => setTimeout(r, 20));
+        const t = document.getElementById('pin-body').textContent;
+        out.opened++;
+        if (/This is what a tenant pays\. It is not a listing\./.test(t)) out.tenant++;
+        if (/Demo Apartments/.test(t)) out.society++;
+        document.getElementById('dlg-pin').close();
+      }
+      return out; })()`);
+    record(
+      g,
+      'pin cards: tenant line on each, no society name (2c.1-B)',
+      cards.opened > 0 && cards.tenant === cards.opened && cards.society === 0 ? 'PASS' : 'FAIL',
+      JSON.stringify(cards),
+    );
+  }
   await p.eval(
     `document.getElementById('btn-view-map').click(); document.getElementById('filters-clear').click(); true`,
   );

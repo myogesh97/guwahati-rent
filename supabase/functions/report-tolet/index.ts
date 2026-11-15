@@ -6,6 +6,7 @@ import { verifyTurnstile } from '../_shared/turnstile.ts';
 import { withinRateLimit } from '../_shared/ratelimit.ts';
 import { clientIp, ipHash, saltedHash } from '../_shared/crypto.ts';
 import { fail, ok, preflight, readJson } from '../_shared/http.ts';
+import { requireConsent } from '../_shared/consent.ts';
 
 const Body = z.object({
   boardId: z.string().uuid(),
@@ -18,7 +19,10 @@ Deno.serve(async (req) => {
   if (early) return early;
 
   try {
-    const parsed = Body.safeParse(await readJson(req));
+    const raw = await readJson(req);
+    const noConsent = requireConsent(req, raw); // PHASE-2C §2c.2-C
+    if (noConsent) return noConsent;
+    const parsed = Body.safeParse(raw);
     if (!parsed.success) {
       const fields = [...new Set(parsed.error.issues.map((i) => String(i.path[0] ?? 'body')))];
       console.warn('report-tolet validation failed:', fields.join(', '));
@@ -47,7 +51,12 @@ Deno.serve(async (req) => {
 
     const { error: insErr } = await admin
       .from('tolet_reports')
-      .insert({ board_id: boardId, reporter_hash: await saltedHash(browserId), ip_hash: await ipHash(req) });
+      .insert({
+        board_id: boardId,
+        reporter_hash: await saltedHash(browserId),
+        ip_hash: await ipHash(req),
+        consented_at: new Date().toISOString(),
+      });
     // 23505 = this browser (or this IP, 0008) already reported this board. Counted once; answer ok anyway.
     if (insErr && insErr.code !== '23505') throw insErr;
 

@@ -11,9 +11,13 @@ import {
   waterlogSummary,
   NO_BHK_TYPES,
   WATER_SCHEDULED,
+  sqftBand,
 } from '../../supabase/functions/_shared/rules';
 import type { PublicPin } from '../types';
 import { EXTRA_ANCHORS } from './anchors';
+
+/** Draws a value (so the random sequence, and every later answer, stays the same) and drops it. */
+const discard = (_drawn: unknown): null => null;
 
 export const DEMO_PREFIX = 'demo-';
 export const isDemoId = (id: string): boolean => id.startsWith(DEMO_PREFIX);
@@ -348,13 +352,14 @@ function formPin(rand: () => number, i: number) {
     gated: (type === 'flat' ? 0.45 : 0.1) > rand(),
     parking_cars:
       type === 'flat' || type === 'independent' ? pick(rand, [0, 1, 2, 3], [42, 42, 13, 3]) : 0,
-    society_name: maybe(
-      rand,
-      type === 'flat' ? 0.4 : 0.05,
-      () => `Demo Apartments ${(i % 60) + 1}`,
+    // Like public_pins since migration 0010: no society name (each demo flat would be alone in
+    // its "society"), and size only as a range. The draw stays so the other answers don't shift.
+    society_name: discard(
+      maybe(rand, type === 'flat' ? 0.4 : 0.05, () => `Demo Apartments ${(i % 60) + 1}`),
     ),
     deposit_months: maybe(rand, 0.75, () => pick(rand, [0, 1, 2, 3, 6, 10], [6, 38, 38, 12, 5, 1])),
-    sqft: maybe(rand, 0.55, () => between(rand, smin, smax, 10)),
+    sqft: null,
+    sqft_band: sqftBand(maybe(rand, 0.55, () => between(rand, smin, smax, 10))),
     occupants: maybe(rand, 0.6, () => pick(rand, ['family', 'bachelor'] as const)),
     maintenance_incl: maintIncl,
     maintenance_amount: maybe(rand, 0.7, () => between(rand, 300, 3000, 100)),

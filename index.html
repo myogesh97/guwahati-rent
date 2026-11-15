@@ -232,7 +232,7 @@
           <div class="placement-copy">
             <p id="placement-text">
               <strong>Move the map until the pin is on your home.</strong> A nearby spot is fine. We
-              round it to about 100 m.
+              round it to about %POLICY.pinRoundingM% m.
             </p>
             <p id="placement-keys" class="placement-keys">
               With a keyboard: Shift+Tab to the map and move it with the arrow keys.
@@ -320,23 +320,25 @@
       </div>
     </main>
 
-    <!-- Welcome + consent ------------------------------------------------------>
+    <!-- Welcome: an introduction only. It asks for no agreement and never blocks the map
+         (PHASE-2C §2c.1-C); consent is a checkbox on each form. -->
     <dialog id="dlg-welcome" class="dlg" aria-labelledby="welcome-title">
-      <div class="dlg-body">
+      <div class="dlg-head">
         <h2 id="welcome-title">What do people in Guwahati actually pay?</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+      </div>
+      <div class="dlg-body">
         <p>
           Brokers quote high. This map shows the rents real tenants pay, shared anonymously. Look
           around, then add yours. It takes 30 seconds and helps the next person who's flat-hunting.
         </p>
         <ul class="ticks">
           <li>No login, no name, no phone number needed to pin your rent</li>
-          <li>Locations are rounded to about 100 m</li>
+          <li>Locations are rounded to about %POLICY.pinRoundingM% m</li>
           <li>Free. No brokers.</li>
         </ul>
-        <p class="fine">
-          By continuing you agree to our <a href="/privacy.html">Privacy Policy</a> and
-          <a href="/terms.html">Terms</a>.
-        </p>
+        <!-- Filled from the database at run time; stays hidden below %POLICY.liveCountsMin% rents. -->
+        <p class="live-counts" id="welcome-counts" hidden></p>
       </div>
       <div class="dlg-actions">
         <button type="button" class="btn btn-primary" id="welcome-ok">Show me the map</button>
@@ -789,7 +791,13 @@
                   type="text"
                   maxlength="120"
                   autocomplete="off"
+                  aria-describedby="society-help err-society_name"
                 />
+                <p class="help" id="society-help">
+                  No flat or house number. Shown only once %POLICY.societyMinPins% or more rents
+                  within %POLICY.societyRadiusM% metres give the same name.
+                </p>
+                <p class="field-error" id="err-society_name" hidden></p>
               </div>
             </div>
             <div class="field-row">
@@ -857,13 +865,37 @@
               </button>
             </div>
           </div>
-          <div class="turnstile" id="rent-turnstile" role="group" aria-label="Spam check"></div>
           <p class="fine">
-            Everything on this form is shown on the map, without your name.
-            <a href="/privacy.html" target="_blank" rel="noopener"
-              >Privacy Policy<span class="sr-only"> (opens in a new tab)</span></a
-            >
+            Everything on this form is shown on the map, without your name. Two exceptions: the size
+            only as a range, and the building name only once %POLICY.societyMinPins% or more rents
+            nearby give it.
           </p>
+          <div class="consent" id="rent-consent-box">
+            <label class="consent-label"
+              ><input
+                type="checkbox"
+                id="rent-consent"
+                name="consent"
+                value="true"
+                required
+                aria-describedby="rent-consent-links"
+              />
+              <span
+                >I agree to the Privacy Policy and Terms. My rent is shared anonymously.</span
+              ></label
+            >
+            <p class="help" id="rent-consent-links">
+              Read the
+              <a href="/privacy.html" target="_blank" rel="noopener"
+                >Privacy Policy<span class="sr-only"> (opens in a new tab)</span></a
+              >
+              and
+              <a href="/terms.html" target="_blank" rel="noopener"
+                >Terms<span class="sr-only"> (opens in a new tab)</span></a
+              >.
+            </p>
+          </div>
+          <div class="turnstile" id="rent-turnstile" role="group" aria-label="Spam check"></div>
         </div>
         <div class="dlg-actions">
           <button type="button" class="btn btn-ghost" id="rent-move">Move pin</button>
@@ -931,12 +963,37 @@
             ></textarea>
             <p class="help" id="report-count">0 / 300. Only moderators see this.</p>
           </div>
+          <div class="consent" id="report-consent-box">
+            <label class="consent-label"
+              ><input
+                type="checkbox"
+                id="report-consent"
+                name="consent"
+                value="true"
+                required
+                aria-describedby="report-consent-links"
+              />
+              <span
+                >I agree to the Privacy Policy and Terms. My report is sent anonymously.</span
+              ></label
+            >
+            <p class="help" id="report-consent-links">
+              Read the
+              <a href="/privacy.html" target="_blank" rel="noopener"
+                >Privacy Policy<span class="sr-only"> (opens in a new tab)</span></a
+              >
+              and
+              <a href="/terms.html" target="_blank" rel="noopener"
+                >Terms<span class="sr-only"> (opens in a new tab)</span></a
+              >.
+            </p>
+          </div>
           <div class="turnstile" id="report-turnstile" role="group" aria-label="Spam check"></div>
           <p id="report-error" class="form-error" role="alert" hidden></p>
         </div>
         <div class="dlg-actions">
           <button type="button" class="btn btn-ghost" data-close>Cancel</button>
-          <button type="submit" class="btn btn-primary" id="report-submit">Report</button>
+          <button type="submit" class="btn btn-primary" id="report-submit" disabled>Report</button>
         </div>
       </form>
     </dialog>
@@ -961,7 +1018,10 @@
             <div class="seg seg-grid cols-4" role="radiogroup">
               <label><input type="radio" name="since" value="30d" /> 30 days</label>
               <label><input type="radio" name="since" value="6m" /> 6 months</label>
-              <label><input type="radio" name="since" value="18m" /> 18 months</label>
+              <label
+                ><input type="radio" name="since" value="18m" /> %POLICY.statsWindowMonths%
+                months</label
+              >
               <label><input type="radio" name="since" value="all" /> All</label>
             </div>
             <p class="help">Older rents stay on the site but are hidden by default.</p>
@@ -1053,7 +1113,7 @@
       </form>
     </dialog>
 
-    <!-- Stats (NEXT-PHASES §4.4): medians only, buckets with 3+ rents, last 18 months. -->
+    <!-- Stats (NEXT-PHASES §4.4): medians only, each with its sample size and window. -->
     <dialog id="dlg-stats" class="dlg dlg-tall" aria-labelledby="stats-title">
       <div class="dlg-head">
         <h2 id="stats-title">What people pay</h2>
@@ -1061,8 +1121,9 @@
       </div>
       <div class="dlg-body" id="stats-body" tabindex="0" role="region" aria-label="Rent medians">
         <p class="hint-sub">
-          Medians (the middle rent), from rents pinned in the last 18 months. A group needs at least
-          3 rents to be shown.
+          Medians (the middle rent), from rents pinned in the last %POLICY.statsWindowMonths%
+          months. A group needs at least %POLICY.minSample% rents to be shown. Unusual rents are
+          left out.
         </p>
         <h3 class="kvs-title">In the area on your screen</h3>
         <div id="stats-area" aria-live="polite"></div>
@@ -1110,8 +1171,33 @@
         <p id="tolet-status" class="tolet-status" role="status" aria-live="polite"></p>
         <p class="fine">
           Try to keep faces and number plates out of the photo. Every photo is checked before it
-          appears, and removed after 60 days.
+          appears, and removed after %POLICY.boardExpiryDays% days.
         </p>
+        <div class="consent" id="tolet-consent-box">
+          <label class="consent-label"
+            ><input
+              type="checkbox"
+              id="tolet-consent"
+              name="consent"
+              value="true"
+              required
+              aria-describedby="tolet-consent-links"
+            />
+            <span
+              >I agree to the Privacy Policy and Terms. My photo is shared anonymously.</span
+            ></label
+          >
+          <p class="help" id="tolet-consent-links">
+            Read the
+            <a href="/privacy.html" target="_blank" rel="noopener"
+              >Privacy Policy<span class="sr-only"> (opens in a new tab)</span></a
+            >
+            and
+            <a href="/terms.html" target="_blank" rel="noopener"
+              >Terms<span class="sr-only"> (opens in a new tab)</span></a
+            >.
+          </p>
+        </div>
         <div class="turnstile" id="tolet-turnstile" role="group" aria-label="Spam check"></div>
         <p id="tolet-error" class="form-error" role="alert" hidden></p>
       </div>
@@ -1135,13 +1221,41 @@
           <span class="board-photo-hint" id="board-photo-hint">Tap to see the full photo</span>
         </button>
         <p class="board-meta" id="board-meta"></p>
+        <p class="note-warn" id="board-stale" hidden>
+          Spotted %POLICY.boardStaleDays%+ days ago, may be gone
+        </p>
         <p class="fine">
           Call the number on the board. Verify with the owner. Never pay before seeing the flat.
         </p>
         <div id="board-report" hidden>
           <p class="fine">
-            Is the board no longer there? Confirm the spam check, then press again.
+            Is the board no longer there? Tick the box, confirm the spam check, then press again.
           </p>
+          <div class="consent" id="board-consent-box">
+            <label class="consent-label"
+              ><input
+                type="checkbox"
+                id="board-consent"
+                name="consent"
+                value="true"
+                required
+                aria-describedby="board-consent-links"
+              />
+              <span
+                >I agree to the Privacy Policy and Terms. My report is sent anonymously.</span
+              ></label
+            >
+            <p class="help" id="board-consent-links">
+              Read the
+              <a href="/privacy.html" target="_blank" rel="noopener"
+                >Privacy Policy<span class="sr-only"> (opens in a new tab)</span></a
+              >
+              and
+              <a href="/terms.html" target="_blank" rel="noopener"
+                >Terms<span class="sr-only"> (opens in a new tab)</span></a
+              >.
+            </p>
+          </div>
           <div class="turnstile" id="board-turnstile" role="group" aria-label="Spam check"></div>
         </div>
         <p id="board-status" class="tolet-status" role="status" aria-live="polite"></p>

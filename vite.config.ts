@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { resolve } from 'path';
+import { fillHtml } from './src/html-vars';
 
 /** Pages that search engines may index, for sitemap.xml. admin, unsubscribe and 404 are noindex. */
 const PUBLIC_PAGES = ['/', '/about.html', '/privacy.html', '/terms.html'];
@@ -7,7 +8,8 @@ const FALLBACK_SITE_URL = 'https://guwahati-rent.netlify.app';
 
 /**
  * Site-level SEO plumbing (PROJECT_GAP_ANALYSIS.md P1-3, P2-1):
- *  - `%SITE_URL%` in HTML becomes VITE_SITE_URL (canonical / og:url / og:image need absolute URLs)
+ *  - `%SITE_URL%` in HTML becomes VITE_SITE_URL (canonical / og:url / og:image need absolute URLs);
+ *    `%POLICY.<key>%` becomes the number from src/config.ts (PHASE-2C §2c.1-G), see src/html-vars.ts
  *  - robots.txt + sitemap.xml are generated into dist/ with the same origin
  *  - the map chunk and MapLibre worker get `<link rel="prefetch">` so the lazy map starts
  *    downloading right after the shell paints instead of after main.js has run
@@ -18,7 +20,7 @@ function site(siteUrl: string): Plugin {
     transformIndexHtml: {
       order: 'post',
       handler(html, ctx) {
-        let out = html.replaceAll('%SITE_URL%', siteUrl);
+        let out = fillHtml(html, siteUrl);
         if (ctx.bundle && ctx.filename.endsWith('index.html')) {
           const links = Object.values(ctx.bundle)
             .filter(

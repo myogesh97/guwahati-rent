@@ -1,5 +1,6 @@
 // Shared, dependency-free rules used by BOTH the browser (src/) and Edge Functions.
-// Keep this file free of Deno/DOM globals and imports so both toolchains can load it.
+// Keep this file free of Deno/DOM globals; it imports only pii.ts, which follows the same rule.
+import { PII_MESSAGE, scrubPublicText } from './pii.ts';
 // SPEC §2 (bbox), §10 (plausibility bands).
 
 export const BBOX = { minLng: 91.55, minLat: 26.05, maxLng: 91.95, maxLat: 26.25 } as const;
@@ -189,41 +190,31 @@ export const cleanMessage = (s: string | undefined | null): string | null => {
   return t ? t.slice(0, REPORT_MESSAGE_MAX) : null;
 };
 
-// ---------- public free text (SECURITY_AUDIT_REPORT.md M-3) ----------
+// ---------- size buckets (migration 0010, PHASE-2C §2c.2-B) ----------
+/** public_pins never shows an exact size, only one of these. Same buckets as 0010's sqft_band. */
+export const SQFT_BANDS = ['lt500', '500_800', '800_1200', '1200_plus'] as const;
+export type SqftBand = (typeof SQFT_BANDS)[number];
+export function sqftBand(sqft: number | null | undefined): SqftBand | null {
+  if (sqft == null) return null;
+  return sqft < 500 ? 'lt500' : sqft < 800 ? '500_800' : sqft < 1200 ? '800_1200' : '1200_plus';
+}
+
+// ---------- public free text (SECURITY_AUDIT_REPORT.md M-3, PHASE-2C §2c.2-A) ----------
 /** Free-text answers that appear on the public map. They must not carry contact details. */
 export const PUBLIC_TEXT_FIELDS = ['society_name', 'water_note', 'waterlog_note', 'one_liner'] as const;
 
-const EMAIL = /[^\s@]+@[^\s@]+\.[a-z]{2,}/i;
-// Digits with at most one space, dot, dash or bracket between them: "98640 12345", "+91-98640-12345".
-const DIGIT_RUN = /\d(?:[\s.\-()]?\d)+/g;
+export const CONTACT_INFO_MESSAGE = PII_MESSAGE.contact;
+export { hasContactInfo, scrubPublicText } from './pii.ts';
 
-function looksLikePhone(digits: string): boolean {
-  let d = digits;
-  if (d.length === 12 && d.startsWith('91')) d = d.slice(2); // +91 98640 12345
-  else if (d.length === 11 && d.startsWith('0')) return true; // 0361 2345678, 098640 12345
-  return d.length === 10 && /^[6-9]/.test(d); // Indian mobile
-}
-
-/** True when the text holds an email address or an Indian phone number. */
-export function hasContactInfo(s: string): boolean {
-  if (EMAIL.test(s)) return true;
-  for (const [run] of s.matchAll(DIGIT_RUN)) {
-    // The whole run ("98640 12345") and each unbroken block in it ("rent 9000 9864012345").
-    const parts = [run, ...run.split(/[\s.\-()]/)];
-    if (parts.some((x) => looksLikePhone(x.replace(/\D/g, '')))) return true;
-  }
-  return false;
-}
-
-export const CONTACT_INFO_MESSAGE =
-  'Please remove phone numbers and email addresses. Everything here is shown publicly.';
-
-/** One problem per public text field that holds contact details. */
+/**
+ * One problem per public text field that can't be published: contact details or links in any of
+ * them, and also a flat/house/door number in the building or society name.
+ */
 export function contactProblems(
   answers: Partial<Record<(typeof PUBLIC_TEXT_FIELDS)[number], string | null>>,
 ): { field: string; message: string }[] {
-  return PUBLIC_TEXT_FIELDS.filter((f) => {
-    const v = answers[f];
-    return typeof v === 'string' && hasContactInfo(v);
-  }).map((field) => ({ field, message: CONTACT_INFO_MESSAGE }));
+  return PUBLIC_TEXT_FIELDS.flatMap((field) => {
+    const r = scrubPublicText(answers[field], { units: field === 'society_name' });
+    return r.ok ? [] : [{ field, message: r.message }];
+  });
 }

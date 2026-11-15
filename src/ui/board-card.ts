@@ -1,5 +1,6 @@
 // One To-Let board (NEXT-PHASES §2a.8): photo, age, time left (§1b), "Board is gone".
 import { ApiError, boardImageUrl, reportTolet } from '../api';
+import { POLICY } from '../config';
 import { expiresIn, relativeDate } from '../format';
 import { browserId } from '../tokens';
 import type { PublicBoard } from '../types';
@@ -17,6 +18,11 @@ export function setupBoardCard() {
   const status = $('board-status');
   const gone = $<HTMLButtonElement>('board-gone');
   const turnstile = new TurnstileWidget($('board-turnstile'));
+  // Explicit consent (PHASE-2C §2c.1-C): the second press needs the box ticked.
+  const consent = $<HTMLInputElement>('board-consent');
+  consent.addEventListener('change', () => {
+    if (!report.hidden && current && !reported.has(current.id)) gone.disabled = !consent.checked;
+  });
   const reported = new Set<string>();
   let current: PublicBoard | null = null;
 
@@ -42,6 +48,8 @@ export function setupBoardCard() {
     if (report.hidden) {
       report.hidden = false;
       gone.textContent = 'Yes, the board is gone';
+      gone.disabled = !consent.checked;
+      consent.focus(); // the button just became disabled; the box is the next step
       turnstile.mount().catch((e: Error) => (status.textContent = e.message));
       return;
     }
@@ -54,12 +62,12 @@ export function setupBoardCard() {
       await reportTolet(current.id, browserId(), token);
       reported.add(current.id);
       report.hidden = true;
-      status.textContent = 'Thanks. Boards reported gone by 3 people are taken off the map.';
+      status.textContent = `Thanks. Boards reported gone by ${POLICY.reportThreshold} people are taken off the map.`;
       // The button stays disabled (reported); the next step is closing.
       if (document.activeElement === document.body)
         dlg.querySelector<HTMLElement>('.dlg-actions [data-close]')?.focus();
     } catch (e) {
-      gone.disabled = false;
+      gone.disabled = !consent.checked;
       refocus();
       status.textContent = e instanceof ApiError ? e.message : 'Could not send. Please try again.';
       turnstile.reset();
@@ -78,7 +86,11 @@ export function setupBoardCard() {
       photoBtn.disabled = hint.hidden;
       photoBtn.removeAttribute('aria-disabled');
       meta.textContent = `Pinned ${relativeDate(board.created_at)} · ${expiresIn(board.expires_at)}`;
+      // Freshness (PHASE-2C §2c.2-D): old boards stay until they expire, with a warning.
+      $('board-stale').hidden =
+        Date.now() - new Date(board.created_at).getTime() < POLICY.boardStaleDays * 86_400_000;
       report.hidden = true;
+      consent.checked = false;
       gone.textContent = 'Board is gone';
       gone.disabled = reported.has(board.id);
       status.textContent = reported.has(board.id) ? 'You reported this board as gone.' : '';

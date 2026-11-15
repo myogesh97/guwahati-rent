@@ -12,6 +12,7 @@ import { RangeOrWholeSource } from './tiles';
 import {
   CLICKABLE_LAYERS,
   DRAFT_SOURCE,
+  PIN_CLUSTER,
   PIN_SOURCE,
   TAGS,
   TOLET_ICON,
@@ -89,10 +90,7 @@ export async function createMap(container: HTMLElement): Promise<MapView> {
         [PIN_SOURCE]: {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
-          cluster: true,
-          clusterRadius: 40,
-          clusterMaxZoom: 15,
-          clusterProperties: { rentSum: ['+', ['get', 'rent']] },
+          ...PIN_CLUSTER,
           promoteId: 'id',
         },
         [DRAFT_SOURCE]: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },

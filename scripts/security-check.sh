@@ -9,6 +9,9 @@
 # with a private message (Phase 2), so a leak would be visible:
 #   insert into reports (pin_id, reporter_hash, reason, message)
 #   select id, 'security-check', 'other', 'leak-report-message' from pins limit 1;
+# and (Phase 2c) give that one test pin a society name, so it is a group of 1 that must stay hidden:
+#   update pins set society_name = 'Security Check Society' where id = (select pin_id from reports
+#   where reporter_hash = 'security-check');
 # After running:  [HUMAN] delete them.
 # Exit code 0 = every check passed. Any FAIL = STOP and fix before building UI.
 
@@ -192,6 +195,37 @@ done
 req POST "/rest/v1/rpc/area_stats" '{"min_lng":91.5,"min_lat":26.0,"max_lng":92.0,"max_lat":26.3}'
 if grep -q 'leak-report-message' <<<"$BODY"; then fail "2" "report message leaked via area_stats()"; leak=1; fi
 [[ $leak -eq 0 ]] && pass "2" "report messages appear in no public view or function"
+
+# --- Phase 2c: k-anonymity, sizes, consent, PII filter (PHASE-2C §2c.2-E). Needs migration 0010
+# and the redeployed functions. The submit probes fail validation BEFORE Turnstile, the rate limit
+# or any insert, so they never write anything.
+echo
+req GET "/rest/v1/public_pins?select=sqft_band&limit=1"
+if is2xx; then pass "2c" "public_pins has sqft_band (migration 0010 applied)"; else fail "2c" "public_pins has sqft_band (migration 0010 applied)"; fi
+expect_denied_or_empty "2c" "anon cannot read an exact sqft (all NULL)" GET "/rest/v1/public_pins?select=id,sqft&sqft=not.is.null"
+expect_denied_or_empty "2c" "anon cannot read a society name with fewer than 3 pins (the test row)" GET \
+  "/rest/v1/public_pins?select=id,society_name&society_name=eq.Security%20Check%20Society"
+expect_error "2c" "public_pins has no society_key column" GET "/rest/v1/public_pins?select=society_key"
+expect_error "2c" "public_pins has no consented_at column" GET "/rest/v1/public_pins?select=consented_at"
+
+PIN='"kind":"rent","property_type":"flat","bhk":2,"rent":12000,"furnishing":"semi","gated":false,"parking_cars":0,"lat":26.144,"lng":91.736,"turnstileToken":"security-check","browserId":"security-check-browser"'
+# expect_400_field <label> <function> <json body> <field>: HTTP 400 that names <field>.
+expect_400_field() {
+  req POST "/functions/v1/$2" "$3"
+  if [[ "$STATUS" == "400" ]] && grep -q "\"$4\"" <<<"$BODY"; then pass "2c" "$1 (400, $4)"; else fail "2c" "$1"; fi
+}
+expect_400_field "submit-pin without consent is refused" submit-pin "{$PIN}" consent
+expect_400_field "submit-pin with consent:\"true\" (a string) is refused" submit-pin "{$PIN,\"consent\":\"true\"}" consent
+expect_400_field "a society name with a phone number is refused" submit-pin \
+  "{$PIN,\"consent\":true,\"society_name\":\"Sunrise 9864012345\"}" society_name
+expect_400_field "a society name with a flat number is refused" submit-pin \
+  "{$PIN,\"consent\":true,\"society_name\":\"Flat 302, Sunrise Apartments\"}" society_name
+expect_400_field "report-pin without consent is refused" report-pin \
+  '{"pinId":"00000000-0000-0000-0000-000000000000","reason":"other","browserId":"security-check-browser","turnstileToken":"x"}' consent
+expect_400_field "report-tolet without consent is refused" report-tolet \
+  '{"boardId":"00000000-0000-0000-0000-000000000000","browserId":"security-check-browser","turnstileToken":"x"}' consent
+expect_400_field "submit-tolet without consent is refused" submit-tolet \
+  '{"boardId":"00000000-0000-0000-0000-000000000000","browserId":"security-check-browser"}' consent
 
 echo
 if [[ $failures -eq 0 ]]; then

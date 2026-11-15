@@ -9,7 +9,7 @@ const stats = [
 ] as LocalityStat[];
 
 test('asks only above 2× the median, with 5+ pins of the same BHK in the area', () => {
-  assert.equal(highRentMedian(24001, 'beltola', 2, stats), 12000);
+  assert.deepEqual(highRentMedian(24001, 'beltola', 2, stats), { median: 12000, n: 6 });
   assert.equal(highRentMedian(24000, 'beltola', 2, stats), null); // exactly 2× is fine
   assert.equal(highRentMedian(90000, 'dispur', 2, stats), null);
   assert.equal(highRentMedian(90000, 'beltola', 3, stats), null);

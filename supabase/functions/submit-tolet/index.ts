@@ -1,10 +1,14 @@
 // NEXT-PHASES §2a.7 submit-tolet: after both files are uploaded, check them and queue the board
 // for review (status 'uploading' -> 'pending'). Nothing is public until an admin approves it.
+// Needs `consent: true` (PHASE-2C §2c.2-C). Boards have no public text fields any more (2a), so
+// there is nothing for the PII filter here; an upload never finished stays 'uploading' and
+// tolet-maintenance deletes it.
 import { z } from 'npm:zod@3';
 import { admin } from '../_shared/supabase.ts';
 import { withinRateLimit } from '../_shared/ratelimit.ts';
 import { clientIp, safeEqual, saltedHash } from '../_shared/crypto.ts';
 import { fail, ok, preflight, readJson } from '../_shared/http.ts';
+import { requireConsent } from '../_shared/consent.ts';
 import { PRIVATE_BUCKET } from '../_shared/tolet.ts';
 import { inspectImage } from '../_shared/image-check.ts';
 import { TOLET_MAX_BYTES, TOLET_MIME } from '../_shared/rules.ts';
@@ -22,7 +26,10 @@ Deno.serve(async (req) => {
   if (early) return early;
 
   try {
-    const parsed = Body.safeParse(await readJson(req));
+    const raw = await readJson(req);
+    const noConsent = requireConsent(req, raw);
+    if (noConsent) return noConsent;
+    const parsed = Body.safeParse(raw);
     if (!parsed.success) {
       const fields = [...new Set(parsed.error.issues.map((i) => String(i.path[0] ?? 'body')))];
       console.warn('submit-tolet validation failed:', fields.join(', '));
@@ -87,7 +94,7 @@ Deno.serve(async (req) => {
 
     const { data: updated, error: upErr } = await admin
       .from('tolet_boards')
-      .update({ status: 'pending' })
+      .update({ status: 'pending', consented_at: new Date().toISOString() })
       .eq('id', boardId)
       .eq('status', 'uploading') // a double tap can't submit twice
       .select('id');

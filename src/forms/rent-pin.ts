@@ -1,6 +1,14 @@
 // Rent pin form (SPEC §8.7 + living conditions, migration 0003).
 // Browser checks are for convenience; the Edge Function re-checks everything.
-import { submitPin, updatePin, fetchLocalityStats, ApiError, type SubmitPinResult } from '../api';
+import {
+  submitPin,
+  updatePin,
+  fetchLocalityStats,
+  loadPinPrivate,
+  ApiError,
+  type SubmitPinResult,
+} from '../api';
+import { POLICY } from '../config';
 import { highRentMedian } from '../double-check';
 import type { PublicPin } from '../types';
 import { browserId } from '../tokens';
@@ -13,6 +21,7 @@ import {
   conditionProblems,
   contactProblems,
   rentProblem,
+  sqftBand,
   type Conditions,
   type PropertyType,
 } from '../../supabase/functions/_shared/rules';
@@ -103,6 +112,10 @@ export function setupRentForm({ onSubmitted, onUpdated, onMoveRequested }: Optio
   const moveBtn = document.getElementById('rent-move') as HTMLButtonElement;
   const check = document.getElementById('rent-check') as HTMLElement;
   const checkText = document.getElementById('rent-check-text') as HTMLElement;
+  // Explicit consent (PHASE-2C §2c.1-C): unticked by default; "Add my rent" stays disabled
+  // until it is ticked. Not asked again when editing your own pin.
+  const consentBox = document.getElementById('rent-consent-box') as HTMLElement;
+  const consent = document.getElementById('rent-consent') as HTMLInputElement;
 
   let point: { lat: number; lng: number } | null = null;
   let localitySlug: string | null = null;
@@ -112,6 +125,11 @@ export function setupRentForm({ onSubmitted, onUpdated, onMoveRequested }: Optio
   /** The rent the user already confirmed in the double-check (NEXT-PHASES §4.2). */
   let confirmedRent: number | null = null;
   const submitLabel = () => (editing ? 'Save changes' : 'Add my rent');
+  /** Editing: the hidden answers (society name, exact size) have been loaded into the form. */
+  let privateReady = false;
+  const syncSubmit = () =>
+    (submitBtn.disabled = busy || (editing ? !privateReady : !consent.checked));
+  consent.addEventListener('change', syncSubmit);
 
   const rupees = (n: number) => `₹${n.toLocaleString('en-IN')}`;
   const value = (name: string): string => String(new FormData(form).get(name) ?? '');
@@ -133,7 +151,7 @@ export function setupRentForm({ onSubmitted, onUpdated, onMoveRequested }: Optio
     if (availability === 'alternate_day') {
       litresLabel.textContent = 'Litres on each supply day';
       litresHelp.textContent =
-        'Water comes every other day. Enter how much comes on a supply day (e.g. 500), not a daily average. Leave blank if unsure.';
+        'Water comes every other day. Enter how much comes on a supply day (e.g. 500), not split across two days. Leave blank if unsure.';
     } else if (availability === 'irregular') {
       litresLabel.textContent = 'Litres when water comes';
       litresHelp.textContent = "Roughly how much each time. Leave blank if you don't know.";
@@ -342,7 +360,7 @@ export function setupRentForm({ onSubmitted, onUpdated, onMoveRequested }: Optio
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (busy || (!point && !editing)) return;
+    if (busy || (!point && !editing) || (!editing && !consent.checked)) return;
     const body = collect();
 
     const problems = validate(body);
@@ -352,9 +370,9 @@ export function setupRentForm({ onSubmitted, onUpdated, onMoveRequested }: Optio
     const rent = body.rent as number;
     if (confirmedRent !== rent) {
       const stats = await fetchLocalityStats().catch(() => []);
-      const median = highRentMedian(rent, localitySlug, body.bhk as number, stats);
-      if (median !== null) {
-        checkText.textContent = `That's higher than most rents near here (median ${rupees(Math.round(median))}). Is it correct?`;
+      const high = highRentMedian(rent, localitySlug, body.bhk as number, stats);
+      if (high !== null) {
+        checkText.textContent = `That's higher than most rents near here (median ${rupees(Math.round(high.median))} · ${high.n} rents · last ${POLICY.statsWindowMonths} months). Is it correct?`;
         check.hidden = false;
         check.scrollIntoView({ block: 'nearest' });
         (document.getElementById('rent-check-yes') as HTMLButtonElement).focus();
@@ -379,7 +397,17 @@ export function setupRentForm({ onSubmitted, onUpdated, onMoveRequested }: Optio
         };
         const res = await updatePin(pin.id, token, browserId(), { ...keep, ...body });
         closeDialog(dlg);
-        onUpdated(res.pin ?? ({ ...pin, ...body } as PublicPin));
+        // A hidden pin isn't in public_pins; keep the public shape (no society name, size band).
+        onUpdated(
+          res.pin ??
+            ({
+              ...pin,
+              ...body,
+              society_name: pin.society_name,
+              sqft: null,
+              sqft_band: sqftBand(body.sqft as number | undefined),
+            } as PublicPin),
+        );
       } catch (err) {
         if (err instanceof ApiError && err.fields.length) {
           showProblems(
@@ -393,7 +421,7 @@ export function setupRentForm({ onSubmitted, onUpdated, onMoveRequested }: Optio
         }
       } finally {
         busy = false;
-        submitBtn.disabled = false;
+        syncSubmit();
         submitBtn.textContent = submitLabel();
       }
       return;
@@ -415,6 +443,7 @@ export function setupRentForm({ onSubmitted, onUpdated, onMoveRequested }: Optio
         lng: point!.lng,
         turnstileToken: token,
         browserId: browserId(),
+        consent: true,
       });
       form.reset();
       datePicker?.clear();
@@ -436,7 +465,7 @@ export function setupRentForm({ onSubmitted, onUpdated, onMoveRequested }: Optio
       turnstile.reset(); // tokens are single-use
     } finally {
       busy = false;
-      submitBtn.disabled = false;
+      syncSubmit();
       submitBtn.textContent = submitLabel();
     }
   });
@@ -501,6 +530,10 @@ export function setupRentForm({ onSubmitted, onUpdated, onMoveRequested }: Optio
     submitBtn.textContent = submitLabel();
     moveBtn.hidden = mode === 'edit';
     turnstileEl.hidden = mode === 'edit';
+    consentBox.hidden = mode === 'edit';
+    consent.disabled = mode === 'edit';
+    if (mode === 'add') consent.checked = false;
+    syncSubmit();
     check.hidden = true;
     confirmedRent = null;
     const d = new Date();
@@ -547,9 +580,30 @@ export function setupRentForm({ onSubmitted, onUpdated, onMoveRequested }: Optio
       point = null;
       localitySlug = pin.locality_slug;
       localityHint.textContent = `${localityName ? `Near ${localityName}. ` : ''}The location stays where you pinned it.`;
+      privateReady = false;
       fill(pin);
       prepare('edit');
       openDialog(dlg);
+      // Saving stays off until the hidden answers are in the form, so an edit never erases them.
+      const mine = editing;
+      loadPinPrivate(pin.id, token, browserId())
+        .then((p) => {
+          if (editing !== mine) return;
+          (form.elements.namedItem('society_name') as HTMLInputElement).value =
+            p.society_name ?? '';
+          (form.elements.namedItem('sqft') as HTMLInputElement).value =
+            p.sqft == null ? '' : String(p.sqft);
+          privateReady = true;
+          syncSubmit();
+        })
+        .catch((err) => {
+          if (editing !== mine) return;
+          showMessage(
+            err instanceof ApiError
+              ? `${err.message} Close the form and try again.`
+              : 'Could not load your answers. Close the form and try again.',
+          );
+        });
     },
   };
 }
