@@ -2,7 +2,7 @@
 
 An anonymous, crowdsourced rent map for Guwahati. **Read [SPEC.md](SPEC.md) (v2) first**, starting with §0. It covers scope, security rules, schema and build order.
 
-**Status (12 Nov 2026):** Phases 0, 1, 2a and 2 are live on `guwahati-rent.netlify.app`: migrations 0001–0008 and all 8 Edge Functions are on production (release `v0.3.0`). Migration `0009_launch_hygiene.sql` and the 12 Nov Edge Function changes are deployed; the frontend part of the changes at the top of [CHANGELOG.md](CHANGELOG.md) ships as `v0.4.0`. Launch status and blockers: **[PRODUCTION_READINESS_REPORT.md](PRODUCTION_READINESS_REPORT.md)**. Deploy order and rollback: **[DEPLOY.md](DEPLOY.md)** and [NETLIFY_DEPLOYMENT_CHECKLIST.md](NETLIFY_DEPLOYMENT_CHECKLIST.md). Phase 2b (survey import) is built (`scripts/import-survey.ts`) and waits on the Google Form. The Supabase project is `ngssgjuagrlyhsvtiwhk` in South Asia (Mumbai), as SPEC §2 assumes (moved 15 Nov 2026, see [MIGRATE-REGION.md](MIGRATE-REGION.md)). Phase 2c (launch hardening, [PHASE-2C.md](PHASE-2C.md)) is in progress.
+**Status (23 Nov 2026):** Phases 0, 1, 2a, 2 and 2c (launch hardening, [PHASE-2C.md](PHASE-2C.md)) are live on `guwahati-rent.netlify.app`. Production has migrations 0001–0010 applied (`supabase migration list --remote`) and all 8 Edge Functions ACTIVE; the six 2c.2 functions (`submit-pin`, `edit-pin`, `report-pin`, `report-tolet`, `submit-tolet`, `admin-review`) were redeployed on 15 Nov. The frontend is `main` as of PR #2 (demo showcase + map centre, 23 Nov); the last tag is `v0.4.0`, so 2c and the showcase are not tagged yet. The Supabase project is `ngssgjuagrlyhsvtiwhk` in South Asia (Mumbai), as SPEC §2 assumes (moved 15 Nov 2026, see [MIGRATE-REGION.md](MIGRATE-REGION.md)). The map holds 1 real pin so far. Phase 2b (survey import) is built (`scripts/import-survey.ts`) and waits on the Google Form; Phase 3 (listings, seekers, email) waits for ~300 real pins (NEXT-PHASES §5). Launch status and blockers: **[PRODUCTION_READINESS_REPORT.md](PRODUCTION_READINESS_REPORT.md)**. Deploy order and rollback: **[DEPLOY.md](DEPLOY.md)** and [NETLIFY_DEPLOYMENT_CHECKLIST.md](NETLIFY_DEPLOYMENT_CHECKLIST.md). Changes since `v0.3.0`: [CHANGELOG.md](CHANGELOG.md).
 
 ## Run it locally
 
@@ -25,17 +25,20 @@ npm run typecheck && npm run lint && npm test && npm run test:deno && npm run bu
 
 `npm run dev`, then open one of:
 
-| URL              | Fictional pins | Purpose                                                                                                        |
-| ---------------- | -------------- | -------------------------------------------------------------------------------------------------------------- |
-| `/?demo=normal`  | 25             | normal density                                                                                                 |
-| `/?demo=dense`   | 80             | many pins per area, 8 spots shared by 2+ pins                                                                  |
-| `/?demo=stress`  | 260            | stress test, 32 shared spots                                                                                   |
-| `/?demo=crowded` | 1,000          | crowded city, 20% of pins share a building                                                                     |
-| `/?demo=packed`  | 5,000          | very crowded                                                                                                   |
-| `/?demo=max`     | 20,000         | the most SPEC §8.4 expects to load at once                                                                     |
-| `/?demo=full`    | 500            | every pin is a complete form submission that follows all the form rules (checked by `tests/demo-data.test.ts`) |
+| URL               | Fictional pins | Purpose                                                                                                          |
+| ----------------- | -------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `/?demo=normal`   | 25             | normal density                                                                                                   |
+| `/?demo=dense`    | 80             | many pins per area, 8 spots shared by 2+ pins                                                                    |
+| `/?demo=stress`   | 260            | stress test, 32 shared spots                                                                                     |
+| `/?demo=crowded`  | 1,000          | crowded city, 20% of pins share a building                                                                       |
+| `/?demo=packed`   | 5,000          | very crowded                                                                                                     |
+| `/?demo=max`      | 20,000         | the most SPEC §8.4 expects to load at once                                                                       |
+| `/?demo=full`     | 500            | every pin is a complete form submission that follows all the form rules (checked by `tests/demo-data.test.ts`)   |
+| `/?demo=showcase` | 45             | hand-written illustrative rentals across 24 neighbourhoods (`src/demo/showcase.ts`), for showing a populated map |
 
-Every demo pin is generated in the browser by `src/demo/demo-data.ts` (deterministic: same scenario, same pins). Nothing is written to any database, so there is nothing to clean up: remove `?demo=` (or click **Exit demo**). A banner says DEMO MODE, every pin card says **DEMO — NOT A REAL RENTAL**, real pins are not loaded, and adding pins is off. The whole branch sits behind `import.meta.env.DEV`, so production builds contain no demo data, banner or QA hook (verify: `grep -r "demoPins\|__grMap" dist/` is empty).
+Every demo pin is generated in the browser by `src/demo/demo-data.ts` (deterministic: same scenario, same pins). Nothing is written to any database, so there is nothing to clean up: remove `?demo=` (or click **Exit demo**). A banner says DEMO MODE, every pin card says **DEMO — NOT A REAL RENTAL**, real pins are not loaded, and adding pins is off. The whole branch sits behind `import.meta.env.DEV`, so `?demo=` does nothing on the live site and production builds contain no demo data, banner or QA hook (verify: `grep -r "demoPins\|__grMap\|demo-showcase" dist/` is empty).
+
+**Showcase next to real pins (opt-in, off on production).** A build with `VITE_DEMO_SHOWCASE=true` adds the 45 showcase pins to the real ones while there are fewer than 50 real rents. Adding, editing and deleting real pins work as normal. Demo pins say DEMO on the card and in the list, make no renter claims, have no Report button, and are left out of the live counts, the monsoon heatmap and the stats; the count reads "N rents pinned + 45 DEMO". Unset (the default), the code is not in the bundle. Turning it on for production overrides PHASE-2C rule 6 ("no demo data in production builds"), so scope it to Netlify **Deploy previews** unless that rule is changed.
 
 ## Map tiles and assets
 
@@ -129,6 +132,13 @@ SUPABASE_URL=https://<ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<secret> npm ru
 
 Rows without consent, with "Other"/unknown localities or implausible rents are skipped and counted. Pins go to the locality centre plus a fixed ≤150 m offset (same row, same spot), rounded to 3 dp, marked `source='survey'` and `location_approx=true`; the pin card says "Approximate location" and "shared via our rent survey". Re-running the same CSV adds nothing. "Water comes in" is stored as `waterlog_where = ['inside_home']`, "Road only" as `['access_road']`. The key is read from the environment only; the script refuses publishable/anon keys.
 
+## Phase 2c: launch hardening (migration 0010)
+
+Live since 15 Nov. Details: [PHASE-2C.md](PHASE-2C.md) and [CHANGELOG.md](CHANGELOG.md).
+
+- **2c.1 (frontend/copy):** medians only (clusters show a count, never an average), explicit unticked consent on every form, "This is what a tenant pays. It is not a listing." on pin cards, live counts (hidden below 50 rents), About FAQ, and every policy number from `POLICY` in `src/config.ts` (checked by `tests/policy.test.ts`).
+- **2c.2 (`0010_privacy_k_anon.sql` + functions):** `public_pins` shows a society name only when 3+ pins within 300 m share it, and size only as `sqft_band`; a shared PII filter (`_shared/pii.ts`) rejects phones, emails and links in public text; the functions refuse submissions without `consent: true` and store `consented_at`.
+
 ## Ops (GitHub Actions)
 
 `.github/workflows/`: `ci.yml` (every push), `backup.yml` (weekly `pg_dump`, 90-day artifact), `keepalive.yml` (every 2 days), `nightly-rebuild.yml`. Secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_DB_URL` (Session pooler string), `NETLIFY_BUILD_HOOK_URL`.
@@ -137,12 +147,13 @@ Rows without consent, with "Other"/unknown localities or implausible rents are s
 
 `netlify.toml` is ready (build `npm run build`, publish `dist`, Node 22). In Netlify: **Add new site → Import from Git → this repo**, then Site configuration → Environment variables:
 
-| Variable                  | Value                                                                             |
-| ------------------------- | --------------------------------------------------------------------------------- |
-| `VITE_SUPABASE_URL`       | `https://<ref>.supabase.co`                                                       |
-| `VITE_SUPABASE_ANON_KEY`  | anon / publishable key                                                            |
-| `VITE_TURNSTILE_SITE_KEY` | Turnstile site key (add the netlify.app hostname to the widget's allowed domains) |
-| `VITE_SITE_URL`           | `https://<your-site>.netlify.app`                                                 |
+| Variable                  | Value                                                                               |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`       | `https://<ref>.supabase.co`                                                         |
+| `VITE_SUPABASE_ANON_KEY`  | anon / publishable key                                                              |
+| `VITE_TURNSTILE_SITE_KEY` | Turnstile site key (add the netlify.app hostname to the widget's allowed domains)   |
+| `VITE_SITE_URL`           | `https://<your-site>.netlify.app`                                                   |
+| `VITE_DEMO_SHOWCASE`      | optional, unset on production; `true` (Deploy previews only) adds the DEMO showcase |
 
 Redeploy after changing variables (they're baked in at build time).
 
@@ -164,7 +175,8 @@ Not testable from the build machine: real Cloudflare Turnstile (stubbed locally)
 - **flatpickr** (MIT, ~15 KB gzipped) was added beyond SPEC §16 at the owner's request, for the "when did you last see these conditions" calendar. It is loaded on demand (its own chunk), only when the rent form opens. Dropdowns were replaced by option chips instead of a dropdown library.
 - **To-Let entry point:** NEXT-PHASES §2a.1 says to enable a choice in `#dlg-add`, but that chooser was removed earlier (desktop: click the map; phones: the button). "Spot a To-Let" is therefore its own button next to "Pin your rent".
 - **Look:** a small design system, documented at the top of `src/styles/main.css`: 8px controls, 12px floating panels, 14px dialogs, no pill buttons; one control height (40px mouse / 44px touch); system font with weights 400–600 and tabular numerals for rents; deep teal `#0b5566` for brand and "chosen", orange `#d14400` for the one primary action (`#ea580c` only as a map mark: it is below AA behind white text); one floating-panel surface (hairline + soft shadow). Rents are price tags on the map (teal = gated, white = not gated, orange = selected). The basemap is Protomaps `light`, never tinted or filtered. Every dialog closes on an outside click or tap.
-- **Demo mode** is a dev-only, in-browser fixture. It is deliberately not a database seed because SPEC §5.13 says "never invent seed data".
+- **Demo mode** is a dev-only, in-browser fixture. It is deliberately not a database seed because SPEC §5.13 says "never invent seed data". The showcase scenario can also be built into a deploy with `VITE_DEMO_SHOWCASE=true` (still in-browser only, labelled DEMO); it is off on production.
+- **Map centre** is `[91.77, 26.15]` (the middle of `localities.json`), not SPEC v2's original `[91.7362, 26.1445]`, so phones open on the central belt.
 
 - Reads use plain `fetch` to PostgREST instead of supabase-js (main bundle is ~7 KB gzipped vs a 60 KB budget). supabase-js stays a dependency for the Phase 4 admin page.
 - Zod runs in the Edge Functions only. Shared rules (bbox, plausibility bands) live in `supabase/functions/_shared/rules.ts`, which both the browser and Deno import.
