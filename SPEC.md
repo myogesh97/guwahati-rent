@@ -828,7 +828,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { Protocol } from 'pmtiles';
 import { layers, namedFlavor } from '@protomaps/basemaps'; // VERIFY against installed version's README
 
-export const GUWAHATI_CENTER: [number, number] = [91.7362, 26.1445];
+export const GUWAHATI_CENTER: [number, number] = [91.77, 26.15]; // middle of localities.json
 
 export function createMap(container: HTMLElement) {
   const protocol = new Protocol();

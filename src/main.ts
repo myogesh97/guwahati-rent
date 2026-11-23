@@ -38,7 +38,12 @@ const state = {
   localities: [] as Locality[],
   /** The last applyFilters() result, so nothing filters the same pins twice. */
   visible: [] as PublicPin[],
+  /** Illustrative DEMO pins shown next to the real ones (VITE_DEMO_SHOWCASE), 0 when off. */
+  showcase: 0,
 };
+
+/** Demo fixture ids (src/demo) start with this; real ids are UUIDs. */
+const isDemoPin = (p: PublicPin): boolean => p.id.startsWith('demo-');
 
 const isDemo = (): boolean => Boolean(document.getElementById('demo-banner'));
 const localityLabel = (slug: string | null): string => (slug && state.names.get(slug)) || '';
@@ -58,7 +63,7 @@ function renderPins(): void {
   state.visible = visible;
   state.map?.setPins(visible);
   // The heatmap is a second copy of the data; only send it while it's on (setWater sends it).
-  if (state.url.water) state.map?.setWaterPins(visible);
+  if (state.url.water) state.map?.setWaterPins(heatPins());
   state.map?.setBoards(f.boards ? state.boards : []);
   const n = visible.length;
   const total = state.pins.length;
@@ -66,15 +71,33 @@ function renderPins(): void {
   const s = (k: number) => (k === 1 ? '' : 's');
   $('pin-count').textContent = !total
     ? ''
-    : n === total
-      ? `${n.toLocaleString('en-IN')} ${what}${s(n)}${isDemo() ? '' : ' pinned'}`
-      : `${n.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')} ${what}s shown`;
+    : state.showcase
+      ? showcaseCount(visible)
+      : n === total
+        ? `${n.toLocaleString('en-IN')} ${what}${s(n)}${isDemo() ? '' : ' pinned'}`
+        : `${n.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')} ${what}s shown`;
   list?.setPins(visible, n === total ? '' : ` (of ${total.toLocaleString('en-IN')}, filtered)`);
   list?.setBoards(f.boards ? state.boards : []);
   filtersUi?.sync(n);
   // Rents exist but the filters hide them all (not when rents are switched off on purpose).
   $('map-empty').hidden = !(total > 0 && n === 0 && f.rents);
 }
+
+/** Real rents and DEMO examples counted apart, so a demo pin is never counted as a rent. */
+function showcaseCount(visible: PublicPin[]): string {
+  const demoShown = visible.filter(isDemoPin).length;
+  const real = visible.length - demoShown;
+  const realTotal = state.pins.length - state.showcase;
+  const rents =
+    real === realTotal
+      ? `${real.toLocaleString('en-IN')} rent${real === 1 ? '' : 's'} pinned`
+      : `${real.toLocaleString('en-IN')} of ${realTotal.toLocaleString('en-IN')} rents shown`;
+  return demoShown ? `${rents} + ${demoShown} DEMO` : rents; // short: shares a row with the map hint
+}
+
+/** The monsoon heatmap has no per-pin label, so it never includes DEMO examples next to real rents. */
+const heatPins = (): PublicPin[] =>
+  state.showcase ? state.visible.filter((p) => !isDemoPin(p)) : state.visible;
 
 function setFilters(f: Filters): void {
   state.url.filters = f;
@@ -97,7 +120,7 @@ function setWater(on: boolean): void {
   writeUrlState(state.url);
   $('btn-water').setAttribute('aria-pressed', String(on));
   $('water-legend').hidden = !on;
-  if (on) state.map?.setWaterPins(state.visible);
+  if (on) state.map?.setWaterPins(heatPins());
   state.map?.showWater(on);
 }
 
@@ -350,6 +373,22 @@ async function boot(): Promise<void> {
 
   state.pins = await pinsPromise;
   if (!demo) renderLiveCounts($('welcome-counts'), liveCounts(state.pins));
+  // Optional DEMO examples next to the real rents, so a nearly empty map isn't blank. Off unless the
+  // build sets VITE_DEMO_SHOWCASE=true, and only while real rents are fewer than the live-counts
+  // threshold. They exist only in this page: never sent anywhere, never in the counts above, the
+  // heatmap or the stats, and every card and row says DEMO.
+  if (
+    !demo &&
+    import.meta.env.VITE_DEMO_SHOWCASE === 'true' &&
+    state.pins.length < POLICY.liveCountsMin
+  ) {
+    const examples = await import('./demo/showcase')
+      .then(({ showcasePins }) => showcasePins())
+      .catch(() => [] as PublicPin[]);
+    state.pins = [...state.pins, ...examples];
+    state.showcase = examples.length;
+    $('welcome-demo').hidden = $('stats-demo-note').hidden = !examples.length;
+  }
   state.map.showWater(state.url.water);
   renderPins();
   // Boards are a separate layer; if they fail (e.g. before migration 0004) rents still show.

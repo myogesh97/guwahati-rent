@@ -15,6 +15,7 @@ import {
 } from '../../supabase/functions/_shared/rules';
 import type { PublicPin } from '../types';
 import { EXTRA_ANCHORS } from './anchors';
+import { showcasePins } from './showcase';
 
 /** Draws a value (so the random sequence, and every later answer, stays the same) and drops it. */
 const discard = (_drawn: unknown): null => null;
@@ -30,20 +31,23 @@ export const SCENARIOS = {
   packed: 5000,
   max: 20000, // SPEC §8.4: "load all pins once" is meant to hold up to ~20k rows
   full: 500, // every pin is a complete, rule-following form submission (see formPin)
+  showcase: 45, // hand-written illustrative rentals across the city (src/demo/showcase.ts)
 } as const;
 
 /** How each scenario places pins: spread (m), share of pins stacked on the previous spot,
  *  and how much extra weight the busy central areas get. */
-const PROFILE: Record<keyof typeof SCENARIOS, { radius: number; stack: number; central: number }> =
-  {
-    normal: { radius: 700, stack: 0, central: 1 },
-    dense: { radius: 900, stack: 0.12, central: 1 },
-    stress: { radius: 900, stack: 0.12, central: 2 },
-    crowded: { radius: 700, stack: 0.2, central: 3 },
-    packed: { radius: 600, stack: 0.25, central: 4 },
-    max: { radius: 600, stack: 0.25, central: 4 },
-    full: { radius: 800, stack: 0.08, central: 2 },
-  };
+const PROFILE: Record<
+  Exclude<keyof typeof SCENARIOS, 'showcase'>,
+  { radius: number; stack: number; central: number }
+> = {
+  normal: { radius: 700, stack: 0, central: 1 },
+  dense: { radius: 900, stack: 0.12, central: 1 },
+  stress: { radius: 900, stack: 0.12, central: 2 },
+  crowded: { radius: 700, stack: 0.2, central: 3 },
+  packed: { radius: 600, stack: 0.25, central: 4 },
+  max: { radius: 600, stack: 0.25, central: 4 },
+  full: { radius: 800, stack: 0.08, central: 2 },
+};
 export type Scenario = keyof typeof SCENARIOS;
 
 /** Fixed "now" so created_at values never change between runs. */
@@ -435,6 +439,7 @@ function storeLikeServer(sub: ReturnType<typeof formPin>): Partial<PublicPin> {
 }
 
 export function demoPins(scenario: Scenario): PublicPin[] {
+  if (scenario === 'showcase') return showcasePins();
   const total = SCENARIOS[scenario];
   const rand = mulberry32(total * 7919);
   const out: PublicPin[] = [];
