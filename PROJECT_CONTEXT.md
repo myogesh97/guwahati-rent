@@ -171,7 +171,7 @@ A script (`npm run security-check`) hits the live API with the anon key and must
 | 3 BHK | 7,000 | 1,50,000 |
 | 4+ BHK | 10,000 | 3,00,000 |
 
-City bounding box: lng 91.55–91.95, lat 26.05–26.25. Map centre: `[91.7362, 26.1445]`. 30 localities in `localities.json` (Beltola, Survey, Six Mile, Khanapara, Kahilipara, Zoo Road, Dispur, Ganeshguri, Hatigaon, Rukminigaon, GS Road, Chandmari, Silpukhuri, Uzan Bazar, Paltan Bazar, Fancy Bazar, Lachit Nagar, Ulubari, Bamunimaidam, Noonmati, Narengi, Lalganesh, Maligaon, Adabari, Jalukbari, Garchuk, Lokhra, Bhetapara, Basistha, Jorabat). A pin gets the nearest locality within 3 km.
+City bounding box: lng 91.55–91.95, lat 26.05–26.25. Map centre: `[91.77, 26.15]` (middle of the localities). 30 localities in `localities.json` (Beltola, Survey, Six Mile, Khanapara, Kahilipara, Zoo Road, Dispur, Ganeshguri, Hatigaon, Rukminigaon, GS Road, Chandmari, Silpukhuri, Uzan Bazar, Paltan Bazar, Fancy Bazar, Lachit Nagar, Ulubari, Bamunimaidam, Noonmati, Narengi, Lalganesh, Maligaon, Adabari, Jalukbari, Garchuk, Lokhra, Bhetapara, Basistha, Jorabat). A pin gets the nearest locality within 3 km.
 
 ---
 

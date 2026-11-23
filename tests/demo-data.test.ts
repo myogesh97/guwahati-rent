@@ -21,6 +21,7 @@ import {
   WATERLOG_PLACES,
   WATERLOG_SEVERITY,
   conditionProblems,
+  contactProblems,
   inGuwahati,
   rentProblem,
   waterlogSummary,
@@ -192,4 +193,92 @@ test('the scenarios people asked about are all present', () => {
     ),
     'wider area only, not attributed',
   );
+});
+
+// ---------- "showcase": 45 hand-written illustrative pins (src/demo/showcase.ts) ----------
+const showcase = demoPins('showcase');
+const metres = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const r = (x: number) => (x * Math.PI) / 180;
+  const h =
+    Math.sin(r(b.lat - a.lat) / 2) ** 2 +
+    Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.sqrt(h));
+};
+
+test('showcase: 45 labelled demo pins, stable, inside Guwahati at 3 dp, apart', () => {
+  assert.equal(showcase.length, SCENARIOS.showcase);
+  assert.deepEqual(demoPins('showcase'), showcase);
+  assert.ok(showcase.every((p) => p.id.startsWith('demo-showcase-')));
+  assert.equal(new Set(showcase.map((p) => p.id)).size, showcase.length);
+  for (const p of showcase) {
+    assert.ok(inGuwahati(p.lat, p.lng), p.id);
+    assert.equal(Math.round(p.lat * 1000) / 1000, p.lat, p.id);
+    assert.equal(Math.round(p.lng * 1000) / 1000, p.lng, p.id);
+    for (const q of showcase) if (q !== p) assert.ok(metres(p, q) > 300, `${p.id} near ${q.id}`);
+  }
+});
+
+test('showcase: every pin follows the form and server rules', () => {
+  for (const p of showcase) {
+    const id = p.id;
+    assert.equal(rentProblem(p.property_type, p.bhk ?? 0, p.rent), null, `${id} rent`);
+    assert.equal((p.bhk ?? 0) === 0, NO_BHK_TYPES.includes(p.property_type), `${id} bhk`);
+    if (p.property_type !== 'pg') assert.ok(p.pg_meals == null && p.pg_gender == null, id);
+    else assert.ok(p.furnishing === 'furnished' && p.parking_cars === 0, `${id} pg shape`);
+    if (p.water_litres != null || p.water_hours != null)
+      assert.ok(WATER_SCHEDULED.includes(p.water_availability ?? ''), `${id} schedule`);
+    if (p.waterlog_severity || p.waterlog_duration || p.road_in_rain)
+      assert.ok(p.waterlog_where?.length, `${id} detail`);
+    if (p.waterlog_where?.length)
+      assert.equal(p.waterlogging, waterlogSummary('yes', p.waterlog_where), `${id} summary`);
+    if (p.maintenance_amount != null) assert.equal(p.maintenance_incl, false, `${id} maintenance`);
+    assert.ok(inRange(p.deposit_months, LIMITS.deposit), `${id} deposit`);
+    assert.ok(inRange(p.water_litres, LIMITS.waterLitres), `${id} litres`);
+    assert.ok(p.water_hours == null || p.water_hours.length <= 60, `${id} hours`);
+    // Nothing that reads like a person, a building or a contact.
+    assert.equal(p.society_name, null, id);
+    assert.equal(p.sqft, null, id);
+    assert.deepEqual(
+      contactProblems({
+        one_liner: p.one_liner,
+        water_note: p.water_note,
+        waterlog_note: p.waterlog_note,
+      }),
+      [],
+      id,
+    );
+    for (const t of [p.one_liner, p.water_note, p.waterlog_note])
+      assert.ok(t == null || t.length <= 150, `${id} text length`);
+    assert.ok(new Date(p.created_at) < new Date('2026-11-23'), `${id} not in the future`);
+  }
+});
+
+test('showcase: varied homes, rents, conditions and places', () => {
+  const count = (f: (p: (typeof showcase)[number]) => string) =>
+    showcase.reduce<Record<string, number>>((m, p) => ((m[f(p)] = (m[f(p)] ?? 0) + 1), m), {});
+  const types = count((p) => (p.bhk ? `${p.bhk}bhk` : p.property_type));
+  assert.deepEqual(types, { pg: 8, '1rk': 7, '1bhk': 11, '2bhk': 12, '3bhk': 7 });
+  assert.equal(new Set(showcase.map((p) => p.rent)).size, showcase.length, 'rents all differ');
+  assert.ok(showcase.filter((p) => p.rent % 1000 === 0).length <= 5, 'few round thousands');
+  assert.equal(new Set(showcase.map((p) => p.created_at)).size, showcase.length, 'timestamps');
+  assert.equal(new Set(showcase.map((p) => `${p.lat},${p.lng}`)).size, showcase.length);
+  for (const [key, min] of [
+    ['furnishing', 3],
+    ['deposit_months', 4],
+    ['water_availability', 5],
+    ['power_backup', 4],
+    ['power_cuts', 4],
+    ['waterlogging', 4],
+    ['road_in_rain', 3],
+    ['drinking_water', 5],
+    ['floor_level', 3],
+  ] as const)
+    assert.ok(new Set(showcase.map((p) => p[key])).size >= min, `${key} varies`);
+  const sources = new Set(showcase.flatMap((p) => p.water_sources ?? []));
+  for (const s of ['piped', 'borewell', 'shared_tank', 'tanker', 'well'])
+    assert.ok(sources.has(s as never), `water source ${s}`);
+  // Uneven on purpose: busy areas have several pins, the rest one or two.
+  const perLocality = Object.values(count((p) => p.locality_slug ?? 'none'));
+  assert.ok(Math.max(...perLocality) >= 4 && Math.min(...perLocality) === 1, 'clustered');
+  assert.ok(Object.keys(count((p) => p.locality_slug ?? 'none')).length >= 18, 'spread');
 });

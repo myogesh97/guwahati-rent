@@ -339,6 +339,10 @@
         </ul>
         <!-- Filled from the database at run time; stays hidden below %POLICY.liveCountsMin% rents. -->
         <p class="live-counts" id="welcome-counts" hidden></p>
+        <p class="fine" id="welcome-demo" hidden>
+          Pins marked DEMO are illustrative examples, not real rents. Nobody submitted them, and
+          they are left out of the counts and medians.
+        </p>
       </div>
       <div class="dlg-actions">
         <button type="button" class="btn btn-primary" id="welcome-ok">Show me the map</button>
@@ -1124,6 +1128,9 @@
           Medians (the middle rent), from rents pinned in the last %POLICY.statsWindowMonths%
           months. A group needs at least %POLICY.minSample% rents to be shown. Unusual rents are
           left out.
+        </p>
+        <p class="fine" id="stats-demo-note" hidden>
+          DEMO pins on the map are illustrative examples and are not counted here.
         </p>
         <h3 class="kvs-title">In the area on your screen</h3>
         <div id="stats-area" aria-live="polite"></div>

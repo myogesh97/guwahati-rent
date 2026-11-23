@@ -114,21 +114,28 @@ export function setupListView({ onOpen, onOpenBoard, localityName, placeName }: 
     sorted ??= sort();
     stale = false;
     const n = pins.length;
-    caption.textContent = `${n.toLocaleString('en-IN')} rent${n === 1 ? '' : 's'}${note}, sorted by ${LABEL[sortKey].toLowerCase()} (${dir === 1 ? 'ascending' : 'descending'})`;
+    // DEMO examples (src/demo) are never counted as rents.
+    const demos = pins.filter((p) => p.id.startsWith('demo-')).length;
+    const rents = n - demos;
+    caption.textContent = `${rents.toLocaleString('en-IN')} rent${rents === 1 ? '' : 's'}${demos ? ` + ${demos} DEMO` : ''}${note}, sorted by ${LABEL[sortKey].toLowerCase()} (${dir === 1 ? 'ascending' : 'descending'})`;
     body.replaceChildren(
       ...sorted.slice(0, shown).map((p) => {
         const tr = document.createElement('tr');
         const area = localityName(p.locality_slug);
+        const demo = p.id.startsWith('demo-'); // illustrative fixtures (src/demo)
         tr.innerHTML = `
           <td>${area ? escapeHtml(area) : '<span class="muted">Not near a listed area</span>'}</td>
-          <td><button type="button" class="link-btn row-open">${escapeHtml(homeLabel(p))}</button></td>
+          <td><button type="button" class="link-btn row-open">${escapeHtml(homeLabel(p))}</button>${demo ? ' <span class="demo-tag">DEMO</span>' : ''}</td>
           <td class="num">${rupees(p.rent)}</td>
           <td>${FURNISHING_LABEL[p.furnishing]}</td>
           <td>${p.gated ? 'Yes' : 'No'}</td>
           <td>${MONSOON[p.waterlogging][0]}</td>
           <td>${relativeDate(p.created_at)}</td>`;
         const btn = tr.querySelector<HTMLButtonElement>('.row-open')!;
-        btn.setAttribute('aria-label', `${homeLabel(p)}, ${rupees(p.rent)} a month: details`);
+        btn.setAttribute(
+          'aria-label',
+          `${demo ? 'DEMO example: ' : ''}${homeLabel(p)}, ${rupees(p.rent)} a month: details`,
+        );
         btn.addEventListener('click', () => onOpen(p, btn));
         return tr;
       }),

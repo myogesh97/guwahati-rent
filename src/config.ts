@@ -13,7 +13,9 @@ export const SITE_URL: string = (env.VITE_SITE_URL || origin).replace(/\/$/, '')
 /** True when the backend is wired up. Without it the map still works, read-only. */
 export const BACKEND_READY = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
-export const GUWAHATI_CENTER: [number, number] = [91.7362, 26.1445];
+/** First view: about the middle of public/localities.json, so a phone at zoom 12 opens on the
+ *  Dispur / GS Road / Zoo Road belt where most rents are, instead of the western edge. */
+export const GUWAHATI_CENTER: [number, number] = [91.77, 26.15];
 
 /**
  * Every number that appears in policy or copy (PHASE-2C §2c.1-G). HTML pages get them through

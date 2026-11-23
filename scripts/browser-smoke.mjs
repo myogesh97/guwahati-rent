@@ -34,6 +34,7 @@ const DEMOS = process.env.DEMOS?.split(',') ?? [
   'packed',
   'max',
   'full',
+  'showcase',
 ];
 const CSP = /Content-Security-Policy = "([^"]+)"/.exec(readFileSync('netlify.toml', 'utf8'))?.[1];
 
@@ -661,7 +662,7 @@ async function demo(scenario, [width, height]) {
           await new Promise((r) => setTimeout(r, 20));
         const t = document.getElementById('pin-body').textContent;
         out.opened++;
-        if (/This is what a tenant pays\. It is not a listing\./.test(t)) out.tenant++;
+        if (/(This is what a tenant pays|Illustrative rent)\. It is not a listing\./.test(t)) out.tenant++; // demo wording
         if (/Demo Apartments/.test(t)) out.society++;
         document.getElementById('dlg-pin').close();
       }
@@ -672,6 +673,57 @@ async function demo(scenario, [width, height]) {
       cards.opened > 0 && cards.tenant === cards.opened && cards.society === 0 ? 'PASS' : 'FAIL',
       JSON.stringify(cards),
     );
+  }
+  // Showcase (src/demo/showcase.ts): every one of the 45 cards opens, is filled in, and says DEMO
+  // without claiming a renter reported it; then a real click on a pin on the map opens its card.
+  if (scenario === 'showcase') {
+    await p.eval(`document.getElementById('filters-clear').click(); true`);
+    await p.waitFor(`document.querySelectorAll('#list-body tr').length === 45`, 5000);
+    const cards = await p.eval(`(async () => {
+      const out = { rows: 0, opened: 0, demoFlag: 0, rowTag: 0, filled: 0, honest: 0, noReport: 0, focusIn: 0 };
+      const rows = [...document.querySelectorAll('#list-body tr')];
+      out.rows = rows.length;
+      for (const tr of rows) {
+        if (tr.querySelector('.demo-tag')) out.rowTag++;
+        // Wait for THIS row's card: the body keeps the last card's text until the next one renders.
+        const rent = tr.querySelector('td.num').textContent.trim();
+        tr.querySelector('.row-open').click();
+        const shown = () => document.getElementById('dlg-pin').open &&
+          document.querySelector('#pin-body .pin-rent')?.firstChild?.textContent.trim() === rent;
+        for (let i = 0; i < 100 && !shown(); i++) await new Promise((r) => setTimeout(r, 20));
+        if (!shown()) continue;
+        const body = document.getElementById('pin-body');
+        const t = body.textContent;
+        out.opened++;
+        if (body.querySelector('.demo-flag')) out.demoFlag++;
+        if (/Living conditions/.test(t) && /Other details/.test(t) && body.querySelectorAll('.kv').length >= 6) out.filled++;
+        if (!/Reported by the renter|by a renter|As the renter saw/.test(t) && !body.querySelector('blockquote')) out.honest++;
+        if (!document.querySelector('#pin-actions .btn-flag')) out.noReport++;
+        if (document.getElementById('dlg-pin').contains(document.activeElement)) out.focusIn++;
+        document.getElementById('dlg-pin').close();
+      }
+      return out; })()`);
+    const all = Object.entries(cards).every(([, v]) => v === 45);
+    record(
+      g,
+      'showcase: all 45 cards open, filled, labelled DEMO, no renter claims',
+      all ? 'PASS' : 'FAIL',
+      JSON.stringify(cards),
+    );
+    // A trusted click on the map: the deep link centres pin 17 at street level, then click the centre.
+    await p.send('Page.navigate', { url: `${DEV}/?demo=showcase&pin=demo-showcase-017` });
+    await p.waitFor(`${MAP_READY} && document.getElementById('dlg-pin').open`, 30000);
+    await p.key('Escape');
+    await p.waitFor(`!document.getElementById('dlg-pin').open`, 3000);
+    await sleep(1500);
+    await p.click('canvas.maplibregl-canvas');
+    const opened = await p.waitFor(
+      `document.getElementById('dlg-pin').open && !!document.querySelector('#pin-body .demo-flag')`,
+      5000,
+    );
+    record(g, 'showcase: clicking a pin on the map opens its DEMO card', opened ? 'PASS' : 'FAIL');
+    await p.key('Escape');
+    if (width === 390 || width === 1366) await screenshot(p, `demo-showcase-pin-${width}`);
   }
   await p.eval(
     `document.getElementById('btn-view-map').click(); document.getElementById('filters-clear').click(); true`,

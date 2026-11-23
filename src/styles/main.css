@@ -1754,6 +1754,16 @@ span.flatpickr-weekday {
   font-size: var(--t-12);
   display: inline-block;
 }
+.demo-tag {
+  padding: 1px 6px;
+  border-radius: var(--r-sm);
+  background: var(--warn-tint);
+  color: var(--warn-ink);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  font-size: var(--t-12);
+  white-space: nowrap;
+}
 /* same-spot picker */
 .pick-list {
   list-style: none;

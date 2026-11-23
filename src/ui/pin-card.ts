@@ -181,11 +181,13 @@ export function setupPinCard({ onDeleted, onEdit, onReport, onShowBoards }: Opti
       (pin.power_backup && pin.power_backup !== 'unknown') ||
       pin.power_cuts,
     );
-    const asOf = pin.conditions_as_of
-      ? `As the renter saw it on ${new Date(`${pin.conditions_as_of}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}, for this home only. Other homes nearby may differ.`
-      : 'For this home only. Other homes nearby may differ.';
+    const demo = pin.id.startsWith('demo-'); // illustrative fixtures (src/demo); real ids are UUIDs
+    const asOf = demo
+      ? 'Illustrative example only. Nobody reported these conditions.'
+      : pin.conditions_as_of
+        ? `As the renter saw it on ${new Date(`${pin.conditions_as_of}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}, for this home only. Other homes nearby may differ.`
+        : 'For this home only. Other homes nearby may differ.';
 
-    const demo = pin.id.startsWith('demo-'); // dev-only fixtures (src/demo); real ids are UUIDs
     title.textContent = 'Rent details';
     body.innerHTML = `
       ${demo ? '<p class="demo-flag">DEMO — NOT A REAL RENTAL</p>' : ''}
@@ -193,12 +195,12 @@ export function setupPinCard({ onDeleted, onEdit, onReport, onShowBoards }: Opti
       <p class="pin-home">${escapeHtml(homeLabel(pin))} · ${FURNISHING_LABEL[pin.furnishing]}</p>
       <p class="pin-meta">${[locality ? `Near ${escapeHtml(locality)}` : null, pin.gated ? 'Gated society' : 'Not gated', pin.society_name ? escapeHtml(pin.society_name) : null].filter(Boolean).join(' · ')}</p>
       ${pin.location_approx ? '<p class="pin-meta"><strong>Approximate location</strong> (area centre, not the building).</p>' : ''}
-      ${pin.kind === 'rent' ? `<p class="not-available"><strong>This is what a tenant pays. It is not a listing.</strong>${demo ? '' : '<button type="button" class="link-btn" id="pin-boards">See To-Let boards nearby</button>'}</p>` : ''}
+      ${pin.kind === 'rent' ? `<p class="not-available"><strong>${demo ? 'Illustrative rent. It is not a listing.' : 'This is what a tenant pays. It is not a listing.'}</strong>${demo ? '' : '<button type="button" class="link-btn" id="pin-boards">See To-Let boards nearby</button>'}</p>` : ''}
       ${pin.is_outlier ? '<p class="note-warn">Unusual compared with nearby rents. Not counted in medians.</p>' : ''}
       ${chips.length ? `<ul class="flags" aria-label="Reported conditions">${chips.map((c) => `<li class="flag${c.warn ? ' flag-warn' : ''}">${escapeHtml(c.text)}</li>`).join('')}</ul>` : ''}
       ${
         hasConditions
-          ? `<h3 class="kvs-title">Living conditions <span class="badge-unverified">Reported by the renter, not verified</span></h3>
+          ? `<h3 class="kvs-title">Living conditions <span class="badge-unverified">${demo ? 'Illustrative, not reported by anyone' : 'Reported by the renter, not verified'}</span></h3>
       <dl class="kvs">
         ${row('Water', waterLine(pin))}
         ${row('Source', pin.water_sources?.length ? pin.water_sources.map((w) => WATER_SOURCE_LABEL[w]).join(', ') : null)}
@@ -222,8 +224,8 @@ export function setupPinCard({ onDeleted, onEdit, onReport, onShowBoards }: Opti
           : ''
       }
       ${other ? `<h3 class="kvs-title">Other details</h3><dl class="kvs">${other}</dl>` : ''}
-      ${pin.one_liner ? `<blockquote class="oneliner">“${escapeHtml(pin.one_liner)}”</blockquote>` : ''}
-      <p class="fine card-foot">${demo ? 'Fictional demo record for testing. No such rental exists.' : `Pinned ${relativeDate(pin.created_at)} by a renter${pin.source === 'survey' ? ', shared via our rent survey' : ''}. This is what they pay, not an ad. The flat may not be available.`}</p>
+      ${pin.one_liner ? (demo ? `<p class="pin-meta">${escapeHtml(pin.one_liner)}</p>` : `<blockquote class="oneliner">“${escapeHtml(pin.one_liner)}”</blockquote>`) : ''}
+      <p class="fine card-foot">${demo ? 'Illustrative DEMO example. No renter submitted it and no such rental is known to exist.' : `Pinned ${relativeDate(pin.created_at)} by a renter${pin.source === 'survey' ? ', shared via our rent survey' : ''}. This is what they pay, not an ad. The flat may not be available.`}</p>
     `;
 
     body.querySelector('#pin-boards')?.addEventListener('click', () => {
