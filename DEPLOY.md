@@ -69,11 +69,6 @@ Open the site and `/admin.html` with the browser console open: 0 CSP violations.
 
 Tag every production release (`git tag v0.x && git push --tags`) so there is always something to roll back to.
 
-## 6. Pending release (prepared 12 Nov 2026, not deployed)
+## 6. Pending release
 
-`v0.3.0` (migrations 0001–0008, all 8 functions, the CSP/SEO frontend) is live. The tree on top of it holds the production-readiness changes in `CHANGELOG.md`. To ship them, follow [NETLIFY_DEPLOYMENT_CHECKLIST.md](NETLIFY_DEPLOYMENT_CHECKLIST.md) §5:
-
-1. `npx supabase db push --linked` → applies `0009_launch_hygiene.sql` (unschedules the Phase 3 cron jobs, fixes the waterlogging share, clears stale outlier flags). Run `npm run test:db` first.
-2. `npx supabase functions deploy --no-verify-jwt` → all 8 functions (shared rate-limit and Turnstile changes).
-3. Commit, tag, push → Netlify deploys the frontend (map empty state, privacy copy, JSON-LD).
-4. §4 of this file, plus the client-IP check: `scripts/check-client-ip.sh` (the diagnostic now lives in `scripts/diagnostics/ip-check/`; copy it in, deploy, run, delete).
+None. Everything is deployed (migrations 0001–0010, all 8 functions, `main` on Netlify), verified 26 Nov 2026. The project is wrapped: see [STATUS.md](STATUS.md). For any maintenance fix, keep the order: db → functions → frontend, and tag the release.

@@ -1,5 +1,7 @@
 # Guwahati Rent — Project Gap Analysis & Production Readiness Assessment
 
+> **Historical snapshot (5 Nov 2026).** Findings marked "not deployed" here are deployed as of 26 Nov 2026. Current status: [STATUS.md](STATUS.md).
+
 **Date:** 12 November 2026 · **Repository state audited:** commit `a5909dc` plus the uncommitted working tree (19 modified files, 6 untracked files) · **Live targets inspected read-only:** `https://guwahati-rent.netlify.app` and the linked Supabase project (public views and CORS preflights only, using the anon key from `.env`).
 
 **Method.** Every source, config, migration, Edge Function, test and document in the repo was read. `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `npm audit` and `deno check` on all 9 functions were run. The production build was served locally and driven with headless Chrome 157 over the DevTools protocol: screenshots at 375×812, 390×844, 430×932, 768×1024, 1366×768 and 1440×900; every dialog state; all seven demo-mode densities; an axe-core 4.10 pass on 13 page states. Evidence files are referenced as `path:line`.

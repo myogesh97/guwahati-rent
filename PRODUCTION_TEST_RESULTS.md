@@ -1,5 +1,7 @@
 # Production Test Results
 
+> **Historical snapshot (12 Nov 2026).** Findings marked "not deployed" here are deployed as of 26 Nov 2026. Current status: [STATUS.md](STATUS.md).
+
 **Date:** 12 Nov 2026 · **Code:** `b8181bd` + uncommitted production-readiness changes (see [CHANGELOG.md](CHANGELOG.md)) · **Machine:** macOS, Node 24.21, npm 11.19, Deno 2.9.8, PostgreSQL 18.6 + PostGIS (Homebrew), Google Chrome (headless, SwiftShader software GL).
 
 **Labels:**

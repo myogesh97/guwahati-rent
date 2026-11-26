@@ -1,5 +1,7 @@
 # Guwahati Rent: Production Readiness Report
 
+> **Superseded on 26 Nov 2026 by [STATUS.md](STATUS.md)** (project wrapped; launch checklist state at wrap-up). This report is the 12 Nov snapshot. Its pooler host `aws-1-eu-central-1` is the old Frankfurt project; Mumbai uses the ap-south-1 Session pooler string from Supabase → Connect.
+
 **Date:** 12 Nov 2026 · **Baseline:** `b8181bd` on `main` (= `origin/main`, tag `v0.3.0` → `91fde5d` live) · **This work:** on top of `b8181bd`. Deployed 12 Nov: migration 0009 and all 8 functions (submit-pin v13 etc.). Frontend: pending push (`v0.4.0`).
 **Companion files:** [PRODUCTION_TEST_RESULTS.md](PRODUCTION_TEST_RESULTS.md) (every command and result) · [NETLIFY_DEPLOYMENT_CHECKLIST.md](NETLIFY_DEPLOYMENT_CHECKLIST.md) (how to ship it) · [CHANGELOG.md](CHANGELOG.md) (what changed).
 

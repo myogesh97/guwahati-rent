@@ -1,5 +1,7 @@
 # Netlify Deployment Checklist
 
+> **Historical snapshot (12 Nov 2026).** Findings marked "not deployed" here are deployed as of 26 Nov 2026. Current status: [STATUS.md](STATUS.md).
+
 **Updated:** 12 Nov 2026 · **Live:** `v0.3.0` (`91fde5d`): migrations 0001–0008, 8 Edge Functions, CSP/SEO frontend · **Deployed 12 Nov:** migration 0009 + all 8 functions. **Pending:** the frontend changes at the top of [CHANGELOG.md](CHANGELOG.md) (push as `v0.4.0`).
 This replaces the earlier audit snapshot of this file. General order and rollback are also in [DEPLOY.md](DEPLOY.md). Launch status: [PRODUCTION_READINESS_REPORT.md](PRODUCTION_READINESS_REPORT.md).
 

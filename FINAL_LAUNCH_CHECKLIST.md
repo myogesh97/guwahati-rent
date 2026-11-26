@@ -1,5 +1,7 @@
 # Guwahati Rent: Final Launch Checklist
 
+> **Historical (12 Nov 2026).** Superseded by [STATUS.md](STATUS.md) on 26 Nov 2026. Every "◐ not deployed" item below is now deployed.
+
 Tick in order. Each line points to where the detail lives:
 - **GAP:** [WEBSITE_LAUNCH_GAP_ANALYSIS.md](WEBSITE_LAUNCH_GAP_ANALYSIS.md)
 - **NDC:** [NETLIFY_DEPLOYMENT_CHECKLIST.md](NETLIFY_DEPLOYMENT_CHECKLIST.md)

@@ -1,5 +1,7 @@
 # Guwahati Rent: Website Launch Gap Analysis
 
+> **Historical snapshot (12 Nov 2026).** Findings marked "not deployed" here are deployed as of 26 Nov 2026. Current status: [STATUS.md](STATUS.md).
+
 **Date:** 12 Nov 2026 · **Baseline:** `c78d677` (live `v0.4.0`) + this change (not deployed)
 **Scope:** everything outstanding across product, SEO, accessibility, security, backend, performance, infrastructure, privacy, legal, analytics, operations and documentation. It merges the still-open items from [PRODUCTION_READINESS_REPORT.md](PRODUCTION_READINESS_REPORT.md) (IDs in brackets) with the findings of this audit.
 

@@ -1,6 +1,6 @@
 # Phase 2c: Launch hardening and lessons from bengaluru.rent
 
-Status: NEW (15 Nov 2026). This file sits between NEXT-PHASES.md Phase 2 (live) and the launch.
+Status: DONE and deployed (15 Nov 2026; verified live 26 Nov). Kept as the record of what 2c changed. This file sits between NEXT-PHASES.md Phase 2 (live) and the launch.
 It does not override SPEC.md section 5 (Security rules) or NEXT-PHASES.md section 5 ("Not now").
 If anything here conflicts with those, they win. Stop and tell the owner.
 

@@ -1,5 +1,7 @@
 # Guwahati Rent — Next Phases (2a, 2b, 2)
 
+> **26 Nov 2026: project wrapped.** Phases 2a, 2b (importer), 2 and 2c are done; nothing after them will be built. See [STATUS.md](STATUS.md).
+
 > Read this together with `SPEC.md` (v2) and `README.md`. Where this file and SPEC.md disagree, **this file wins** (it is newer).
 > Written 30 Oct 2026. Phase 0 and Phase 1 are **done and live**: `https://guwahati-rent.netlify.app`, Supabase project `ngssgjuagrlyhsvtiwhk` (South Asia (Mumbai); moved 15 Nov 2026, see MIGRATE-REGION.md).
 > The SQL and code below were written carefully but **not executed**. Expect small fixes. The security gate catches the ones that matter.
@@ -417,7 +419,10 @@ grant all on public.moderation_log to service_role;
 
 ---
 
-## 5. Not now (explicitly out of scope until ~300 real pins)
+## 5. Not built (project wrapped 26 Nov 2026)
+
+The items below were deferred until ~300 real pins. With the project wrapped, they are **cancelled**. The "Never" rules still apply to any maintenance work.
+
 **Never:** fake/dummy pins presented as real rents in production (dev-only demo mode stays clearly labelled and out of production builds). Public comments on pins (they fill with "how do I contact?" spam and personal data).
 
 Owner listings, seeker matching and emails (Phase 3: needs a custom domain for Resend) · SEO locality pages (Phase 4) · OCR of board phone numbers · AI moderation · comments, ratings · "watch this area" alerts.

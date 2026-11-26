@@ -1,8 +1,16 @@
 # Changelog
 
-## Unreleased (15 Nov 2026): Phase 2c launch hardening ([PHASE-2C.md](PHASE-2C.md))
+## Project wrapped (26 Nov 2026)
 
-**State:** on top of `9000a5e`. Not deployed. 2c.2 needs migration `0010_privacy_k_anon.sql` pushed and six Edge Functions redeployed BEFORE the frontend ships (DEPLOY.md order: db, functions, frontend).
+No further phases: Phase 3 (listings, seekers, email) and Phase 4 (locality SEO pages) are cancelled. The site stays live in maintenance mode on the Netlify subdomain. Current state: [STATUS.md](STATUS.md). Everything below is deployed; tag it `v0.5.0`.
+
+## 23 Nov 2026: demo showcase (PR #2)
+
+**State:** merged to `main` and live, but the showcase is **off** (`VITE_DEMO_SHOWCASE` unset). 45 fictional, DEMO-labelled pins in `src/demo/showcase.ts`, never written to the database; map opens on the Dispur / GS Road belt. Details: commit `d63617c`, README "Demo".
+
+## 15 Nov 2026: Phase 2c launch hardening ([PHASE-2C.md](PHASE-2C.md))
+
+**State:** deployed (PR #1, 15 Nov). Migration 0010 is on production and the six 2c.2 functions are redeployed. Verified live on 26 Nov: consent is required server-side, and phone and flat numbers in `society_name` are rejected.
 
 ### 2c.1: frontend, copy and SEO
 - **Medians only:** the `cluster-avg` layer (a mean, `~₹Xk`) and the `rentSum` cluster property are gone; clusters show a count. Every median shows its sample size and the window (`src/layers.ts`, `src/map.ts`, `src/ui/stats.ts`, rent double-check). Guarded by `tests/medians.test.ts`.
@@ -23,9 +31,9 @@
 - To-Let: "Spotted 45+ days ago, may be gone" badge; admin shows boards expiring in the next 7 days.
 - `scripts/security-check.sh`: 2c checks (no exact sqft, no lone society name, consent and PII refusals).
 
-## Unreleased (15 Nov 2026): focus indicator, keyboard and interaction-state audit
+## 15 Nov 2026: focus indicator, keyboard and interaction-state audit
 
-**State:** on top of `acb1eff`. Frontend only (CSS + UI scripts); no migration, function, API or data changes. Not deployed. Details: [ACCESSIBILITY_AUDIT_REPORT.md](ACCESSIBILITY_AUDIT_REPORT.md) §10.
+**State:** on top of `acb1eff`. Frontend only (CSS + UI scripts); no migration, function, API or data changes. Deployed with `main`. Details: [ACCESSIBILITY_AUDIT_REPORT.md](ACCESSIBILITY_AUDIT_REPORT.md) §10.
 
 ### Fixed
 - **Focus indicator missing on secondary/ghost buttons and the pressed Map/List toggle** (WCAG 2.4.7). The ring was a `box-shadow`, and components that draw their edge with `box-shadow` (`.btn-secondary`, `.btn-ghost`, pressed `.view-toggle .tool`) replaced it: "Spot a To-Let", Cancel, Copy link, Done, Clear all, Move pin had no visible focus. Replaced by one outline-based indicator for the whole site (`--focus`, 2px dashed teal, 2px offset; drawn inside where an ancestor clips). Also replaces MapLibre's blue glow on the map controls and flatpickr's removed outlines (`main.css`, `page.css`).
@@ -38,9 +46,9 @@
 - Pressed (`:active`) states for secondary, ghost, danger, WhatsApp, icon, tool, top-bar, chip, pick and map-control buttons; hover/pressed states for admin buttons and tabs; Home/End on the admin tabs.
 - List view: row links underlined in `--field` (was near-invisible `--line`), sortable-column arrow in `--field`, row links 32px tall.
 
-## Unreleased (12 Nov 2026): SEO and accessibility audit fixes
+## 12 Nov 2026: SEO and accessibility audit fixes
 
-**State:** on top of `c78d677` (live `v0.4.0`). Frontend and `netlify.toml` only; no migration or function changes. Not deployed. Reports: [SEO_AUDIT_REPORT.md](SEO_AUDIT_REPORT.md), [ACCESSIBILITY_AUDIT_REPORT.md](ACCESSIBILITY_AUDIT_REPORT.md), [SEO_A11Y_TEST_RESULTS.md](SEO_A11Y_TEST_RESULTS.md), [WEBSITE_LAUNCH_GAP_ANALYSIS.md](WEBSITE_LAUNCH_GAP_ANALYSIS.md), [FINAL_LAUNCH_CHECKLIST.md](FINAL_LAUNCH_CHECKLIST.md).
+**State:** on top of `c78d677` (live `v0.4.0`). Frontend and `netlify.toml` only; no migration or function changes. Deployed with `main`. Reports: [SEO_AUDIT_REPORT.md](SEO_AUDIT_REPORT.md), [ACCESSIBILITY_AUDIT_REPORT.md](ACCESSIBILITY_AUDIT_REPORT.md), [SEO_A11Y_TEST_RESULTS.md](SEO_A11Y_TEST_RESULTS.md), [WEBSITE_LAUNCH_GAP_ANALYSIS.md](WEBSITE_LAUNCH_GAP_ANALYSIS.md), [FINAL_LAUNCH_CHECKLIST.md](FINAL_LAUNCH_CHECKLIST.md).
 
 ### Added
 - **To-Let boards in the list view** (WCAG 2.1.1): boards could only be opened by clicking the map. Each board is now a button ("To-Let board near Beltola · Pinned 3 days ago · Expires in 57 days") that opens the board dialog and returns focus on close (`index.html`, `src/ui/list-view.ts`, `src/main.ts`, `src/localities.ts` `nearestIn()`).
@@ -56,7 +64,7 @@
 - **About page** described a placement flow the app doesn't use; it now matches the app and states the limits (self-reported, 18-month window, n ≥ 3 medians, conditions are one home's report).
 - **Sitemap** no longer stamps every page with the build date as `lastmod`.
 
-## Unreleased (prepared 12 Nov 2026): production readiness
+## 12 Nov 2026: production readiness (`v0.4.0`)
 
 **State:** on top of `b8181bd`. Migration 0009 applied and all 8 functions redeployed on 12 Nov 2026 (submit-pin v13). Frontend ships with this commit (`v0.4.0`). Client-IP probe: PASS (`cf-connecting-ip`). Ship it with [NETLIFY_DEPLOYMENT_CHECKLIST.md](NETLIFY_DEPLOYMENT_CHECKLIST.md) §5. Evidence: [PRODUCTION_TEST_RESULTS.md](PRODUCTION_TEST_RESULTS.md). Launch status: [PRODUCTION_READINESS_REPORT.md](PRODUCTION_READINESS_REPORT.md).
 Deploy order: **0009 → all 8 functions → frontend.**

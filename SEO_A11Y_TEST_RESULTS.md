@@ -1,5 +1,7 @@
 # SEO and Accessibility: Test Results
 
+> **Historical snapshot (12 Nov 2026).** Findings marked "not deployed" here are deployed as of 26 Nov 2026. Current status: [STATUS.md](STATUS.md).
+
 **Date:** 12 Nov 2026 · **Code under test:** `c78d677` (before) and the working tree of this change (after) · Reports: [SEO_AUDIT_REPORT.md](SEO_AUDIT_REPORT.md), [ACCESSIBILITY_AUDIT_REPORT.md](ACCESSIBILITY_AUDIT_REPORT.md)
 
 **Statuses:** PASS · FAIL · PARTIAL · NOT RUN · NOT APPLICABLE · NOT VERIFIED

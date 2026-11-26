@@ -1,5 +1,7 @@
 # Security audit report: guwahati-rent
 
+> **Historical snapshot (5 Nov 2026).** Findings marked "not deployed" here are deployed as of 26 Nov 2026. Current status: [STATUS.md](STATUS.md).
+
 **Date:** 2026-11-05 · **Scope:** working tree, all 12 commits of Git history (all refs), `dist/` production build, Supabase migrations and Edge Functions as written in the repo, `netlify.toml`, dependencies.
 **Method:** local only. No repository content or secret was sent to any external service. Secret values are redacted throughout; matches are reported by type, file and length only.
 **Not available:** live Supabase project and Netlify dashboard; everything that depends on them is marked **NOT VERIFIED**. Browser checks used headless Chrome against a local production build (§14).

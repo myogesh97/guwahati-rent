@@ -1,5 +1,7 @@
 # Guwahati Rent: SEO Audit Report
 
+> **Historical snapshot (12 Nov 2026).** Findings marked "not deployed" here are deployed as of 26 Nov 2026. Current status: [STATUS.md](STATUS.md).
+
 **Date:** 12 Nov 2026 · **Baseline:** `c78d677` on `main` (= `origin/main`; live site = tag `v0.4.0`) · **Live URL:** https://guwahati-rent.netlify.app (no custom domain yet)
 **Companion files:** [ACCESSIBILITY_AUDIT_REPORT.md](ACCESSIBILITY_AUDIT_REPORT.md) · [SEO_A11Y_TEST_RESULTS.md](SEO_A11Y_TEST_RESULTS.md) (every command and result) · [WEBSITE_LAUNCH_GAP_ANALYSIS.md](WEBSITE_LAUNCH_GAP_ANALYSIS.md) · [FINAL_LAUNCH_CHECKLIST.md](FINAL_LAUNCH_CHECKLIST.md)
 

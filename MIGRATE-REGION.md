@@ -1,3 +1,5 @@
+> **Historical snapshot (15 Nov 2026).** Findings marked "not deployed" here are deployed as of 26 Nov 2026. Current status: [STATUS.md](STATUS.md).
+
 > Completed 15 Nov 2026; data copy skipped (dummy data).
 
 # Move Supabase from Frankfurt to Mumbai
