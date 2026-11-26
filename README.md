@@ -11,7 +11,7 @@ The project is **wrapped**: no further feature phases. Phase 3 (owner listings, 
 | | |
 |---|---|
 | Frontend | `main` auto-deploys to Netlify (Phases 0, 1, 2a, 2, 2b importer, 2c) |
-| Database | Supabase `ngssgjuagrlyhsvtiwhk`, South Asia (Mumbai); migrations `0001`–`0010` applied. `0011_pin_erasure.sql` (real pin deletion) is in the repo and not yet applied: see [DEPLOY.md](DEPLOY.md) |
+| Database | Supabase `ngssgjuagrlyhsvtiwhk`, South Asia (Mumbai); migrations `0001`–`0011` applied (26 Nov) |
 | Edge Functions | all 8 deployed (2c.2 versions) |
 | Public data | **0 rents, 0 To-Let boards** on the live map (checked 26 Nov). The map works but is empty until real rents are added |
 | Demo showcase | built, opt-in (`VITE_DEMO_SHOWCASE`), **off** in production |
