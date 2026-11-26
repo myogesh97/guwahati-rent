@@ -63,6 +63,23 @@ test('POLICY matches what the server enforces', () => {
     latest(/view public\.public_tolet/),
     new RegExp(`gone_reports < ${POLICY.reportThreshold}\\b`),
   );
+  assert.match(
+    latest(/function public\.cleanup\(\)/),
+    new RegExp(`archived_at < now\\(\\) - interval '${POLICY.removedPinRetentionDays} days'`),
+  );
+  assert.match(
+    readFileSync('.github/workflows/backup.yml', 'utf8'),
+    new RegExp(`retention-days: ${POLICY.backupRetentionDays}\\b`),
+  );
+});
+
+test('privacy page: a working contact, and deleting a pin erases it', () => {
+  const privacy = text(page('privacy.html'));
+  assert.match(page('privacy.html'), /href="mailto:[^"@]+@[^"]+"/);
+  assert.doesNotMatch(privacy, /will be added here/);
+  assert.ok(privacy.includes('erased from our database straight away'));
+  assert.ok(privacy.includes(`erased ${POLICY.removedPinRetentionDays} days later`));
+  assert.ok(privacy.includes(`deleted after ${POLICY.backupRetentionDays} days`));
 });
 
 test('policy pages take their numbers from POLICY, never typed in', () => {

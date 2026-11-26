@@ -6,9 +6,10 @@ Guwahati Rent is a small, volunteer-run project in maintenance mode. Security fi
 
 Please report privately, not in a public issue:
 
-- GitHub: **Security → Report a vulnerability** on this repository (private advisory).
+- GitHub: **Security → Report a vulnerability** on this repository (private advisory), or
+- email m.yogesh0197@gmail.com with "Security" in the subject.
 
-Include what you found, how to reproduce it, and what data it exposes. You'll get an acknowledgement within 7 days. Please give us 30 days to fix it before disclosing publicly.
+Include what you found, how to reproduce it, and what data it exposes. Please give us reasonable time to fix it before disclosing publicly.
 
 In scope: the site at `guwahati-rent.netlify.app`, the Supabase Edge Functions and database rules in this repository, and the GitHub Actions workflows. Out of scope: Supabase, Netlify and Cloudflare themselves, denial-of-service, and social engineering.
 
