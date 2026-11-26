@@ -4,20 +4,21 @@ Ordered by severity, then by what unblocks what. Times are estimates for one per
 
 ## Today (P0)
 
-### 1. Stop publishing database backups: PW-25 · 15 min
-The repo is public, so the weekly `pg_dump` artifacts can be downloaded by any signed-in GitHub user.
-1. Pick **one**:
-   - **(a) Make the repo private** (fastest; Netlify keeps deploying). GitHub → Settings → General → Danger Zone → Change visibility → Private.
-   - **(b) Keep it public, encrypt backups.** Tell me and I'll change `backup.yml` to encrypt the dump with `age` before upload. You run `age-keygen -o backup-key.txt` on your own machine, keep that file **offline**, and add the printed public key as the Actions secret `BACKUP_AGE_RECIPIENT`.
-2. Then delete the 5 existing artifacts (irreversible; your restore copies go with them, so make sure the next backup runs first, or download one locally):
+### 1. Turn on encrypted backups and delete the old ones: PW-25 · 15 min
+`backup.yml` now encrypts every dump with [age](https://age-encryption.org) and refuses to run without a key. Until step 2 is done, the weekly backup **fails on purpose**.
+1. On your own computer: `brew install age`, then `age-keygen -o ~/guwahati-rent-backup-key.txt`. It prints `Public key: age1…`.
+2. GitHub → Settings → Secrets and variables → Actions → New repository secret: name `BACKUP_AGE_RECIPIENT`, value = that `age1…` public key.
+3. Keep `~/guwahati-rent-backup-key.txt` **offline and backed up** (password manager or USB). Without it no backup can be restored. Never put it in GitHub.
+4. Actions → weekly-backup → Run workflow. It must be green and upload a `.dump.age` file.
+5. Then delete the 5 old **unencrypted** artifacts (irreversible):
    ```bash
-   gh api repos/myogesh97/guwahati-rent/actions/artifacts --jq '.artifacts[].id' \
+   gh api repos/myogesh97/guwahati-rent/actions/artifacts --jq '.artifacts[] | select(.created_at < "2026-11-27") | .id' \
      | xargs -I{} gh api -X DELETE repos/myogesh97/guwahati-rent/actions/artifacts/{}
    ```
-3. If any real person's data was in those dumps, record the exposure (DPDP Act 2023 s.8(6): a personal data breach must be reported to the Data Protection Board and to each affected person). On 26 Nov they contained test-looking data: 1 admin id, 2 report notes, 1 pin with a society name. Your call whether those were real people.
+6. If any real person's data was in those dumps, record the exposure (DPDP Act 2023 s.8(6): a personal data breach must be reported to the Data Protection Board and to each affected person). On 26 Nov they contained test-looking data: 1 admin id, 2 report notes, 1 pin with a society name. Your call whether those were real people.
 
-### 2. Add a contact to the privacy page: PW-01 · 10 min + me
-Choose an address you will actually read (a free Gmail alias is fine). Send it to me, and I'll put it on `privacy.html` (Contact section), in the footer of every page (WCAG 3.2.6) and in `SECURITY.md`.
+### 2. Privacy contact: PW-01 · done in code
+`m.yogesh0197@gmail.com` is on the privacy page, in every page footer, in the About FAQ and in SECURITY.md. It goes live when the PR is merged. Check that inbox weekly.
 
 ### 3. Decide what the empty map means: PW-02 · 5 min decision
 Live data on 26 Nov: 0 rents, 0 boards. The "150+ pins" were not imported into `ngssgjuagrlyhsvtiwhk`. Either:
@@ -40,14 +41,16 @@ A 401 means `CRON_SECRET` differs between Vault and the function secrets. If a `
 ### 5. Delete the old Frankfurt project: PW-05 · 5 min
 Supabase dashboard → project `apgdczuofczobxaggsfy` → Settings → General → Delete project. A paused project still holds data.
 
-### 6. Approve the "delete really deletes" fix: PW-26 · 2 min decision, then about 1 h for me + 5 min deploy
-Proposed: `edit-pin` `delete` hard-deletes the pin row (reports cascade), and `cleanup()` purges anything already archived for more than 30 days. Needs a new migration `0011` plus a function deploy. Say yes and I'll write it with tests. You run `npx supabase db push` and `npx supabase functions deploy edit-pin --no-verify-jwt`.
+### 6. Deploy the real-delete fix: PW-26 · 5 min, after the PR is merged
+Order matters: database first, then the function, or a delete fails.
+```bash
+npx supabase db push --linked                              # applies 0011_pin_erasure.sql
+npx supabase functions deploy edit-pin --no-verify-jwt
+```
+Check in the SQL editor: `select column_name from information_schema.columns where table_name = 'pins' and column_name = 'archived_at';` returns one row.
 
-### 7. Privacy policy facts: PW-27 · 15 min
-Answer these, and I'll update `privacy.html` and bump "Last updated":
-- Is GitHub kept as a backup processor (if the repo stays public with encrypted backups, or private)?
-- Retention for pins: kept until deleted, or a fixed period (e.g. 3 years)?
-- Is it OK to state "stored in India (Supabase, Mumbai); backups kept 90 days"?
+### 7. Privacy policy facts: PW-27 · done in code
+The policy now states: data in India (Mumbai), encrypted backups with GitHub kept 90 days, deleted pins erased at once, moderator-removed pins erased after 30 days. If any of that is wrong, tell me.
 
 ### 8. Legal review or written risk acceptance: PW-08 · 1–2 h with a lawyer, or 5 min to accept
 If you accept the risk, add a dated line to [STATUS.md](../../STATUS.md): "PW-08 risk accepted by <name>, <date>". Rule: any P1 left open needs that written acceptance.

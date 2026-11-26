@@ -11,7 +11,7 @@ The project is **wrapped**: no further feature phases. Phase 3 (owner listings, 
 | | |
 |---|---|
 | Frontend | `main` auto-deploys to Netlify (Phases 0, 1, 2a, 2, 2b importer, 2c) |
-| Database | Supabase `ngssgjuagrlyhsvtiwhk`, South Asia (Mumbai); migrations `0001`–`0010` applied |
+| Database | Supabase `ngssgjuagrlyhsvtiwhk`, South Asia (Mumbai); migrations `0001`–`0010` applied. `0011_pin_erasure.sql` (real pin deletion) is in the repo and not yet applied: see [DEPLOY.md](DEPLOY.md) |
 | Edge Functions | all 8 deployed (2c.2 versions) |
 | Public data | **0 rents, 0 To-Let boards** on the live map (checked 26 Nov). The map works but is empty until real rents are added |
 | Demo showcase | built, opt-in (`VITE_DEMO_SHOWCASE`), **off** in production |
@@ -82,7 +82,7 @@ Frontend (`.env`, baked in at build time, public by design):
 
 Edge Function secrets (`npx supabase secrets set …`, never in a `VITE_` variable): `TURNSTILE_SECRET_KEY`, `HASH_SALT`, `ALLOWED_ORIGINS`, `CRON_SECRET` (same value as the Vault secret `cron_secret`), optional `CLIENT_IP_HEADER`. `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected by the runtime.
 
-GitHub Actions secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (keepalive), `SUPABASE_DB_URL` (Session pooler string, backups), `NETLIFY_BUILD_HOOK_URL`.
+GitHub Actions secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (keepalive), `SUPABASE_DB_URL` (Session pooler string, backups), `BACKUP_AGE_RECIPIENT` (age public key, backups), `NETLIFY_BUILD_HOOK_URL`.
 
 ## Deploying
 
@@ -102,7 +102,7 @@ Setting up a new Supabase project from scratch (extensions, secrets, Vault, cron
 | Workflow | Schedule | Purpose |
 |---|---|---|
 | `ci.yml` | push to `main`, PRs | audit, typecheck, lint, tests, build, bundle assertions; database job on Postgres 17 + PostGIS |
-| `backup.yml` | Sunday 03:30 IST | `pg_dump` of the `public` schema, uploaded as a 90-day artifact. **See WRAP_REPORT P0: artifacts of a public repo can be downloaded by any signed-in GitHub user** |
+| `backup.yml` | Sunday 03:30 IST | `pg_dump` of the `public` schema, encrypted with [age](https://age-encryption.org) to `BACKUP_AGE_RECIPIENT`, kept as a 90-day artifact. The private key stays offline with the owner. Artifacts of a public repo can be downloaded by any signed-in GitHub user, so the job refuses to run without the key |
 | `keepalive.yml` | every 2 days | one anon read so the free Supabase project doesn't pause |
 | `nightly-rebuild.yml` | 03:30 IST | Netlify build hook (keeps `sitemap.xml` fresh) |
 
@@ -117,7 +117,7 @@ Dependabot opens weekly PRs for npm and Actions. Security reports: [SECURITY.md]
 | Path | Contents |
 |---|---|
 | `src/` | app (`main.ts`, `map.ts`, `layers.ts`, `filters.ts`), forms, UI, admin page, styles, dev-only `demo/` |
-| `supabase/migrations/` | `0001`–`0010`, applied in order |
+| `supabase/migrations/` | `0001`–`0011`, applied in order |
 | `supabase/functions/` | 8 Edge Functions + `_shared/` (rules, PII filter, Turnstile, rate limits) |
 | `tests/` | Node unit tests; `tests/db/` the database suite |
 | `scripts/` | security gate, browser smoke test, survey importer, diagnostics |

@@ -1,6 +1,6 @@
 # Wrap report: guwahati-rent
 
-**Verdict: DO-NOT-SHIP (as a public launch).** Three P0s are open, and none needs a big code change:
+**Verdict: DO-NOT-SHIP (as a public launch).** *Update: the backup and contact P0s, plus the real-delete and policy-text P1s, are fixed in code on this branch. They close once the PR is merged, the backup key is set, the old artifacts are deleted and 0011 is deployed ([HUMAN_REQUIRED.md](HUMAN_REQUIRED.md) steps 1 and 6). The empty map remains open.* Three P0s are open, and none needs a big code change:
 1. Weekly database backups are published as artifacts of a public GitHub repo.
 2. The privacy policy promises a deletion contact that does not exist.
 3. The live map has zero rents.
@@ -56,6 +56,7 @@ Open findings only. Fixed items are in the ledger.
 | `3683d23` | WhatsApp button contrast 4.3:1 → 5.41:1 (WCAG 1.4.3) | Lighthouse `/about.html` color-contrast 0 → 1, A11y 95 → 100 |
 | `ef57cf7` | CI: `permissions: contents: read`, actions pinned to SHAs, `npm audit --omit=dev` gate, Dependabot | YAML parses; `npm audit --omit=dev` = 0 |
 | (docs commit) | README rewritten to the current state; STATUS.md stale lines corrected; this report set; SECURITY.md | — |
+| (follow-up) | **PW-01** privacy contact on every page · **PW-26** `edit-pin` hard-deletes, migration `0011` purges removed pins after 30 days · **PW-27** policy states region, processors, retention · **PW-25** backups age-encrypted, job refuses without a key | unit 59/59, DB 103/103 (9 new erasure checks), policy test pins the new numbers to `cleanup()` and `backup.yml` |
 
 ## Domain notes
 
