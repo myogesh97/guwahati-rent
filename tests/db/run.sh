@@ -243,6 +243,40 @@ expect_eq "cleanup() prunes rate-limit rows older than 2 days" \
   "select count(*) from public.rate_limits where key = 'old'" "0"
 expect_eq "0009: Phase 3 cron jobs are unscheduled; live jobs remain" \
   "select string_agg(jobname, ',' order by jobname) from cron.job" "cleanup,flag-outliers,tolet-maintenance"
+# ---- 0011: deleting a pin erases it (PW-26) ---------------------------------------------------------
+q "insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000ad11', 'admin@test');
+   insert into public.pins (id, kind, rent, furnishing, location, edit_token_hash, society_name)
+   values ('00000000-0000-0000-0000-0000000e0011', 'rent', 7000, 'semi', 'SRID=4326;POINT(91.75 26.14)', 'x', 'erase-me');
+   insert into public.reports (pin_id, reporter_hash, reason, message)
+   values ('00000000-0000-0000-0000-0000000e0011', 'erase-test', 'other', 'private note');
+   insert into public.moderation_log (admin_id, action, pin_id)
+   values ('00000000-0000-0000-0000-00000000ad11', 'remove', '00000000-0000-0000-0000-0000000e0011')" >/dev/null
+# Guard: the setup must really exist, or the checks below would pass on nothing.
+expect_eq "0011: test pin, report and moderation entry set up" \
+  "select (select count(*) from public.reports where reporter_hash = 'erase-test') || ',' || (select count(*) from public.moderation_log where pin_id = '00000000-0000-0000-0000-0000000e0011')" "1,1"
+q "delete from public.pins where id = '00000000-0000-0000-0000-0000000e0011'" >/dev/null
+expect_eq "0011: deleting a pin cascades its reports (incl. the private note)" \
+  "select count(*) from public.reports where reporter_hash = 'erase-test'" "0"
+expect_eq "0011: moderation_log keeps the decision with pin_id set to null" \
+  "select count(*) from public.moderation_log where admin_id = '00000000-0000-0000-0000-00000000ad11' and pin_id is null" "1"
+q "insert into public.pins (id, kind, rent, furnishing, location, edit_token_hash)
+   values ('00000000-0000-0000-0000-0000000a0011', 'rent', 7000, 'semi', 'SRID=4326;POINT(91.75 26.14)', 'x');
+   update public.pins set status = 'archived' where id = '00000000-0000-0000-0000-0000000a0011'" >/dev/null
+expect_eq "0011: archiving a pin stamps archived_at" \
+  "select archived_at is not null from public.pins where id = '00000000-0000-0000-0000-0000000a0011'" "t"
+q "update public.pins set status = 'active' where id = '00000000-0000-0000-0000-0000000a0011'" >/dev/null
+expect_eq "0011: restoring a pin clears archived_at" \
+  "select archived_at is null from public.pins where id = '00000000-0000-0000-0000-0000000a0011'" "t"
+q "update public.pins set status = 'archived' where id = '00000000-0000-0000-0000-0000000a0011'; select public.cleanup()" >/dev/null
+expect_eq "0011: cleanup() keeps a pin archived less than 30 days ago" \
+  "select count(*) from public.pins where id = '00000000-0000-0000-0000-0000000a0011'" "1"
+q "update public.pins set archived_at = now() - interval '31 days' where id = '00000000-0000-0000-0000-0000000a0011'; select public.cleanup()" >/dev/null
+expect_eq "0011: cleanup() erases a pin archived more than 30 days ago" \
+  "select count(*) from public.pins where id = '00000000-0000-0000-0000-0000000a0011'" "0"
+expect_eq "0011: public_pins does not expose archived_at" \
+  "select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'public_pins' and column_name = 'archived_at'" "0"
+expect_denied anon "0011: anon cannot execute set_pin_archived_at()" "select public.set_pin_archived_at()"
+
 expect_eq "storage buckets: tolet private, tolet-public public, 512 KB, webp/jpeg only" \
   "select string_agg(id || ':' || public || ':' || file_size_limit || ':' || array_to_string(allowed_mime_types, '+'), ' ' order by id) from storage.buckets" \
   "tolet:false:524288:image/webp+image/jpeg tolet-public:true:524288:image/webp+image/jpeg"

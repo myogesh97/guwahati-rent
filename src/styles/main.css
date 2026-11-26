@@ -41,7 +41,7 @@
   --warn-ink: #854d0e;
   --danger: #b42318;
   --danger-tint: #fdeceb;
-  --wa: #128c4b;
+  --wa: #0f7a41;
 
   --bg: #f8fafc;
   --surface: #ffffff;
@@ -279,10 +279,10 @@ a {
   color: #fff;
 }
 .btn-whatsapp:hover {
-  background: #0e7a40;
+  background: #0c6a38;
 }
 .btn-whatsapp:active {
-  background: #0b6634;
+  background: #0a5a2f;
 }
 .btn-sm {
   min-height: 36px;

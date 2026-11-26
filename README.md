@@ -1,186 +1,141 @@
 # guwahati-rent
 
-An anonymous, crowdsourced rent map for Guwahati. **Read [SPEC.md](SPEC.md) (v2) first**, starting with §0. It covers scope, security rules, schema and build order.
+An anonymous, crowdsourced rent map for Guwahati. Renters pin what they pay (no name, no contact, location rounded to ~110 m), and anyone can see medians by locality, monsoon waterlogging reports and photos of To-Let boards.
 
-**Status (26 Nov 2026): project wrapped, see [STATUS.md](STATUS.md). No further phases; Phase 3 and 4 are cancelled.** Earlier status (23 Nov): Phases 0, 1, 2a, 2 and 2c (launch hardening, [PHASE-2C.md](PHASE-2C.md)) are live on `guwahati-rent.netlify.app`. Production has migrations 0001–0010 applied (`supabase migration list --remote`) and all 8 Edge Functions ACTIVE; the six 2c.2 functions (`submit-pin`, `edit-pin`, `report-pin`, `report-tolet`, `submit-tolet`, `admin-review`) were redeployed on 15 Nov. The frontend is `main` as of PR #2 (demo showcase + map centre, 23 Nov); the last tag is `v0.4.0`, so 2c and the showcase are not tagged yet. The Supabase project is `ngssgjuagrlyhsvtiwhk` in South Asia (Mumbai), as SPEC §2 assumes (moved 15 Nov 2026, see [MIGRATE-REGION.md](MIGRATE-REGION.md)). The map holds 1 real pin so far. Phase 2b (survey import) is built (`scripts/import-survey.ts`) and waits on the Google Form; Phase 3 (listings, seekers, email) waits for ~300 real pins (NEXT-PHASES §5). Launch status and blockers: **[PRODUCTION_READINESS_REPORT.md](PRODUCTION_READINESS_REPORT.md)**. Deploy order and rollback: **[DEPLOY.md](DEPLOY.md)** and [NETLIFY_DEPLOYMENT_CHECKLIST.md](NETLIFY_DEPLOYMENT_CHECKLIST.md). Changes since `v0.3.0`: [CHANGELOG.md](CHANGELOG.md).
+**Live:** https://guwahati-rent.netlify.app · **Release:** `v0.5.0` · **Status:** wrapped (maintenance mode), see below.
 
-## Run it locally
+## Status (26 Nov 2026)
 
-```bash
-npm install
-npm run dev          # http://localhost:5173
-```
+The project is **wrapped**: no further feature phases. Phase 3 (owner listings, seeker matching, email digests) and Phase 4 (locality SEO pages, Rent Index) are **cancelled**. Only bug fixes, security fixes and the wrap-up items are in scope.
 
-With no `.env` the map works in **read-only mode** (no pins, "Pin your rent" disabled). That's also how the first Netlify deploy will look until Supabase is connected.
+| | |
+|---|---|
+| Frontend | `main` auto-deploys to Netlify (Phases 0, 1, 2a, 2, 2b importer, 2c) |
+| Database | Supabase `ngssgjuagrlyhsvtiwhk`, South Asia (Mumbai); migrations `0001`–`0010` applied. `0011_pin_erasure.sql` (real pin deletion) is in the repo and not yet applied: see [DEPLOY.md](DEPLOY.md) |
+| Edge Functions | all 8 deployed (2c.2 versions) |
+| Public data | **0 rents, 0 To-Let boards** on the live map (checked 26 Nov). The map works but is empty until real rents are added |
+| Demo showcase | built, opt-in (`VITE_DEMO_SHOWCASE`), **off** in production |
+| Open items | [docs/wrap/WRAP_REPORT.md](docs/wrap/WRAP_REPORT.md) (release verdict) and [docs/wrap/HUMAN_REQUIRED.md](docs/wrap/HUMAN_REQUIRED.md) (owner actions) |
 
-To enable pinning, copy `.env.example` to `.env` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (Supabase → Project Settings → API; the anon / publishable key, **never** the service role / secret key). In `npm run dev` without a Turnstile key, Cloudflare's always-pass test key is used automatically.
+[STATUS.md](STATUS.md) is the owner's status log. The `docs/wrap/` reports are the latest audit. Where they disagree on a finding, the newer dated document wins.
 
-```bash
-npm run typecheck && npm run lint && npm test && npm run test:deno && npm run build
-```
-
-`npm run test:db` applies every migration to a throwaway local Postgres + PostGIS (needs `initdb`/`pg_ctl`/`psql` and PostGIS; never touches the real project) and checks the SPEC §5 security rules and the stats rules. `npm run test:browser` (after `npm run build`) drives headless Chrome over all six target viewports and every demo mode, with production writes blocked; see `scripts/browser-smoke.mjs`. `npm test` runs the Node unit tests (shared rules, filters, image checks, survey import, locality sync, demo dataset). `npm run test:deno` runs the Edge Function helper tests with Deno. CI (`.github/workflows/ci.yml`) runs all of these on every push.
-
-### Demo mode (development only)
-
-`npm run dev`, then open one of:
-
-| URL               | Fictional pins | Purpose                                                                                                          |
-| ----------------- | -------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `/?demo=normal`   | 25             | normal density                                                                                                   |
-| `/?demo=dense`    | 80             | many pins per area, 8 spots shared by 2+ pins                                                                    |
-| `/?demo=stress`   | 260            | stress test, 32 shared spots                                                                                     |
-| `/?demo=crowded`  | 1,000          | crowded city, 20% of pins share a building                                                                       |
-| `/?demo=packed`   | 5,000          | very crowded                                                                                                     |
-| `/?demo=max`      | 20,000         | the most SPEC §8.4 expects to load at once                                                                       |
-| `/?demo=full`     | 500            | every pin is a complete form submission that follows all the form rules (checked by `tests/demo-data.test.ts`)   |
-| `/?demo=showcase` | 45             | hand-written illustrative rentals across 24 neighbourhoods (`src/demo/showcase.ts`), for showing a populated map |
-
-Every demo pin is generated in the browser by `src/demo/demo-data.ts` (deterministic: same scenario, same pins). Nothing is written to any database, so there is nothing to clean up: remove `?demo=` (or click **Exit demo**). A banner says DEMO MODE, every pin card says **DEMO — NOT A REAL RENTAL**, real pins are not loaded, and adding pins is off. The whole branch sits behind `import.meta.env.DEV`, so `?demo=` does nothing on the live site and production builds contain no demo data, banner or QA hook (verify: `grep -r "demoPins\|__grMap\|demo-showcase" dist/` is empty).
-
-**Showcase next to real pins (opt-in, off on production).** A build with `VITE_DEMO_SHOWCASE=true` adds the 45 showcase pins to the real ones while there are fewer than 50 real rents. Adding, editing and deleting real pins work as normal. Demo pins say DEMO on the card and in the list, make no renter claims, have no Report button, and are left out of the live counts, the monsoon heatmap and the stats; the count reads "N rents pinned + 45 DEMO". Unset (the default), the code is not in the bundle. Turning it on for production overrides PHASE-2C rule 6 ("no demo data in production builds"), so scope it to Netlify **Deploy previews** unless that rule is changed.
-
-## Map tiles and assets
-
-- `public/tiles/guwahati.pmtiles`: Protomaps build 20260922 (schema v4), bbox `91.55,26.05,91.95,26.25`. Served from this site; no R2 needed for now.
-- `public/map-assets/`: self-hosted fonts + sprite (see its README). The map has no third-party runtime dependency except Cloudflare Turnstile on forms.
-- `src/tiles.ts` uses range requests and falls back to downloading the whole 3 MB file once if a host ignores them, so the map can't go blank on hosts without range support.
-
-## Supabase setup (one time)
-
-1. Create the project (region Mumbai). Dashboard → Database → Extensions: enable **postgis**, **pg_cron**, **pg_net**.
-2. Apply the schema:
-   ```bash
-   npx supabase login
-   npx supabase link --project-ref <ref>
-   npx supabase db push
-   ```
-   `0002_cron.sql` needs pg_cron + pg_net. Its digest job reads Vault secrets created in Phase 3 (SPEC §6.3); it's harmless before then.
-3. **Security gate:** in the SQL editor insert the test rows from SPEC §15 Phase 0, then:
-   ```bash
-   SUPABASE_URL=https://<ref>.supabase.co SUPABASE_ANON_KEY=<anon-or-publishable-key> npm run security-check
-   ```
-   Every line must say PASS (exit 0). A server error or unreachable project ABORTs instead of passing. Delete the test rows afterwards.
-4. Function secrets, then deploy:
-   ```bash
-   npx supabase secrets set TURNSTILE_SECRET_KEY=... HASH_SALT="$(openssl rand -hex 32)" \
-     ALLOWED_ORIGINS=http://localhost:5173,https://<your-site>.netlify.app
-   npx supabase functions deploy submit-pin
-   npx supabase functions deploy edit-pin
-   ```
-   `RESEND_API_KEY`, `EMAIL_FROM`, `SITE_URL` are only needed from Phase 3.
-
-## Migration 0003: living conditions (water, monsoon detail, power cuts, maintenance)
-
-Additive only: new nullable columns on `pins` plus three consistency constraints, and `public_pins` re-created with the new columns **appended** (grants kept). Existing pins are untouched and read as "not reported". `waterlogging` stays and is now derived by `submit-pin` from the detailed answer, so the heatmap/stats (SPEC §8.3) keep working.
-
-Deploy in this order, or new submissions fail until the next step is done:
-
-1. `npx supabase db push` (applies `0003_living_conditions.sql`)
-2. `npx supabase functions deploy submit-pin`
-3. Netlify deploy of the frontend
-
-The frontend reads `public_pins?select=*`, so the map keeps loading even if step 3 happens before step 1.
-
-## Phase 2a: To-Let photo boards (migrations 0004 + 0005)
-
-Anyone can photograph a To-Let board: **Spot a To-Let** (header on desktop, "To-Let board" button on phones) opens the camera, the photo is compressed in the browser (`src/ui/image.ts`: 1280 px WebP + 320 px thumb, JPEG if the browser can't write WebP, metadata stripped), the location comes from GPS (or a tap on the map), then Turnstile → `tolet-upload-url` → two signed uploads → `submit-tolet`. Boards stay private until approved on `/admin.html`, expire after 60 days, and are hidden after 3 "Board is gone" reports. `tolet-maintenance` (nightly via pg_cron) deletes expired/rejected/gone rows **and** their files.
-
-Deploy in this order:
-
-1. **Vault secrets** (SQL editor, never in a migration). Skip `project_url` if it already exists:
-   ```sql
-   select vault.create_secret('https://<ref>.supabase.co', 'project_url');
-   select vault.create_secret('<CRON_SECRET value>', 'cron_secret');
-   ```
-2. `npx supabase secrets set CRON_SECRET=<the same value>` (generate with `openssl rand -hex 32`).
-3. `npx supabase db push` (applies `0004_tolet_and_survey.sql`, then `0005_tolet_cron.sql`).
-4. Deploy the functions, each with `--no-verify-jwt`: `tolet-upload-url`, `submit-tolet`, `report-tolet`, `admin-review`, `tolet-maintenance`.
-5. Supabase → Authentication → URL Configuration: add `http://localhost:5173/admin.html` and `https://<your-site>.netlify.app/admin.html` to Redirect URLs.
-6. Open `/admin.html`, request a login link for your email, open it, then in SQL:
-   `insert into admins (user_id) select id from auth.users where email = '<your email>';`
-7. Commit, push, Netlify redeploys. Then re-run `npm run security-check` (now includes the Phase 2a checks).
-
-Until step 3 the map simply shows no boards (the old `public_tolet` view has different columns; the app logs a warning and carries on).
-
-## Phase 2: trust, stats, filters, monsoon layer, list view (migrations 0006 + 0007)
-
-- **Report a pin** (flag button on other people's pins): reason + optional private note, Turnstile, 10/day, one report per pin per browser. 3 open reports from different browsers auto-hide a pin (`status = 'hidden'`) until an admin decides. `admin.html` → **Reported pins**: **Keep** (restore, close reports) or **Remove** (archive). Every admin decision, including To-Let approvals, goes to `moderation_log`. Notes are deleted 90 days after a report is resolved (`cleanup()`).
-- **"Not available"** box on every rent pin card.
-- **Rent double-check**: over 2× the area median (5+ rents of that BHK there) asks "Is it correct?".
-- **Filters** (`src/filters.ts`, URL-synced, shareable). Default "posted within" is **18 months**; older rents stay reachable with "All".
-- **Stats** dialog: medians only, 3+ rents per group, last 18 months (`0007_stats_recency.sql`).
-- **Monsoon waterlogging** heatmap toggle with a legend; `?water=1` opens it.
-- **Map / List**: an accessible, sortable table of the same filtered rents (`?view=list`).
-- **Edit your own pin**: `edit-pin` action `update`, same validation as `submit-pin` (shared in `_shared/pin-fields.ts`).
-
-Deploy in this order:
-
-1. `npx supabase db push` (applies `0006_reports_moderation.sql`, then `0007_stats_recency.sql`).
-2. `npx supabase functions deploy report-pin --no-verify-jwt`, then redeploy `edit-pin`, `submit-pin` and `admin-review` (all `--no-verify-jwt`).
-3. Commit, push, Netlify redeploys.
-4. Re-run `npm run security-check` with the test rows **and** the test report from the script header.
-
-## Phase 2b: survey import
-
-Real renters fill a Google Form (questions in NEXT-PHASES §3.2). Download the responses as CSV, then:
+## Quick start
 
 ```bash
-npm run import-survey -- responses.csv --dry-run          # counts only, writes nothing
-SUPABASE_URL=https://<ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<secret> npm run import-survey -- responses.csv
+git clone https://github.com/myogesh97/guwahati-rent.git && cd guwahati-rent
+npm ci                     # Node 22+
+cp .env.example .env       # optional: fill VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
+npm run dev                # http://localhost:5173
 ```
 
-Rows without consent, with "Other"/unknown localities or implausible rents are skipped and counted. Pins go to the locality centre plus a fixed ≤150 m offset (same row, same spot), rounded to 3 dp, marked `source='survey'` and `location_approx=true`; the pin card says "Approximate location" and "shared via our rent survey". Re-running the same CSV adds nothing. "Water comes in" is stored as `waterlog_where = ['inside_home']`, "Road only" as `['access_road']`. The key is read from the environment only; the script refuses publishable/anon keys.
+With no `.env` the map runs **read-only** (no pins, "Pin your rent" disabled). Use only the anon / publishable key in `.env`, **never** the service-role or secret key. In dev without a Turnstile key, Cloudflare's always-pass test key is used.
 
-## Phase 2c: launch hardening (migration 0010)
+## Architecture
 
-Live since 15 Nov. Details: [PHASE-2C.md](PHASE-2C.md) and [CHANGELOG.md](CHANGELOG.md).
+```mermaid
+flowchart LR
+  U[Browser] -->|HTML, JS, PMTiles| N[Netlify]
+  U -->|reads: public views + area_stats, anon key| DB[(Supabase Postgres + PostGIS)]
+  U -->|writes + Turnstile token| EF[8 Edge Functions, Deno]
+  EF -->|service role| DB
+  EF -->|signed upload URLs| ST[(Supabase Storage)]
+  EF -->|siteverify| CF[Cloudflare Turnstile]
+  CRON[pg_cron] --> DB
+  CRON -->|x-cron-secret| EF
+```
 
-- **2c.1 (frontend/copy):** medians only (clusters show a count, never an average), explicit unticked consent on every form, "This is what a tenant pays. It is not a listing." on pin cards, live counts (hidden below 50 rents), About FAQ, and every policy number from `POLICY` in `src/config.ts` (checked by `tests/policy.test.ts`).
-- **2c.2 (`0010_privacy_k_anon.sql` + functions):** `public_pins` shows a society name only when 3+ pins within 300 m share it, and size only as `sqft_band`; a shared PII filter (`_shared/pii.ts`) rejects phones, emails and links in public text; the functions refuse submissions without `consent: true` and store `consented_at`.
+- **Frontend** (`src/`): Vite 6 + TypeScript, no framework. MapLibre GL 6 renders one GeoJSON source (never a DOM marker per pin) over self-hosted Protomaps tiles (`public/tiles/guwahati.pmtiles`). The map chunk is lazy-loaded after first paint.
+- **Reads**: plain `fetch` to PostgREST views (`public_pins`, `public_tolet`, `public_stats_city`, `public_stats_locality`) and the `area_stats` RPC. Private tables are not readable by the anon key.
+- **Writes**: only through Edge Functions (`supabase/functions/`): `submit-pin`, `edit-pin`, `report-pin`, `tolet-upload-url`, `submit-tolet`, `report-tolet`, `admin-review`, `tolet-maintenance`. Each validates with zod, verifies Turnstile server-side, rate-limits on salted IP and browser hashes, and rounds coordinates (pins 3 dp, boards 4 dp).
+- **Privacy in the database** (`0010_privacy_k_anon.sql`): a society name is public only when 3+ pins within 300 m share it; size is public only as a band; stats are medians of groups of 3+.
+- **Admin**: `/admin.html`, Supabase Auth magic link, gated by the `admins` table inside `admin-review`.
 
-## Ops (GitHub Actions)
+Rules that must never be broken are in [SPEC.md](SPEC.md) §5 (also summarised in [CLAUDE.md](CLAUDE.md)).
 
-`.github/workflows/`: `ci.yml` (every push), `backup.yml` (weekly `pg_dump`, 90-day artifact), `keepalive.yml` (every 2 days), `nightly-rebuild.yml`. Secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_DB_URL` (Session pooler string), `NETLIFY_BUILD_HOOK_URL`.
+## Scripts
 
-## Deploy (Netlify)
+| Command | What it does |
+|---|---|
+| `npm run dev` / `build` / `preview` | Vite dev server, production build to `dist/`, serve the build |
+| `npm run typecheck` / `lint` | `tsc --noEmit`, ESLint |
+| `npm test` | Node unit tests (`tests/*.test.ts`) |
+| `npm run test:deno` | Edge Function helper tests (Deno) |
+| `npm run test:db` | Applies every migration to a throwaway local Postgres + PostGIS and asserts the security and stats rules. Never touches production |
+| `npm run test:browser` | Headless Chrome over 6 viewports with the production CSP. Writes to Supabase are blocked; reads hit the project in `.env`. Three checks need at least one live pin |
+| `npm run security-check` | Anon-key probes against a live project. Seed the test rows from the script header first, then delete them |
+| `npm run import-survey -- file.csv --dry-run` | Survey CSV importer (Phase 2b). Without `--dry-run` it needs `SUPABASE_SERVICE_ROLE_KEY` in the environment |
 
-`netlify.toml` is ready (build `npm run build`, publish `dist`, Node 22). In Netlify: **Add new site → Import from Git → this repo**, then Site configuration → Environment variables:
+Before any commit: `npm run typecheck && npm run lint && npm test && npm run test:deno && npm run test:db && npm run build`. CI runs the same, plus `npm audit --omit=dev`.
 
-| Variable                  | Value                                                                               |
-| ------------------------- | ----------------------------------------------------------------------------------- |
-| `VITE_SUPABASE_URL`       | `https://<ref>.supabase.co`                                                         |
-| `VITE_SUPABASE_ANON_KEY`  | anon / publishable key                                                              |
-| `VITE_TURNSTILE_SITE_KEY` | Turnstile site key (add the netlify.app hostname to the widget's allowed domains)   |
-| `VITE_SITE_URL`           | `https://<your-site>.netlify.app`                                                   |
-| `VITE_DEMO_SHOWCASE`      | optional, unset on production; `true` (Deploy previews only) adds the DEMO showcase |
+## Environment variables
 
-Redeploy after changing variables (they're baked in at build time).
+Frontend (`.env`, baked in at build time, public by design):
 
-## Tested (Phase 1)
+| Variable | Notes |
+|---|---|
+| `VITE_SUPABASE_URL` | `https://<ref>.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | anon / publishable key only |
+| `VITE_TURNSTILE_SITE_KEY` | add the site hostname to the widget's allowed domains |
+| `VITE_SITE_URL` | canonical origin; a `localhost` value is ignored in production builds |
+| `VITE_TILES_URL` | optional external PMTiles URL (also add it to the CSP `connect-src`) |
+| `VITE_DEMO_SHOWCASE` | optional, keep unset in production |
 
-Against a local Postgres 16 + PostGIS with Supabase's roles and default grants, PostgREST, the real Edge Functions in Deno, and the site in Chromium (Pixel 7 viewport):
+Edge Function secrets (`npx supabase secrets set …`, never in a `VITE_` variable): `TURNSTILE_SECRET_KEY`, `HASH_SALT`, `ALLOWED_ORIGINS`, `CRON_SECRET` (same value as the Vault secret `cron_secret`), optional `CLIENT_IP_HEADER`. `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected by the runtime.
 
-- Migration applies cleanly; all security-gate checks pass, including tables created **later** (default privileges) and a negative control (a deliberately leaked contacts table is caught).
-- Matching, dedupe, rate limits, 3-report auto-hide, cleanup and outlier flagging behave as specified.
-- submit-pin: valid pin accepted; bad Turnstile, outside Guwahati, implausible rent and junk input rejected; coordinates stored rounded to 3 dp; locality assigned; rate limit 5/day.
-- edit-pin: wrong token rejected, right token deletes; contact rows removed.
-- Browser: welcome → place pin → client-side rent check → submit → WhatsApp share → refresh via `/?pin=<id>` → only your pin shows Delete → delete. No console errors.
+GitHub Actions secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (keepalive), `SUPABASE_DB_URL` (Session pooler string, backups), `BACKUP_AGE_RECIPIENT` (age public key, backups), `NETLIFY_BUILD_HOOK_URL`.
 
-Not testable from the build machine: real Cloudflare Turnstile (stubbed locally), a real Supabase project, Netlify's range-request behaviour (the fallback covers it), real phones on 4G.
+## Deploying
 
-## Deviations from the spec
+Order is always **database → functions → frontend**. Full steps and rollback: [DEPLOY.md](DEPLOY.md).
 
-- **Living-condition fields (migration 0003)** go beyond SPEC §6.1, at the owner's request. They are optional, carry no contact data, and are shown as "renter-reported, not verified". Rules shared by the form and `submit-pin` live in `_shared/rules.ts` (`pruneConditions`, `conditionProblems`, `waterlogSummary`).
-- **flatpickr** (MIT, ~15 KB gzipped) was added beyond SPEC §16 at the owner's request, for the "when did you last see these conditions" calendar. It is loaded on demand (its own chunk), only when the rent form opens. Dropdowns were replaced by option chips instead of a dropdown library.
-- **To-Let entry point:** NEXT-PHASES §2a.1 says to enable a choice in `#dlg-add`, but that chooser was removed earlier (desktop: click the map; phones: the button). "Spot a To-Let" is therefore its own button next to "Pin your rent".
-- **Look:** a small design system, documented at the top of `src/styles/main.css`: 8px controls, 12px floating panels, 14px dialogs, no pill buttons; one control height (40px mouse / 44px touch); system font with weights 400–600 and tabular numerals for rents; deep teal `#0b5566` for brand and "chosen", orange `#d14400` for the one primary action (`#ea580c` only as a map mark: it is below AA behind white text); one floating-panel surface (hairline + soft shadow). Rents are price tags on the map (teal = gated, white = not gated, orange = selected). The basemap is Protomaps `light`, never tinted or filtered. Every dialog closes on an outside click or tap.
-- **Demo mode** is a dev-only, in-browser fixture. It is deliberately not a database seed because SPEC §5.13 says "never invent seed data". The showcase scenario can also be built into a deploy with `VITE_DEMO_SHOWCASE=true` (still in-browser only, labelled DEMO); it is off on production.
-- **Map centre** is `[91.77, 26.15]` (the middle of `localities.json`), not SPEC v2's original `[91.7362, 26.1445]`, so phones open on the central belt.
+```bash
+npx supabase link --project-ref <ref>
+npx supabase db push                                    # migrations
+npx supabase functions deploy <name> --no-verify-jwt    # each changed function
+git push origin main                                    # Netlify builds and publishes
+```
 
-- Reads use plain `fetch` to PostgREST instead of supabase-js (main bundle is ~7 KB gzipped vs a 60 KB budget). supabase-js stays a dependency for the Phase 4 admin page.
-- Zod runs in the Edge Functions only. Shared rules (bbox, plausibility bands) live in `supabase/functions/_shared/rules.ts`, which both the browser and Deno import.
-- Edge Functions import with `npm:` specifiers (no import map needed). `supabase/config.toml` sets `verify_jwt = false` for public functions (they do their own Turnstile + rate limiting; also required for `sb_publishable_` keys).
-- Tiles served from the site itself (3.1 MB) instead of R2; glyphs/sprite self-hosted now rather than in Phase 4.
-- Waterlogging / water / power fields are in the Phase 1 form (cheap, and the core differentiator).
-- `typescript-eslint` added (ESLint can't parse TS without it); `vite.config.ts` excluded from `tsc` (needs `@types/node`).
+Setting up a new Supabase project from scratch (extensions, secrets, Vault, cron, admin user, Auth redirect URLs) is the walkthrough in [MIGRATE-REGION.md](MIGRATE-REGION.md).
+
+## Operations
+
+| Workflow | Schedule | Purpose |
+|---|---|---|
+| `ci.yml` | push to `main`, PRs | audit, typecheck, lint, tests, build, bundle assertions; database job on Postgres 17 + PostGIS |
+| `backup.yml` | Sunday 03:30 IST | `pg_dump` of the `public` schema, encrypted with [age](https://age-encryption.org) to `BACKUP_AGE_RECIPIENT`, kept as a 90-day artifact. The private key stays offline with the owner. Artifacts of a public repo can be downloaded by any signed-in GitHub user, so the job refuses to run without the key |
+| `keepalive.yml` | every 2 days | one anon read so the free Supabase project doesn't pause |
+| `nightly-rebuild.yml` | 03:30 IST | Netlify build hook (keeps `sitemap.xml` fresh) |
+
+Dependabot opens weekly PRs for npm and Actions. Security reports: [SECURITY.md](SECURITY.md).
+
+## Demo mode (development only)
+
+`npm run dev`, then open `/?demo=normal|dense|stress|crowded|packed|max|full|showcase` (25 to 20,000 fictional pins). Demo pins are generated in the browser, never stored, and labelled DEMO everywhere; adding pins is off. The code is behind `import.meta.env.DEV`, and CI checks that `dist/` contains none of it. A build with `VITE_DEMO_SHOWCASE=true` adds the 45 showcase pins next to real ones; keep that to Deploy previews.
+
+## Repository map
+
+| Path | Contents |
+|---|---|
+| `src/` | app (`main.ts`, `map.ts`, `layers.ts`, `filters.ts`), forms, UI, admin page, styles, dev-only `demo/` |
+| `supabase/migrations/` | `0001`–`0011`, applied in order |
+| `supabase/functions/` | 8 Edge Functions + `_shared/` (rules, PII filter, Turnstile, rate limits) |
+| `tests/` | Node unit tests; `tests/db/` the database suite |
+| `scripts/` | security gate, browser smoke test, survey importer, diagnostics |
+| `public/` | tiles, map fonts and sprite, `localities.json` (must equal `_shared/localities.ts`; a test enforces it) |
+| `docs/wrap/` | final audit: report, ledger, ACR, threat model, release checklist, owner actions, ADRs |
+
+Design and history: [SPEC.md](SPEC.md) (v2, original design), [NEXT-PHASES.md](NEXT-PHASES.md), [PHASE-2C.md](PHASE-2C.md), [CHANGELOG.md](CHANGELOG.md). Root-level `*_REPORT.md`, `*_CHECKLIST.md` and `*_ANALYSIS.md` files are dated snapshots from 12–26 Nov, kept for history.
+
+## Deviations from SPEC v2
+
+- Living-condition fields (water, monsoon detail, power) go beyond SPEC §6.1 at the owner's request: optional, no contact data, shown as "reported by the renter, not verified".
+- flatpickr (MIT) added for one date field, loaded on demand.
+- "Spot a To-Let" is its own button rather than a choice inside the add dialog.
+- Map centre is `[91.77, 26.15]`, so phones open on the central belt.
+- Tiles, glyphs and sprite are self-hosted from the site instead of R2.
+- Reads use plain `fetch` instead of supabase-js (smaller bundle); zod runs only in the Edge Functions.
+- Public functions use `verify_jwt = false` and protect themselves (Turnstile, rate limits, tokens). This is required for `sb_publishable_` keys.
+
+## Licence
+
+No licence file yet: all rights reserved by default. See [docs/wrap/HUMAN_REQUIRED.md](docs/wrap/HUMAN_REQUIRED.md).

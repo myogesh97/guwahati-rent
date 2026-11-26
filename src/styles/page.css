@@ -148,16 +148,16 @@ small,
   min-height: 44px;
   padding: 0 18px;
   border-radius: 8px;
-  background: #128c4b;
+  background: #0f7a41;
   color: #fff;
   font-weight: 600;
   text-decoration: none;
 }
 .btn-whatsapp:hover {
-  background: #0e7a40;
+  background: #0c6a38;
 }
 .btn-whatsapp:active {
-  background: #0b6634;
+  background: #0a5a2f;
 }
 .sr-only {
   position: absolute;

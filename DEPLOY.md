@@ -65,7 +65,7 @@ Open the site and `/admin.html` with the browser console open: 0 CSP violations.
 |---|---|
 | Frontend | Netlify → Deploys → pick the previous deploy → **Publish deploy**. Instant. |
 | Edge Functions | `git checkout <previous tag or commit> -- supabase/functions && npx supabase functions deploy --no-verify-jwt`, then return to `main`. |
-| Database | No automatic rollback. Write a forward migration that reverses the change, or restore from the weekly dump (`.github/workflows/backup.yml` artifacts) with `pg_restore --clean --if-exists --schema=public`. Restoring loses pins added since the dump. |
+| Database | No automatic rollback. Write a forward migration that reverses the change, or restore from the weekly dump (`.github/workflows/backup.yml` artifacts, age-encrypted since 26 Nov): `age -d -i backup-key.txt db-<date>.dump.age > db.dump`, then `pg_restore --clean --if-exists --schema=public`. Restoring loses pins added since the dump. |
 
 Tag every production release (`git tag v0.x && git push --tags`) so there is always something to roll back to.
 

@@ -1,10 +1,17 @@
 # Weekly database dump (SPEC §14.1). The free tier has no backups.
 # Secret: SUPABASE_DB_URL = the Session-pooler connection string (Dashboard → Connect).
-# Dumps are workflow artifacts (not committed): they contain whatever personal data the DB holds.
+# Secret: BACKUP_AGE_RECIPIENT = an age public key (age1...). The matching private key stays offline
+# with the owner; it is never in GitHub. This repo is public, and artifacts of a public repo can be
+# downloaded by any signed-in GitHub user, so the dump is encrypted before it touches the disk and
+# only the .age file is uploaded (docs/wrap/PENDING.md PW-25). No key = no backup, never plaintext.
+# Restore: age -d -i backup-key.txt db-<date>.dump.age > db.dump  (then DEPLOY.md §5).
 name: weekly-backup
 on:
   schedule: [{ cron: '0 22 * * 0' }] # Sunday 03:30 IST
   workflow_dispatch:
+# Least privilege: no workflow here writes to the repository.
+permissions:
+  contents: read
 jobs:
   dump:
     runs-on: ubuntu-latest
@@ -13,11 +20,17 @@ jobs:
         run: |
           sudo apt-get install -y postgresql-common
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
-          sudo apt-get install -y postgresql-client-17
-      - name: pg_dump public schema (custom format)
+          sudo apt-get install -y postgresql-client-17 age
+      - name: pg_dump public schema (custom format), encrypted with age
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
         run: |
+          set -o pipefail
+          case "$BACKUP_AGE_RECIPIENT" in
+            age1*) ;;
+            *) echo "BACKUP_AGE_RECIPIENT is not set to an age public key (age1...). Refusing to upload an unencrypted dump."; exit 1 ;;
+          esac
           test -n "$SUPABASE_DB_URL" || { echo "SUPABASE_DB_URL secret is not set"; exit 1; }
           # Diagnose the usual failures without printing the secret. GitHub runners have no IPv6,
           # and the direct host db.<ref>.supabase.co is IPv6-only: use the Session pooler string
@@ -37,10 +50,15 @@ jobs:
           fi
           pg_isready -d "$SUPABASE_DB_URL" -t 15 || { echo "Database not reachable with SUPABASE_DB_URL (host/port/network)."; exit 1; }
           mkdir -p backups
-          pg_dump "$SUPABASE_DB_URL" --no-owner --no-privileges --schema=public -Fc -f "backups/db-$(date +%F).dump"
+          out="backups/db-$(date +%F).dump.age"
+          pg_dump "$SUPABASE_DB_URL" --no-owner --no-privileges --schema=public -Fc \
+            | age -r "$BACKUP_AGE_RECIPIENT" -o "$out"
+          # Encrypted output starts with the age header; anything else must not be uploaded.
+          head -c 21 "$out" | grep -q '^age-encryption.org/v1' || { echo "Output is not age-encrypted."; rm -f "$out"; exit 1; }
           ls -la backups
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: db-backup-${{ github.run_id }}
-          path: backups/
+          path: backups/*.age
+          if-no-files-found: error
           retention-days: 90

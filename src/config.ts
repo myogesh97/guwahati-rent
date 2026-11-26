@@ -47,4 +47,8 @@ export const POLICY = {
   societyRadiusM: 300,
   /** To-Let boards older than this get a "may be gone" badge (PHASE-2C §2c.2-D). */
   boardStaleDays: 45,
+  /** Pins removed by a moderator are erased this long after removal (0011 cleanup). */
+  removedPinRetentionDays: 30,
+  /** Weekly encrypted backups are kept this long (.github/workflows/backup.yml retention-days). */
+  backupRetentionDays: 90,
 } as const;

@@ -1,6 +1,6 @@
 # Guwahati Rent: Project Status (wrap-up)
 
-**As of 26 Nov 2026.** This file is the single current source of truth. Where any other doc disagrees about *status*, this file wins.
+**As of 26 Nov 2026.** The latest audit (release verdict, open items, owner actions) is in [docs/wrap/](docs/wrap/WRAP_REPORT.md). This file is the single current source of truth. Where any other doc disagrees about *status*, this file wins.
 SPEC.md, NEXT-PHASES.md and PHASE-2C.md still describe *how* the system works. The dated audit reports are historical snapshots.
 
 ## Decision: the project is wrapped
@@ -21,7 +21,7 @@ No further phases are planned.
 | Backups | GitHub Actions secrets point to Mumbai; `weekly-backup` green | Owner-reported |
 | Secrets | CRON_SECRET rotated in Edge Function secrets and Vault | Owner-reported |
 | Demo showcase | Built, opt-in (`VITE_DEMO_SHOWCASE`), **off** in production | 26 Nov: no DEMO banner on the live site |
-| Release tag | Last tag is `v0.4.0`. 2c and the showcase are untagged | Tag `v0.5.0` at wrap-up |
+| Release tag | `v0.5.0` (26 Nov) covers 2c and the showcase | `git tag` |
 
 ## Launch checklist at wrap-up
 
@@ -33,7 +33,7 @@ No further phases are planned.
 | P0-4 | Cron + Vault: `tolet-maintenance` runs and gets HTTP 200 | **Open**: run the SQL in "Final checks" below |
 | P0-5 | Privacy contact + DPDP review | Copy fixed; legal review not done (accepted for a wrapped side project) |
 | P0-6 | 30 locality centres checked against real places | **Open** |
-| P0-7 | 150+ real pins in 15+ localities | **Owner reports done. NOT reflected in public data:** at 18:20 IST on 26 Nov, `public_pins` returned **1** pin (Basistha, created 15 Nov). See "Final checks". |
+| P0-7 | 150+ real pins in 15+ localities | **Open.** Owner reported done, but later on 26 Nov `public_pins` returned **0** rows (the 15 Nov Basistha test pin was deleted). Tracked as P0 PW-02 in [docs/wrap/PENDING.md](docs/wrap/PENDING.md). |
 | P0-8 | Lighthouse mobile + budget Android over 4G | **Open** |
 | P1-2 | Analytics | Won't do |
 | P1-7 | Screen-reader pass | Open (optional) |

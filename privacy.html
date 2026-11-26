@@ -26,10 +26,10 @@
     <header><a href="/">← Guwahati Rent</a></header>
     <main>
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated: 15 November 2026</p>
+      <p class="updated">Last updated: 26 November 2026</p>
       <p class="note">
-        Plain-language summary of what this site collects today. This policy will be updated before
-        listing and matching features launch.
+        Plain-language summary of what this site collects, how long we keep it and how to have it
+        deleted.
       </p>
       <h2>What we collect when you pin your rent</h2>
       <ul>
@@ -104,18 +104,31 @@
       <h2>Deleting your pin</h2>
       <p>
         When you add a pin, your browser keeps a secret code that lets you delete it later from the
-        same browser: tap the pin and choose <strong>Delete my pin</strong>. If you cleared your
-        browser data, contact us (see below) and we will remove it.
+        same browser: tap the pin and choose <strong>Delete my pin</strong>. The pin, and any
+        reports about it, are erased from our database straight away. If you cleared your browser
+        data, contact us (see below) and we will remove it.
+      </p>
+      <p>
+        Otherwise a pin stays on the map until you delete it. A pin our moderators remove is hidden
+        at once and erased %POLICY.removedPinRetentionDays% days later, so the decision can be
+        checked first.
+      </p>
+      <h2>Where your data is kept</h2>
+      <p>
+        Our database is hosted by Supabase in India (Mumbai). Once a week we save an encrypted
+        backup of it with GitHub, and each backup is deleted after
+        %POLICY.backupRetentionDays% days. Something you delete can remain in a backup until that
+        backup is deleted.
       </p>
       <h2>Services we use</h2>
       <p>
-        Supabase (database), Cloudflare (spam check), Netlify (hosting), OpenStreetMap and Protomaps
-        (map data). We do not sell data, show ads, or work with brokers.
+        Supabase (database), Cloudflare (spam check), Netlify (hosting), GitHub (encrypted backups),
+        OpenStreetMap and Protomaps (map data). We do not sell data, show ads, or work with brokers.
       </p>
       <h2>Contact</h2>
-      <!-- TODO before public launch: add a contact email (e.g. hi@yourdomain.in) -->
       <p>
-        For deletion requests or questions: a contact email will be added here before public launch.
+        For deletion requests, questions or complaints about how your data is handled, email
+        <a href="mailto:m.yogesh0197@gmail.com">m.yogesh0197@gmail.com</a>.
       </p>
     </main>
     <footer class="site-footer">
@@ -125,6 +138,7 @@
           <li><a href="/about.html">About</a></li>
           <li><a href="/privacy.html" aria-current="page">Privacy</a></li>
           <li><a href="/terms.html">Terms</a></li>
+          <li><a href="mailto:m.yogesh0197@gmail.com">Contact</a></li>
         </ul>
       </nav>
     </footer>
