@@ -15,7 +15,7 @@ No further phases are planned.
 | Part | State | Verified |
 |---|---|---|
 | Frontend | `main` on Netlify (Phases 0, 1, 2a, 2, 2c.1; robots.txt, sitemap.xml, branded 404, consent checkboxes, no cluster averages) | 26 Nov, live site |
-| Database | Supabase `ngssgjuagrlyhsvtiwhk`, South Asia (Mumbai). Migrations 0001–0010 applied | 26 Nov: `public_pins` exposes the 0010 column `sqft_band` |
+| Database | Supabase `ngssgjuagrlyhsvtiwhk`, South Asia (Mumbai). Migrations 0001–0011 applied (0011 on 26 Nov: deleting a pin erases it) | 26 Nov: `public_pins` exposes the 0010 column `sqft_band` |
 | Edge Functions | All 8 active. The 2c.2 versions are deployed | 26 Nov: `submit-pin`, `submit-tolet`, `report-pin` return 400 `consent` without consent. `submit-pin` rejects a phone number and a flat number in `society_name` before Turnstile. No rows were written by these probes. |
 | Old project | Frankfurt `apgdczuofczobxaggsfy` paused or deleted | Owner-reported |
 | Backups | GitHub Actions secrets point to Mumbai; `weekly-backup` green | Owner-reported |
@@ -27,11 +27,11 @@ No further phases are planned.
 
 | ID | Item | State |
 |---|---|---|
-| P0-1 | DB backups | Done (owner-reported for Mumbai) |
+| P0-1 | DB backups | Done. Since 26 Nov encrypted with age (key held offline by the owner); the 5 earlier unencrypted artifacts were deleted 26 Nov |
 | P0-2 | Phone smoke test of every write path | Done (owner-reported 26 Nov) |
 | P0-3 | Client-IP header | Done (12 Nov) |
 | P0-4 | Cron + Vault: `tolet-maintenance` runs and gets HTTP 200 | **Open**: run the SQL in "Final checks" below |
-| P0-5 | Privacy contact + DPDP review | Copy fixed; legal review not done (accepted for a wrapped side project) |
+| P0-5 | Privacy contact + DPDP review | Contact live 26 Nov (m.yogesh0197@gmail.com); policy states region, processors, retention. Legal review not done (accepted for a wrapped side project) |
 | P0-6 | 30 locality centres checked against real places | **Open** |
 | P0-7 | 150+ real pins in 15+ localities | **Open.** Owner reported done, but later on 26 Nov `public_pins` returned **0** rows (the 15 Nov Basistha test pin was deleted). Tracked as P0 PW-02 in [docs/wrap/PENDING.md](docs/wrap/PENDING.md). |
 | P0-8 | Lighthouse mobile + budget Android over 4G | **Open** |

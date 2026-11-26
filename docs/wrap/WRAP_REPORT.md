@@ -1,6 +1,8 @@
 # Wrap report: guwahati-rent
 
-**Verdict: DO-NOT-SHIP (as a public launch).** *Update: the backup and contact P0s, plus the real-delete and policy-text P1s, are fixed in code on this branch. They close once the PR is merged, the backup key is set, the old artifacts are deleted and 0011 is deployed ([HUMAN_REQUIRED.md](HUMAN_REQUIRED.md) steps 1 and 6). The empty map remains open.* Three P0s are open, and none needs a big code change:
+**Verdict (updated 26 Nov, evening): SHIP-WITH-RISK for maintenance mode; DO-NOT-SHIP for a public launch until the map has real rents.** The backup leak, missing contact, fake deletion and policy gaps are fixed and verified on production. Open: 1 P0 (empty map, PW-02) and 4 P1s (cron unverified, Frankfurt project, screen-reader pass, locality centres).
+
+*Original verdict (26 Nov, afternoon): DO-NOT-SHIP, with three P0s (the first two now closed):*
 1. Weekly database backups are published as artifacts of a public GitHub repo.
 2. The privacy policy promises a deletion contact that does not exist.
 3. The live map has zero rents.
@@ -24,7 +26,8 @@ Open findings only. Fixed items are in the ledger.
 | G. Reliability, observability, CI/CD | 5 | 0 | 1 | 5 | 0 | Ship-with-risk |
 | H. Documentation & handoff | 7 | 0 | 0 | 0 | 2 | Ship |
 | Product (data) | 1 | 1 | 1 | 0 | 0 | **Block** (empty map) |
-| **Total open** | | **3** | **7** | **8** | **9** | **DO-NOT-SHIP** |
+| **Total open (afternoon)** | | **3** | **7** | **8** | **9** | **DO-NOT-SHIP** |
+| **Total open (evening, after PR #3 + deploy)** | | **1** | **4** | **8** | **9** | **SHIP-WITH-RISK** (maintenance) |
 
 ## Top 5 risks in plain language
 

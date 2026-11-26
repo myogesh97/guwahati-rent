@@ -4,7 +4,7 @@ Ordered by severity, then by what unblocks what. Times are estimates for one per
 
 ## Today (P0)
 
-### 1. Turn on encrypted backups and delete the old ones: PW-25 · 15 min
+### 1. ✅ Done 26 Nov: encrypted backups on, old ones deleted (PW-25)
 `backup.yml` now encrypts every dump with [age](https://age-encryption.org) and refuses to run without a key. Until step 2 is done, the weekly backup **fails on purpose**.
 1. On your own computer: `brew install age`, then `age-keygen -o ~/guwahati-rent-backup-key.txt`. It prints `Public key: age1…`.
 2. GitHub → Settings → Secrets and variables → Actions → New repository secret: name `BACKUP_AGE_RECIPIENT`, value = that `age1…` public key.
@@ -17,7 +17,7 @@ Ordered by severity, then by what unblocks what. Times are estimates for one per
    ```
 6. If any real person's data was in those dumps, record the exposure (DPDP Act 2023 s.8(6): a personal data breach must be reported to the Data Protection Board and to each affected person). On 26 Nov they contained test-looking data: 1 admin id, 2 report notes, 1 pin with a society name. Your call whether those were real people.
 
-### 2. Privacy contact: PW-01 · done in code
+### 2. ✅ Done 26 Nov: privacy contact live (PW-01)
 `m.yogesh0197@gmail.com` is on the privacy page, in every page footer, in the About FAQ and in SECURITY.md. It goes live when the PR is merged. Check that inbox weekly.
 
 ### 3. Decide what the empty map means: PW-02 · 5 min decision
@@ -41,7 +41,7 @@ A 401 means `CRON_SECRET` differs between Vault and the function secrets. If a `
 ### 5. Delete the old Frankfurt project: PW-05 · 5 min
 Supabase dashboard → project `apgdczuofczobxaggsfy` → Settings → General → Delete project. A paused project still holds data.
 
-### 6. Deploy the real-delete fix: PW-26 · 5 min, after the PR is merged
+### 6. ✅ Done 26 Nov: real-delete fix deployed (PW-26)
 Order matters: database first, then the function, or a delete fails.
 ```bash
 npx supabase db push --linked                              # applies 0011_pin_erasure.sql
@@ -49,10 +49,10 @@ npx supabase functions deploy edit-pin --no-verify-jwt
 ```
 Check in the SQL editor: `select column_name from information_schema.columns where table_name = 'pins' and column_name = 'archived_at';` returns one row.
 
-### 7. Privacy policy facts: PW-27 · done in code
+### 7. ✅ Done 26 Nov: privacy policy facts live (PW-27)
 The policy now states: data in India (Mumbai), encrypted backups with GitHub kept 90 days, deleted pins erased at once, moderator-removed pins erased after 30 days. If any of that is wrong, tell me.
 
-### 8. Legal review or written risk acceptance: PW-08 · 1–2 h with a lawyer, or 5 min to accept
+### 8. ✅ Risk-accepted (STATUS.md P0-5): legal review (PW-08)
 If you accept the risk, add a dated line to [STATUS.md](../../STATUS.md): "PW-08 risk accepted by <name>, <date>". Rule: any P1 left open needs that written acceptance.
 
 ### 9. Screen-reader and manual accessibility pass: PW-06 · about 3 h
