@@ -4,6 +4,9 @@ name: keepalive
 on:
   schedule: [{ cron: '0 6 */2 * *' }]
   workflow_dispatch:
+# Least privilege: no workflow here writes to the repository.
+permissions:
+  contents: read
 jobs:
   ping:
     runs-on: ubuntu-latest

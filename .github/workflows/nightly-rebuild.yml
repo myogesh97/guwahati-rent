@@ -4,6 +4,9 @@ name: nightly-rebuild
 on:
   schedule: [{ cron: '0 22 * * *' }] # 03:30 IST, after the cron jobs
   workflow_dispatch:
+# Least privilege: no workflow here writes to the repository.
+permissions:
+  contents: read
 jobs:
   rebuild:
     runs-on: ubuntu-latest
