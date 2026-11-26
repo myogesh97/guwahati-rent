@@ -2,7 +2,7 @@
 // update its answers with exactly the same validation as submit-pin. Location stays as pinned.
 // `load` gives the token holder back the two answers public_pins hides since migration 0010
 // (society name, exact size), so the edit form can show them and saving doesn't erase them.
-// mark_rented / renew arrive with listings in Phase 3.
+// `delete` erases the row (migration 0011). Listings (mark_rented / renew) were cancelled with Phase 3.
 import { z } from 'npm:zod@3';
 import { admin } from '../_shared/supabase.ts';
 import { withinRateLimit } from '../_shared/ratelimit.ts';
@@ -62,10 +62,10 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === 'delete') {
-      const { error: upErr } = await admin.from('pins').update({ status: 'archived' }).eq('id', body.id);
-      if (upErr) throw upErr;
-      // Archived pins lose any contact immediately (cleanup() also does this nightly).
-      await admin.from('pin_contacts').delete().eq('pin_id', body.id);
+      // Withdrawing consent erases the pin (migration 0011): contacts, reports, matches and
+      // interests cascade; moderation_log keeps its entry with pin_id set to null.
+      const { error: delErr } = await admin.from('pins').delete().eq('id', body.id);
+      if (delErr) throw delErr;
       return ok(req);
     }
 
